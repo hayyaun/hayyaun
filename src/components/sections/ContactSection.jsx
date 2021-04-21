@@ -3,19 +3,10 @@ import styled from 'styled-components';
 import Title from '../micro/Title';
 
 const information = [
-  { title: 'Email', data: 'keyn432des@gmail.com' },
-  { title: 'Website', data: 'fasterdes.hasnnode.dev' },
-  { title: 'Phone', data: '+62 813 8399 2175' },
-  {
-    title: 'Address',
-    data: `
-Villa Indah Permai , Block I/18 No 3 RT 11 RW36
-Teluk Pucung , North Bekasi , Bekasi , Indonesia
-Name
-Email
-`,
-  },
+  { title: 'Email', data: 'hayyaun@outlook.com' },
+  { title: 'Website', data: 'hayyaun.com' },
 ];
+
 const ContactSection = forwardRef((_, ref) => {
   return (
     <Container ref={ref}>
@@ -34,12 +25,7 @@ const ContactSection = forwardRef((_, ref) => {
             <Input placeholder="Name" type="text" />
             <Input placeholder="Email" type="email" />
           </InputContainer>
-          <TextArea
-            placeholder="Message"
-            name=""
-            id=""
-            cols="30"
-            rows="10"></TextArea>
+          <TextArea placeholder="Message" rows={8} />
           <SubmitBtn type="submit">Submit Your Email</SubmitBtn>
         </Form>
       </SecContainer>
@@ -49,9 +35,7 @@ const ContactSection = forwardRef((_, ref) => {
 
 export default ContactSection;
 
-const Container = styled.section`
-  height: 60vh;
-`;
+const Container = styled.section`F`;
 const SecContainer = styled.div`
   display: flex;
   justify-content: space-around;
@@ -71,6 +55,7 @@ const H3 = styled.h3`
 const Input = styled.input`
   font-size: 1rem;
   font-weight: 800;
+  font-family: 'Poppins';
   padding: 1rem;
   border-radius: 0.5rem;
   border: 1.5px solid #0e2431;
@@ -79,15 +64,15 @@ const Input = styled.input`
   width: 140px;
 `;
 const TextArea = styled.textarea`
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
+  font-family: 'Poppins';
   padding: 1rem;
   border-radius: 0.5rem;
   border: 1.5px solid #0e2431;
   outline: none;
   margin-bottom: 2rem;
 `;
-
 const InputContainer = styled.div`
   width: 370px;
   display: flex;
