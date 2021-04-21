@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import Button from '../components/system/Button';
+import Button from '../micro/Button';
 import { navigate } from 'gatsby';
 
 const resumeUrl = 'https://www.linkedin.com/in/hayyaun';

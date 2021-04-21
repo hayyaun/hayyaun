@@ -1,7 +1,7 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import Objects from '../components/3d/Objects';
-import Title from '../components/system/Title';
+import ObjectsScene from '../3d/scenes/ObjectsScene';
+import Title from '../micro/Title';
 
 const AboutSection = forwardRef((_, ref) => {
   return (
@@ -9,7 +9,7 @@ const AboutSection = forwardRef((_, ref) => {
       <Title>About Me</Title>
       <ContentBox>
         <AnimeBox>
-          <Objects />
+          <ObjectsScene />
         </AnimeBox>
       </ContentBox>
     </Container>
@@ -30,7 +30,7 @@ const ContentBox = styled.div`
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin: 0 24px;
+  margin: 0 24px 0 0;
   gap: 32px;
 `;
 

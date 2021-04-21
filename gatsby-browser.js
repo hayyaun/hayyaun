@@ -1,5 +1,5 @@
 import React from 'react';
-import Layout from './src/components/layout/Layout';
+import Layout from './src/components/block/Layout';
 import './src/config/global-styles.scss';
 
 export const wrapPageElement = ({ element, props }) => {

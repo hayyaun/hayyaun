@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import Footer from '../components/layout/Footer';
-import Navbar from '../components/layout/Navbar';
-import AboutSection from '../sections/AboutSection';
-import ContactSection from '../sections/ContactSection';
-import GallerySection from '../sections/GallerySection';
-import MainSection from '../sections/MainSection';
-import SkillsSection from '../sections/SkillsSection';
+import Footer from '../components/block/Footer';
+import Navbar from '../components/block/Navbar';
+import AboutSection from '../components/sections/AboutSection';
+import ContactSection from '../components/sections/ContactSection';
+import GallerySection from '../components/sections/GallerySection';
+import MainSection from '../components/sections/MainSection';
+import SkillsSection from '../components/sections/SkillsSection';
 
 const IndexPage = ({ location }) => {
   const _home = useRef(null);

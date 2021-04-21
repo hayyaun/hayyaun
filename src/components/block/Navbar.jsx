@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import NavLink from '../system/NavLink';
+import NavLink from '../micro/NavLink';
 
 const links = [
   { name: 'Home', to: '#home' },

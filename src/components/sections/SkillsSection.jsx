@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react';
 import styled from 'styled-components';
-import Title from '../components/system/Title';
+import Title from '../micro/Title';
 
 const SkillsSection = forwardRef((_, ref) => {
   return (
