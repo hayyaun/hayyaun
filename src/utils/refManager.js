@@ -7,9 +7,19 @@ class RefManager {
     if (!this.refs.hasOwnProperty(name)) {
       this.refs[name] = ref;
     } else if (!Array.isArray(this.refs[name])) {
-      this.refs[name] = [this.refs[name], ref];
+      this.refs[name] = ref;
     } else {
       this.refs[name].push(ref);
+    }
+  };
+
+  remove = (name) => {
+    if (!this.refs.hasOwnProperty(name)) {
+      return false;
+    } else if (!Array.isArray(this.refs[name])) {
+      delete this.refs[name];
+    } else {
+      this.refs[name].pop();
     }
   };
 

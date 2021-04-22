@@ -1,51 +1,43 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
+import ReactFullScreenComponent from 'react-easyfullscreen';
 import styled from 'styled-components';
-import Footer from '../components/block/Footer';
-import Navbar from '../components/block/Navbar';
-import AboutSection from '../components/sections/AboutSection';
-import ContactSection from '../components/sections/ContactSection';
-import GallerySection from '../components/sections/GallerySection';
-import MainSection from '../components/sections/MainSection';
-import SkillsSection from '../components/sections/SkillsSection';
+import MainScene from '../components/3d/scenes/MainScene';
+import { FiMaximize } from 'react-icons/fi';
 
 const IndexPage = ({ location }) => {
-  const _home = useRef(null);
-  const _about = useRef(null);
-  const _skills = useRef(null);
-  const _gallery = useRef(null);
-  const _contact = useRef(null);
-
-  const executeScroll = (ref) => ref.current.scrollIntoView();
-  useEffect(() => {
-    const hashes = [
-      { name: '#home', ref: _home },
-      { name: '#about', ref: _about },
-      { name: '#skills', ref: _skills },
-      { name: '#gallery', ref: _gallery },
-      { name: '#contact', ref: _contact },
-    ];
-
-    const ref = hashes.find((hash) => hash.name === location.hash)?.ref;
-    if (ref) executeScroll(ref);
-  }, [location]);
-
   return (
-    <Container>
-      <Navbar location={location} />
-      <MainSection location={location} ref={_home} />
-      <AboutSection location={location} ref={_about} />
-      <SkillsSection location={location} ref={_skills} />
-      <GallerySection location={location} ref={_gallery} />
-      <ContactSection location={location} ref={_contact} />
-      <Footer />
-    </Container>
+    <ReactFullScreenComponent>
+      {({ ref, onToggle }) => (
+        <Container>
+          <MainScene ref={ref} />
+          <FullscreenButton onClick={onToggle}>
+            <FiMaximize size={22} />
+          </FullscreenButton>
+        </Container>
+      )}
+    </ReactFullScreenComponent>
   );
 };
 
 export default IndexPage;
 
+const FullscreenButton = styled.div`
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  background-color: #000;
+  box-shadow: 0 0 8px #0002;
+  padding: 4px;
+  border-radius: 8px;
+
+  svg {
+    display: block;
+  }
+`;
+
 const Container = styled.main`
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  position: relative;
+  height: 100vh;
 `;

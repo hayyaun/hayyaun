@@ -1,7 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Bungee+Inline&family=Bungee+Outline&family=Roboto:wght@400;600;700;800&family=Roboto+Slab:wght@400;600;700&family=Poppins:wght@400;600;700&display=swap');
 
-html {
-  scroll-behavior: smooth;
+html,
+body {
+  margin: 0;
+  background-color: #000;
+  color: #fff;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  position: relative;
+  overflow: hidden;
   font-size: 12pt;
 
   @media screen and (max-width: 1200px) {
@@ -11,15 +18,6 @@ html {
   @media screen and (max-width: 600px) {
     font-size: 8pt;
   }
-}
-
-body {
-  margin: 0;
-  background-color: #000;
-  color: #fff;
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  //overflow: hidden;
 }
 
 a,
