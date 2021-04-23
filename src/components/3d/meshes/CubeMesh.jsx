@@ -1,4 +1,4 @@
-import { MeshWobbleMaterial } from '@react-three/drei';
+import { MeshWobbleMaterial, Box } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import gsap, { Power1 } from 'gsap';
 import React, { useCallback, useEffect, useRef } from 'react';
@@ -76,8 +76,7 @@ const CubeMesh = ({
   }, [index, color, jump]);
 
   return (
-    <mesh ref={_mesh} position={position} scale={scale} castShadow>
-      <boxBufferGeometry attach="geometry" args={args} />
+    <Box ref={_mesh} position={position} scale={scale} args={args} castShadow>
       <MeshWobbleMaterial
         ref={_material}
         color={color}
@@ -85,7 +84,7 @@ const CubeMesh = ({
         attach="material"
         factor={0.6}
       />
-    </mesh>
+    </Box>
   );
 };
 
