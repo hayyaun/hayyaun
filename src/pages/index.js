@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import ReactFullScreenComponent from 'react-easyfullscreen';
 import styled from 'styled-components';
 import MainScene from '../components/3d/scenes/MainScene';
@@ -9,7 +9,9 @@ const IndexPage = ({ location }) => {
     <ReactFullScreenComponent>
       {({ ref, onToggle }) => (
         <Container>
-          <MainScene ref={ref} />
+          <Suspense fallback={null}>
+            <MainScene ref={ref} />
+          </Suspense>
           <FullscreenButton onClick={onToggle}>
             <FiMaximize size={22} />
           </FullscreenButton>
