@@ -3,7 +3,7 @@ import { MeshWobbleMaterial } from '@react-three/drei';
 import gsap from 'gsap';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Color } from 'three';
-import refManager from '../../../utils/RefManager';
+import refManager from '../../../utils/refManager';
 import gui from '../scenes/MainScene/gui';
 import { meshTypes } from './types';
 
