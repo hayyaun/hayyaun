@@ -1,12 +1,13 @@
+import { MeshWobbleMaterial } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import gsap from 'gsap';
+import gsap, { Power1 } from 'gsap';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Color } from 'three';
 import refManager from '../../../utils/refManager';
 import gui from '../scenes/MainScene/gui';
 import { meshTypes } from './types';
 
-const cubesFolder = gui.__folders.cubes || gui.addFolder('cubes');
+const cubesFolder = gui && (gui.__folders.cubes || gui.addFolder('cubes'));
 
 const CubeMesh = ({
   position = [0, 0, 0],
@@ -32,12 +33,14 @@ const CubeMesh = ({
 
   const jump = useCallback(async () => {
     await gsap.to(_mesh.current.position, {
-      duration: 1,
+      duration: 0.42,
       y: _mesh.current.position.y + 1,
+      ease: Power1.easeOut,
     });
     await gsap.to(_mesh.current.position, {
-      duration: 1,
+      duration: 0.42,
       y: _mesh.current.position.y - 1,
+      ease: Power1.easeIn,
     });
   }, []);
 
@@ -75,7 +78,7 @@ const CubeMesh = ({
   return (
     <mesh ref={_mesh} position={position} scale={scale} castShadow>
       <boxBufferGeometry attach="geometry" args={args} />
-      <meshNormalMaterial
+      <MeshWobbleMaterial
         ref={_material}
         color={color}
         speed={speed}
