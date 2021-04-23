@@ -1,5 +1,4 @@
 import { useFrame } from '@react-three/fiber';
-import { MeshWobbleMaterial } from '@react-three/drei';
 import gsap from 'gsap';
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Color } from 'three';

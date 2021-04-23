@@ -1,8 +1,7 @@
 import { OrbitControls, softShadows } from '@react-three/drei';
-import React, { forwardRef, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
+import React, { forwardRef } from 'react';
 import CubeMesh from '../../meshes/CubeMesh';
-import gui from './gui';
 
 softShadows();
 
