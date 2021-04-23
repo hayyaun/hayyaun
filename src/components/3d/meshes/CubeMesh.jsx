@@ -1,12 +1,13 @@
-import { MeshWobbleMaterial } from 'drei';
+import { useFrame } from '@react-three/fiber';
+import { MeshWobbleMaterial } from '@react-three/drei';
 import gsap from 'gsap';
 import React, { useCallback, useEffect, useRef } from 'react';
-import { useFrame } from 'react-three-fiber';
+import { Color } from 'three';
 import refManager from '../../../utils/RefManager';
 import gui from '../scenes/MainScene/gui';
 import { meshTypes } from './types';
 
-const cubesFolder = gui.__folders.cube || gui.addFolder('cube');
+const cubesFolder = gui.__folders.cubes || gui.addFolder('cubes');
 
 const CubeMesh = ({
   position = [0, 0, 0],
@@ -61,7 +62,7 @@ const CubeMesh = ({
       // material
       materialFolder.add(_material.current, 'wireframe');
       materialFolder
-        .addColor({ color }, 'color')
+        .addColor({ color: new Color(color).getHex() }, 'color')
         .onChange((color) => _material.current.color.set(color));
       //actions
       actionsFolder.add({ jump }, 'jump');
@@ -75,7 +76,7 @@ const CubeMesh = ({
   return (
     <mesh ref={_mesh} position={position} scale={scale} castShadow>
       <boxBufferGeometry attach="geometry" args={args} />
-      <MeshWobbleMaterial
+      <meshNormalMaterial
         ref={_material}
         color={color}
         speed={speed}

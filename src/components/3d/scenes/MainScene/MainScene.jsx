@@ -1,22 +1,18 @@
-import { OrbitControls, softShadows } from 'drei';
+import { OrbitControls, softShadows } from '@react-three/drei';
 import React, { forwardRef, useEffect } from 'react';
-import { Canvas } from 'react-three-fiber';
+import { Canvas } from '@react-three/fiber';
 import CubeMesh from '../../meshes/CubeMesh';
 import gui from './gui';
 
 softShadows();
 
 const MainScene = forwardRef(({ fullscreenProps }, ref) => {
-  useEffect(() => {
-    return () => gui.destroy();
-  }, []);
-
   return (
     <Canvas
       colorManagement
       shadowMap
       itemRef={ref}
-      style={{ flex: 1, background: '#222' }}
+      style={{ flex: 1, background: '#222222' }}
       camera={{ position: [0, 1, 10], fov: 60 }}>
       <group /** lights */>
         <ambientLight intensity={0.3} />
@@ -43,8 +39,20 @@ const MainScene = forwardRef(({ fullscreenProps }, ref) => {
           <planeBufferGeometry attach="geometry" args={[100, 100]} />
           <shadowMaterial attach="material" opacity={0.3} />
         </mesh>
-        <CubeMesh position={[-2, 1, 0]} args={[1, 1, 1]} speed={6} index={0} />
-        <CubeMesh position={[2, 1, 0]} args={[1, 1, 1]} speed={6} index={1} />
+        <CubeMesh
+          position={[-2, 1, 0]}
+          args={[1, 1, 1]}
+          speed={6}
+          index={0}
+          color="lightblue"
+        />
+        <CubeMesh
+          position={[2, 1, 0]}
+          args={[1, 1, 1]}
+          speed={6}
+          index={1}
+          color="pink"
+        />
       </group>
       <group /** controls */>
         <OrbitControls />
