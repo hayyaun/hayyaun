@@ -15,12 +15,11 @@ const fontLoader = new FontLoader();
 const textureLoader = new TextureLoader();
 
 const onCreate = (node) => node.center();
-
 const TextMesh = ({ text = 'Text', size = 1, ...props }) => {
   const _textGeometry0 = useRefWithCallback({ onCreate });
   const poppinsFont = useLoader(
     FontLoader,
-    '/assets/fonts/Poppins_Black_Regular.json',
+    '/assets/fonts/Poppins Black_Regular.json',
   );
 
   return (
@@ -50,7 +49,7 @@ const TextMesh = ({ text = 'Text', size = 1, ...props }) => {
 const MainScene = forwardRef(({ fullscreenProps }, ref) => {
   const matcapTexture = useLoader(
     TextureLoader,
-    '/assets/matcaps/7877EE_D87FC5_75D9C7_1C78C0_128px.png',
+    '/assets/matcaps/8A6565_2E214D_D48A5F_ADA59C.jpg',
   );
   const donutGeometry = useMemo(() => new TorusGeometry(0.3, 0.2, 20, 45), []);
   const donutMaterial = useMemo(
@@ -65,7 +64,7 @@ const MainScene = forwardRef(({ fullscreenProps }, ref) => {
       shadowMap
       itemRef={ref}
       style={{ flex: 1, background: '#222' }}
-      camera={{ position: [0, 0, 10], fov: 60 }}>
+      camera={{ position: [0, 0, 8], fov: 60 }}>
       <group /** lights */>
         <ambientLight intensity={0.3} />
         <directionalLight

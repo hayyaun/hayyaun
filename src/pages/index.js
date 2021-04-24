@@ -32,8 +32,8 @@ const FullscreenButton = styled.div`
   position: absolute;
   bottom: 12px;
   right: 12px;
-  background-color: #000;
-  box-shadow: 0 0 8px #0002;
+  backdrop-filter: blur(20px) brightness(150%);
+  box-shadow: 0 0 8px #0003;
   padding: 4px;
   border-radius: 8px;
 
