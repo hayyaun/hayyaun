@@ -1,17 +1,22 @@
 import React, { Suspense } from 'react';
 import ReactFullScreenComponent from 'react-easyfullscreen';
-import styled from 'styled-components';
-import MainScene from '../components/3d/scenes/MainScene';
 import { FiMaximize } from 'react-icons/fi';
+import styled from 'styled-components';
+import MainScene from '../components/3d/scenes/MainScene/MainScene';
+import Navbar from '../components/block/Navbar';
 
 const IndexPage = ({ location }) => {
+  const isSSR = typeof window === 'undefined';
   return (
     <ReactFullScreenComponent>
       {({ ref, onToggle }) => (
         <Container>
-          <Suspense fallback={null}>
-            <MainScene ref={ref} />
-          </Suspense>
+          <Navbar location={location} />
+          {!isSSR && (
+            <Suspense fallback={null}>
+              <MainScene ref={ref} />
+            </Suspense>
+          )}
           <FullscreenButton onClick={onToggle}>
             <FiMaximize size={22} />
           </FullscreenButton>
