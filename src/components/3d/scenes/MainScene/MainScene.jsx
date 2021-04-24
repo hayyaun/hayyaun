@@ -8,6 +8,7 @@ import {
   TorusGeometry,
 } from 'three';
 import useRefWithCallback from '../../../../hooks/useRefWithCallback';
+import useWindowSize from '../../../../hooks/useWindowSize';
 
 softShadows();
 
@@ -58,13 +59,14 @@ const MainScene = forwardRef(({ fullscreenProps }, ref) => {
   );
 
   const isSSR = typeof window === 'undefined';
+  const { width } = useWindowSize();
   return (
     <Canvas
       colorManagement
       shadowMap
       itemRef={ref}
       style={{ flex: 1, background: '#222' }}
-      camera={{ position: [0, 0, 8], fov: 60 }}>
+      camera={{ position: [0, 0, width > 780 ? 8 : 16], fov: 60 }}>
       <group /** lights */>
         <ambientLight intensity={0.3} />
         <directionalLight

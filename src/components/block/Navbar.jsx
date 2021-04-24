@@ -63,4 +63,8 @@ const Container = styled.div`
   font-weight: 700;
   backdrop-filter: blur(20px) brightness(150%);
   box-shadow: 0 0 8px #0009;
+
+  @media screen and (max-width: 780px) {
+    height: 32px;
+  }
 `;
