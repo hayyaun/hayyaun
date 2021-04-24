@@ -12,20 +12,22 @@ const links = [
 
 const Navbar = ({ location }) => {
   return (
-    <Container>
-      <ContentBox>
-        <div>
-          <span>Hayyan Hami</span>
-        </div>
-        <LinksBox>
-          {links.map(({ name, to }, i) => (
-            <NavLink key={i} to={to} active={location.hash === to}>
-              {name}
-            </NavLink>
-          ))}
-        </LinksBox>
-      </ContentBox>
-    </Container>
+    process.env.NODE_ENV === 'production' && (
+      <Container>
+        <ContentBox>
+          <div>
+            <span>Hayyan Hami</span>
+          </div>
+          <LinksBox>
+            {links.map(({ name, to }, i) => (
+              <NavLink key={i} to={to} active={location.hash === to}>
+                {name}
+              </NavLink>
+            ))}
+          </LinksBox>
+        </ContentBox>
+      </Container>
+    )
   );
 };
 
@@ -49,7 +51,7 @@ const ContentBox = styled.div`
 `;
 
 const Container = styled.div`
-  position: fixed;
+  position: absolute;
   z-index: 100;
   display: flex;
   align-items: center;

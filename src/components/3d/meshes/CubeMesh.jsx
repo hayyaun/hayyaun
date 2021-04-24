@@ -7,8 +7,6 @@ import refManager from '../../../utils/refManager';
 import gui from '../scenes/MainScene/gui';
 import { meshTypes } from './types';
 
-const cubesFolder = gui && (gui.__folders.cubes || gui.addFolder('cubes'));
-
 const CubeMesh = ({
   position = [0, 0, 0],
   scale = [1, 1, 1],
