@@ -1,5 +1,5 @@
 import { OrbitControls, softShadows, useHelper } from '@react-three/drei';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import React, {
   forwardRef,
   Suspense,
@@ -13,7 +13,7 @@ import useRefWithCallback from '../../../../hooks/useRefWithCallback';
 import useWindowSize from '../../../../hooks/useWindowSize';
 import DonutMesh from '../../meshes/DonutMesh';
 import TextMesh from '../../meshes/TextMesh';
-import gui, { lightsFolder } from './gui';
+import gui from './gui';
 
 softShadows();
 
@@ -22,11 +22,13 @@ const Lights = () => {
 
   // --- debug ---
   const onAmbientLightCreate = useCallback((node) => {
+    const lightsFolder = gui.__folders.lights || gui.addFolder('lights');
     const ambientLightFolder = lightsFolder.addFolder('ambient light');
     ambientLightFolder.add(node, 'intensity').min(0).max(1).step(0.1);
     return () => lightsFolder.removeFolder(ambientLightFolder);
   }, []);
   const onDirectionalLightCreate = useCallback((node) => {
+    const lightsFolder = gui.__folders.lights || gui.addFolder('lights');
     const directionalLightFolder = lightsFolder.addFolder('directional light');
     directionalLightFolder.add(node, 'castShadow');
     return () => lightsFolder.removeFolder(directionalLightFolder);
@@ -90,6 +92,14 @@ const Controls = () => {
   );
 };
 
+const CameraHandler = () => {
+  useFrame(({ clock, camera }) => {
+    camera.position.x = Math.sin(clock.elapsedTime * 0.25) * 5;
+    camera.position.y = Math.cos(clock.elapsedTime * 0.75) * 1.5;
+  });
+  return null;
+};
+
 const MainScene = forwardRef(({ fullscreenProps }, _canvas) => {
   const { width } = useWindowSize();
   useEffect(() => {
@@ -106,6 +116,7 @@ const MainScene = forwardRef(({ fullscreenProps }, _canvas) => {
         position: [0, -1, width > 780 ? 6 : 14],
         fov: 60,
       }}>
+      <CameraHandler />
       <Lights />
       <Meshes />
       <Controls />

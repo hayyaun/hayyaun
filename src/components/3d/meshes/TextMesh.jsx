@@ -1,11 +1,23 @@
 import { useLoader } from '@react-three/fiber';
 import React, { useCallback } from 'react';
-import { FontLoader } from 'three';
+import { FontLoader, TextGeometry } from 'three';
 import useRefWithCallback from '../../../hooks/useRefWithCallback';
+import { objectsFolder } from '../scenes/MainScene/gui';
 
 const TextMesh = ({ text = 'Text', size = 1, ...props }) => {
-  const onTextGeometryCreate = useCallback((node) => node.center(), []);
+  const onTextGeometryCreate = useCallback((node) => {
+    node.center();
+    const textsFolder =
+      objectsFolder.__folders.texts || objectsFolder.addFolder('texts');
+    const textFolder = textsFolder.addFolder(text);
+    // textFolder.add(node.parameters.options, 'size').min(0).max(10).step(0.1);
+    return () => textsFolder.removeFolder(textFolder);
+  }, []);
+
+  // --- refs ---
   const _textGeometry = useRefWithCallback({ onCreate: onTextGeometryCreate });
+
+  // --- loaders ---
   const poppinsFont = useLoader(
     FontLoader,
     '/assets/fonts/Poppins Black_Regular.json',
@@ -26,7 +38,7 @@ const TextMesh = ({ text = 'Text', size = 1, ...props }) => {
             font: poppinsFont,
             size,
             height: 0.2,
-            curveSegments: 12,
+            curveSegments: 50,
             bevelEnabled: true,
             bevelThickness: 0.03,
             bevelSize: 0.02,
