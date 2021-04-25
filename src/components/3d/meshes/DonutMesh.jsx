@@ -1,36 +1,39 @@
 import { useFrame } from '@react-three/fiber';
-import React, { useRef } from 'react';
+import React, { memo, useMemo, useRef } from 'react';
 import { donutGeometry } from '../geometries';
 
-const rMin = 6;
+const rMin = 12;
 const rMax = 100;
 
 const DonutMesh = () => {
   const _ref = useRef();
-  const scale = Math.random() * 0.25 + 0.5;
-  const rxs = (Math.random() - 0.5) * 5;
-  const rys = (Math.random() - 0.5) * 5;
+  const { scale, rxs, rys, r, t, f, px, py, pz, dts, dfs } = useMemo(() => {
+    const scale = Math.random() * 0.25 + 0.5;
 
-  const r = Math.random() * (rMax - rMin) + rMin;
-  const zMax = Math.sqrt(Math.pow(rMax, 2) - Math.pow(r, 2));
-  const t = Math.random() * Math.PI * 2;
-  const px = Math.cos(t) * r;
-  const py = Math.sin(t) * r;
-  const pz0 = (Math.random() - 0.5) * 2 * zMax;
-  const pz = pz0 > 0 ? pz0 + 1 : pz0 - 1;
+    const rxs = (Math.random() - 0.5) * 5;
+    const rys = (Math.random() - 0.5) * 5;
+    const dts = (Math.random() - 0.5) * 0.01;
+    const dfs = (Math.random() - 0.5) * 0.01;
 
-  const pxs = (Math.random() - 0.5) * 0.01;
-  const pys = (Math.random() - 0.5) * 0.01;
+    const r = Math.random() * (rMax - rMin) + rMin;
+    const t = Math.random() * Math.PI;
+    const f = Math.random() * Math.PI * 2;
+
+    const px = r * Math.cos(f) * Math.sin(t);
+    const pz = r * Math.sin(f) * Math.sin(t);
+    const py = r * Math.cos(t);
+
+    return { scale, rxs, rys, r, t, f, px, py, pz, dts, dfs };
+  }, []);
 
   useFrame(({ clock }) => {
     _ref.current.rotation.x = rxs * clock.elapsedTime;
     _ref.current.rotation.y = rys * clock.elapsedTime;
-    _ref.current.rotation.y = rys * clock.elapsedTime;
-
-    const dtx = clock.elapsedTime * Math.PI * 2 * pxs;
-    const dty = clock.elapsedTime * Math.PI * 2 * pys;
-    _ref.current.position.x = Math.cos(t + dtx) * r;
-    _ref.current.position.y = Math.sin(t + dty) * r;
+    const dt = clock.elapsedTime * Math.PI * dts;
+    const df = clock.elapsedTime * Math.PI * 2 * dfs;
+    _ref.current.position.x = r * Math.cos(f + df) * Math.sin(t + dt);
+    _ref.current.position.z = r * Math.sin(f + df) * Math.sin(t + dt);
+    _ref.current.position.y = r * Math.cos(t + dt);
   });
 
   return (
@@ -45,4 +48,4 @@ const DonutMesh = () => {
   );
 };
 
-export default DonutMesh;
+export default memo(DonutMesh);

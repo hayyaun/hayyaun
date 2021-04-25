@@ -82,9 +82,10 @@ const Meshes = () => {
 };
 
 const Controls = () => {
+  const isDev = process.env.NODE_ENV === 'development';
   return (
     <group>
-      <OrbitControls minDistance={2} />
+      <OrbitControls maxDistance={!isDev ? 16 : undefined} minDistance={2} />
     </group>
   );
 };
@@ -93,7 +94,7 @@ const MainScene = forwardRef(({ fullscreenProps }, _canvas) => {
   const { width } = useWindowSize();
   useEffect(() => {
     return () => gui.destroy();
-  });
+  }, []);
 
   return (
     <Canvas
@@ -101,7 +102,10 @@ const MainScene = forwardRef(({ fullscreenProps }, _canvas) => {
       shadowMap
       itemRef={_canvas}
       style={{ flex: 1, background: '#222' }}
-      camera={{ position: [0, 0, width > 780 ? 8 : 16], fov: 60 }}>
+      camera={{
+        position: [0, -1, width > 780 ? 6 : 14],
+        fov: 60,
+      }}>
       <Lights />
       <Meshes />
       <Controls />
