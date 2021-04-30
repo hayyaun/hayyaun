@@ -1,16 +1,13 @@
 import { useLoader } from '@react-three/fiber';
 import React, { useCallback } from 'react';
-import { FontLoader, TextGeometry } from 'three';
+import { FontLoader } from 'three';
 import useRefWithCallback from '../../../hooks/useRefWithCallback';
-import { objectsFolder } from '../scenes/MainScene/gui';
+import { textsFolder } from '../gui/gui';
 
 const TextMesh = ({ text = 'Text', size = 1, ...props }) => {
   const onTextGeometryCreate = useCallback((node) => {
     node.center();
-    const textsFolder =
-      objectsFolder.__folders.texts || objectsFolder.addFolder('texts');
     const textFolder = textsFolder.addFolder(text);
-    // textFolder.add(node.parameters.options, 'size').min(0).max(10).step(0.1);
     return () => textsFolder.removeFolder(textFolder);
   }, []);
 

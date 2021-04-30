@@ -11,9 +11,10 @@ import React, {
 import { DirectionalLightHelper, PointLightHelper } from 'three';
 import useRefWithCallback from '../../../../hooks/useRefWithCallback';
 import useWindowSize from '../../../../hooks/useWindowSize';
+import { folderTypes } from '../../gui';
+import gui, { lightsFolder } from '../../gui/gui';
 import DonutMesh from '../../meshes/DonutMesh';
 import TextMesh from '../../meshes/TextMesh';
-import gui from './gui';
 
 softShadows();
 
@@ -22,14 +23,16 @@ const Lights = () => {
 
   // --- debug ---
   const onAmbientLightCreate = useCallback((node) => {
-    const lightsFolder = gui.__folders.lights || gui.addFolder('lights');
-    const ambientLightFolder = lightsFolder.addFolder('ambient light');
+    const ambientLightFolder =
+      lightsFolder.__folders[folderTypes.ambientLight] ||
+      lightsFolder.addFolder(folderTypes.ambientLight);
     ambientLightFolder.add(node, 'intensity').min(0).max(1).step(0.1);
     return () => lightsFolder.removeFolder(ambientLightFolder);
   }, []);
   const onDirectionalLightCreate = useCallback((node) => {
-    const lightsFolder = gui.__folders.lights || gui.addFolder('lights');
-    const directionalLightFolder = lightsFolder.addFolder('directional light');
+    const directionalLightFolder =
+      lightsFolder.__folders[folderTypes.directionalLight] ||
+      lightsFolder.addFolder(folderTypes.directionalLight);
     directionalLightFolder.add(node, 'castShadow');
     return () => lightsFolder.removeFolder(directionalLightFolder);
   }, []);
