@@ -1,0 +1,17 @@
+{
+  "vertices": 15266,
+  "triangles": 30528,
+  "closed_manifold_edges": true,
+  "euler": 2,
+  "positive_volume": 0.23696401124144803,
+  "min_triangle_area": 1.3382407511789698e-07,
+  "front_outline_mean_error_pixels": 0.42060003084977504,
+  "front_outline_p95_error_pixels": 1.0060540063946393,
+  "dimensions": [
+    1.0602566639853994,
+    1.0,
+    0.8008128829857566
+  ],
+  "validation_scope": "Topology, normals, source front profile fit, and GLB byte arrays. Preview rendered from the same mesh; not browser-tested.",
+  "glb_arrays_match_preview": true
+}
