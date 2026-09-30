@@ -32,9 +32,9 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
   const smoke = useRef<ShaderMaterial>(null);
   const { invalidate, viewport } = useThree();
   const time = useRef(12);
-  const gltf = useLoader(GLTFLoader, "/lab/prism/asymmetric-ice-v2.glb");
+  const gltf = useLoader(GLTFLoader, "/lab/prism/asymmetric-ice-v5.glb");
   const geometry = useMemo(() => {
-    const source = gltf.scene.getObjectByName("AsymmetricIceV2");
+    const source = gltf.scene.getObjectByName("AsymmetricRectangularPyramidV5");
     if (!(source instanceof Mesh)) throw new Error("The supplied ice model is missing its mesh.");
     // Preserve the supplied surface and normals; only normalize its framing.
     source.updateWorldMatrix(true, false);
