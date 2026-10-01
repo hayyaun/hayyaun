@@ -30,3 +30,9 @@ Local tip rounding and left rounded-edge smoothing on v010. Other vertices, incl
 
 ## Current version: v012
 Broader, smoothly joined crown on v011. Geometry below the crown is unchanged. Clear ice retained.
+
+## Current version: v013
+Local left rounded-transition smoothing only. Approved crown, flat face interiors, and underside retained.
+
+## Current version: v014
+Local lower front-left fillet smoothing; remaining v013 geometry and clear ice retained.

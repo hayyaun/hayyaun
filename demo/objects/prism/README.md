@@ -52,3 +52,9 @@ Commands/actions: python3 demo/objects/prism/v012-update.py and v012-cap.py prep
 
 ### v012 crown correction
 Replaced the separate cap with one quintic surface loft, maintaining tangent direction at the join and a rounded apex. v011 vertices through ring 92 (normalized height 0.819375) are copied exactly; locked displacement 0.0. No non-manifold edges. Height 3.54. This supersedes the earlier cubic-cap description.
+
+## v013
+Local left rounded-transition smoothing with feathered spatial weights. Geometry outside that strip is copied exactly from v012; displacement 0.0. Approved crown, face interiors, and underside preserved. Maximum local change 0.018388 units. Zero non-manifold edges. Blender MCP executed v013.py, saved and exported v013. Set-Content updated the script and scene.tsx; Copy-Item installed the GLB.
+
+## v014
+Smoothing extends down into the lower front-left fillet only (negative X, negative Y). v013 is the source. All vertices outside the feathered lower front-left patch remain identical (0.0 displacement); crown and flat interiors retained. Maximum local movement 0.05814 units; no non-manifold edges. Blender MCP executed v014.py, saved v014.blend and exported v014.glb. Set-Content updated the script and scene.tsx; Copy-Item installed the web asset.
