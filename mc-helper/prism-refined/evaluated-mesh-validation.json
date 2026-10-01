@@ -1,0 +1,12 @@
+{
+  "evaluated_vertices": 74402,
+  "evaluated_faces": 74400,
+  "non_manifold_edges": 0,
+  "boundary_edges": 0,
+  "signed_volume": 5.440912187409071,
+  "render_resolution": [
+    981,
+    793
+  ],
+  "render_samples": 96
+}

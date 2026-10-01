@@ -1,0 +1,19 @@
+{
+  "object": "Rounded Triangular Prism",
+  "vertices": 18482,
+  "faces": 18720,
+  "non_manifold_edges": 0,
+  "boundary_edges": 0,
+  "signed_volume": 5.444184830682244,
+  "dimensions": [
+    3.835599899291992,
+    1.2984399795532227,
+    3.452099561691284
+  ],
+  "material": "Clear glass center with stylized stronger edge reflections",
+  "render_engine": "CYCLES",
+  "scene_objects": 17,
+  "camera": "Prism Portrait Camera",
+  "front_normal_y": -0.9985555690905404,
+  "back_normal_y": 0.9987618241399999
+}
