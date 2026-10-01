@@ -1,0 +1,24 @@
+00:00.047  color_management | Using OCIO=C:\Program Files\WindowsApps\BlenderFoundation.Blender_5.2.2.0_x64__ppwjx1n5r4v9t\Blender\5.2\datafiles\colormanagement\config.ocio
+00:02.500  blend            | Read blend: "\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\baseline.blend"
+\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\shape-sweep.py:11: DeprecationWarning: 'World.use_nodes' is expected to be removed in Blender 6.0
+  world=bpy.data.worlds.new('Controlled soft studio');world.use_nodes=True;s.world=world
+\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\shape-sweep.py:18: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  mat=bpy.data.materials.new('Lavender cloud stage');mat.use_nodes=True
+00:38.625  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\shape-flat.png'
+Topology: 18482 vertices, 0 non-manifold edges, volume 5.3848
+Refined prism geometry and optical glass created.
+Info: Saved copy as "shape-flat.blend"
+DONE flat 35.77302960003726
+01:15.578  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\shape-shallow.png'
+Topology: 18482 vertices, 0 non-manifold edges, volume 4.9641
+Refined prism geometry and optical glass created.
+Info: Saved copy as "shape-shallow.blend"
+DONE shallow 36.76581419998547
+02:05.094  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\shape-deep.png'
+Topology: 18482 vertices, 0 non-manifold edges, volume 4.5929
+Refined prism geometry and optical glass created.
+Info: Saved copy as "shape-deep.blend"
+DONE deep 49.34518040000694
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit

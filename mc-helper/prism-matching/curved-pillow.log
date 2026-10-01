@@ -1,0 +1,14 @@
+00:00.188  color_management | Using OCIO=C:\Program Files\WindowsApps\BlenderFoundation.Blender_5.2.2.0_x64__ppwjx1n5r4v9t\Blender\5.2\datafiles\colormanagement\config.ocio
+00:06.594  blend            | Read blend: "\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\pyramid-finish-defined.blend"
+\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\curved-pillow.py:30: DeprecationWarning: 'Material.use_nodes' is expected to be removed in Blender 6.0
+  clay=bpy.data.materials.new('Neutral shape inspection');clay.use_nodes=True
+01:11.188  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\curved-pillow-shape.png'
+Topology: 18482 vertices, 0 non-manifold edges, volume 5.6013
+Refined prism geometry and optical glass created.
+Info: Saved copy as "curved-pillow.blend"
+CLAY_DONE
+01:57.641  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-matching\curved-pillow-glass.png'
+GLASS_DONE
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit
