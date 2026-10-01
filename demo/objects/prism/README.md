@@ -70,3 +70,9 @@ User-requested left base narrowing: inward X shift up to 0.18 units, smoothly fa
 
 ## v019
 User-requested slight overall narrowing. v018 mesh scaled by 0.95 along X about its bounding-box center only. Height, depth, topology and material preserved. Blender MCP saved v019.blend and exported v019.glb; Copy-Item installed public asset; Set-Content updated scene.tsx.
+
+## v020
+Light surface relaxation (maximum 0.006782 units) with crown locked. Added five internal reversed-normal ellipsoidal air cavities near bottom-right; combined into v020-air. Both prism and cavities exported. Web renderer normalizes both meshes together and hides bubbles in solid inspection mode. Set-Content wrote scripts and scene.tsx; Blender MCP saved/exported; Copy-Item installed GLB.
+
+## v021
+Light feathered smoothing on the lower surface to reduce unevenness while retaining the rounded right corner. Upper mesh locked. Air pockets retained. Blender MCP saved/exported v021; Copy-Item installed GLB; Set-Content updated scene.tsx.

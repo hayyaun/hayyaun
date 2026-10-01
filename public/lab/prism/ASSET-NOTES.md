@@ -45,3 +45,6 @@ Continuous smoothing of lower-left surface and both adjoining edges; material co
 
 ## Current version: v019
 v018 with 5% less overall width. Height, depth and material unchanged.
+
+## Current version: v020
+Gentle surface smoothing plus five bottom-right air pockets. Two exported meshes; web bubbles use an approximate reflective/transmissive material.
