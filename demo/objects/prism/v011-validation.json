@@ -1,0 +1,17 @@
+{
+  "dimensions": [
+    4.228592395782471,
+    2.6428701877593994,
+    3.669999599456787
+  ],
+  "non_manifold_edges": 0,
+  "signed_volume": 17.688774956915204,
+  "bottom_max_displacement": 0.0,
+  "left_edge_max_adjustment": 0.0015723495295816366,
+  "unchanged_region_max_displacement": 0.0,
+  "actual_dimensions": [
+    4.228592395782471,
+    2.6428701877593994,
+    3.6151959896087646
+  ]
+}

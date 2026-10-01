@@ -24,3 +24,9 @@ Restores v005 geometry with bounded upper face interior adjustments. Original ro
 
 ## Current version: v010
 Four continuous planar face interiors with rounded outlines replace the middle-height crown blend. Original lower geometry retained exactly through normalized height 0.23; clear ice material unchanged.
+
+## Current version: v011
+Local tip rounding and left rounded-edge smoothing on v010. Other vertices, including the base and planar face interiors, are unchanged. Clear ice retained.
+
+## Current version: v012
+Broader, smoothly joined crown on v011. Geometry below the crown is unchanged. Clear ice retained.
