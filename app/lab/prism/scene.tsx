@@ -32,10 +32,10 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
   const smoke = useRef<ShaderMaterial>(null);
   const { invalidate, viewport } = useThree();
   const time = useRef(12);
-  const gltf = useLoader(GLTFLoader, "/lab/prism/asymmetric-ice-v6.glb");
+  const gltf = useLoader(GLTFLoader, "/lab/prism/v010.glb");
   const geometry = useMemo(() => {
-    const source = gltf.scene.getObjectByName("IceGeometryDraft");
-    if (!(source instanceof Mesh)) throw new Error("The supplied ice model is missing its mesh.");
+    const source = gltf.scene.getObjectByName("Reference_Prism");
+    if (!(source instanceof Mesh)) throw new Error("The prism model is missing its mesh.");
     // Preserve the supplied surface and normals; only normalize its framing.
     source.updateWorldMatrix(true, false);
     const copy = source.geometry.clone();
@@ -87,7 +87,7 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={512} samples={4} backside backsideResolution={512} backsideThickness={.75} thickness={.98} ior={1.33} roughness={.065} transmission={1} chromaticAberration={.012} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#fbfdff" attenuationColor="#f7fbff" attenuationDistance={5.6} envMapIntensity={1.2} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={512} samples={4} backside backsideResolution={512} backsideThickness={.75} thickness={.98} ior={1.31} roughness={.025} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#ffffff" attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />}
       </mesh>
     </group>
   </>;
@@ -111,16 +111,19 @@ export default function Scene() {
     document.addEventListener("visibilitychange",syncActive);
     return ()=>{query.removeEventListener("change",syncMotion);observer.disconnect();document.removeEventListener("visibilitychange",syncActive);};
   },[]);
-  return <div ref={host} style={{height:"100%",width:"100%"}} role="region" aria-label="A rounded glass prism refracts drifting lavender smoke. Drag to orbit the prism. Scroll or pinch to zoom.">
+  return <div ref={host} style={{height:"100%",width:"100%"}} role="region" aria-label="A rounded ice prism refracts drifting lavender smoke. Drag to orbit the prism. Scroll or pinch to zoom.">
     <Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:[0,0,7],fov:38}} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl})=>{gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={<p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={3.5} maxDistance={12} enableDamping={!reduced} dampingFactor={.08} />
       <Suspense fallback={null}><Study reduced={reduced} active={active&&!lost} solid={solid} /></Suspense>
     </Canvas>
     <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
-      <span>Drag to orbit · Scroll to zoom</span>
-      <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show glass" : "Inspect solid shape"}</button>
+      <span>v010 · Drag to orbit · Scroll to zoom</span>
+      <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show ice" : "Inspect solid shape"}</button>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={()=>{controls.current?.reset();}}>Reset view</button>
     </div>
     {lost&&<p style={{position:"absolute",bottom:92,left:24,pointerEvents:"none",color:"#62586d"}}>The graphics context was interrupted. Reload to restore the scene.</p>}
   </div>;
 }
+
+
+

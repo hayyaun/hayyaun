@@ -12,3 +12,32 @@ Rebuilt from prism-faces.png and prism-faces-simplified.png. Front/back are oppo
 v003.py contains the full generator. v003-preview.py produces untextured front/back/left/right/top/bottom/angled inspection renders. These are interpreted reconstructions of illustrative views, not a dimensionally exact tracing. Mesh validation reports zero non-manifold edges and positive volume. No paid asset generators were used.
 
 Commands: Set-Content wrote v003.py and v003-preview.py. Blender MCP execute_blender_code executed the generator, replaced the current object's mesh, and saved v003.blend. A background Blender process ran v003-preview.py. get_viewport_screenshot and get_scene_info verified the live result. Prior versions and original reference images are preserved.
+
+## v004 revised
+Current file: v004.blend. Broader rounded crown and side corner transitions, with original approved dimensions preserved. Crown and side slopes are blended continuously. Uniform perimeter sampling avoids collapsed edges near the cap. Lower right shoulder remains higher than the left; underside remains level. Neutral inspection renders: v004-front/right/left/back/top/bottom/angle.png. The first v004 attempt was rejected and replaced in this version; v003 remains available unchanged.
+Commands: Set-Content updated v004.py and v004-preview.py. Blender MCP execute_blender_code ran v004.py to replace and save the geometry, and launched a background Blender process with v004-preview.py to inspect the shape. get_viewport_screenshot and get_scene_info checked the live scene. Validation: zero non-manifold edges, zero degenerate faces, positive volume. No paid generation or glass render was run.
+
+## v005
+Narrowed the rounded transitions between front/back and side faces while retaining the v004 rounded crown and base corners. Dimensions unchanged: 4.228592 x 2.642870 x 3.67. Inspected neutral front, side, top and angled previews. Mesh has no non-manifold edges or degenerate faces. v005 is a correction to the overly softened edges of v004, not an assertion of an exact reference match.
+Commands: Set-Content wrote v005.py and v005-preview.py; Blender MCP execute_blender_code ran the generator, saved v005.blend and launched the preview script in a background Blender process. get_viewport_screenshot/get_scene_info verified the live scene. Earlier numbered versions are preserved.
+
+## v006
+Current: v006.blend and v006.glb. Only the upper geometry was revised: four planar face regions meet narrow rounded corner transitions and a tangent rounded crown. Approved dimensions are unchanged. The lower 20 mesh rings match v005 exactly (maximum vertex displacement 0). Earlier numbered versions remain available.
+Export: selected prism only, no Blender materials or studio objects; public/lab/prism/v006.glb (922,528 bytes). The website supplies its glass/solid materials. Three.js GLTFLoader successfully reads Reference_Prism with 25,601 vertices and 51,198 triangles.
+Validation: zero non-manifold edges, positive volume, neutral multiview inspection. npm run lint and npm run build passed. Local production preview verified in glass and solid modes; public deployment remains unverified pending hosting information.
+Commands/actions: Set-Content wrote v006.py and v006-preview.py. Blender MCP execute_blender_code replaced the active prism mesh, saved v006.blend, rendered inspection previews and ran bpy.ops.export_scene.gltf. Copy-Item copied the GLB to this directory. node demo/objects/prism/v006-check.mjs checked Three.js loading. npm run lint && npm run build passed. npm run start -- --hostname 0.0.0.0 started the local preview. scene.tsx now loads v006.glb and its Reference_Prism mesh.
+
+## v007
+Replaces the v006 shoulder with a monotone tangent transition into four planar upper faces. Rounded lower base retained with a maximum normalization displacement of 0.000204 Blender units. Ice material: pale blue, roughness 0.19, IOR 1.31, transmission 0.94. Export includes the material. Zero non-manifold edges; dimensions unchanged.
+
+## v008
+Rebuilt as four planar pyramid faces with weighted rounded edge intersections. Removes the stepped shoulder introduced by the ring-based v006/v007 construction. Dimensions remain 4.228592 x 2.642870 x 3.67. Clear ice: IOR 1.31, transmission 1, roughness 0.025, near-neutral color. Planar face vertex normals preserve flat shading; fillet interiors retain smooth normals. 1,157 vertices and 2,310 triangles; zero non-manifold edges.
+Blender MCP executed v008.py, saved v008.blend and exported v008.glb. Set-Content wrote scripts and updated scene.tsx. Copy-Item copied the GLB. node demo/objects/prism/v008-check.mjs validated loading; npm run lint and npm run build passed. npm run start -- --hostname 0.0.0.0 restarted the local preview. Solid and ice modes checked in browser. Earlier versions retained. This is a reconstruction, not an exact reference match.
+
+## v009
+Restores the saved v005 mesh and transforms. Only upper face interiors are adjusted toward fitted planes, limited to 0.008 Blender units (observed maximum 0.007354) with smooth falloff. Bottom vertices below the edit region, rounded edge vertices, and crown are locked. Base displacement is exactly 0; zero non-manifold edges. Clear ice retained. Blender MCP loaded v005 mesh, executed v009.py, saved v009.blend and exported v009.glb. Copy-Item installed the web asset; Set-Content updated scene.tsx.
+
+
+## v010
+Four continuous affine upper face planes replace the old middle-height crown blend. Their outlines have rounded lower corners and narrow toward an oval cap; the global apex is joined tangentially. The lower asymmetry continues as an affine shear in the planar region, avoiding a mid-face bend. Original v005 lower vertices through normalized height 0.23 are copied exactly: displacement 0.0. Four face interior plane fits have maximum errors below 0.000000184 Blender units. Zero non-manifold edges. Clear ice retained; dimensions unchanged.
+Commands: python3 demo/objects/prism/v010-update.py generated the initial script; Set-Content refined v010.py and scene.tsx; Blender MCP executed v010.py, saved v010.blend and exported v010.glb. Copy-Item installed the GLB in public/lab/prism. node demo/objects/prism/v010-check.mjs, npm run lint and npm run build passed. Neutral front/side/angle inspection renders verified. npm run start -- --hostname 0.0.0.0 restarted the local preview.
