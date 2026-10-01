@@ -1,0 +1,21 @@
+00:00.093  color_management | Using OCIO=C:\Program Files\WindowsApps\BlenderFoundation.Blender_5.2.2.0_x64__ppwjx1n5r4v9t\Blender\5.2\datafiles\colormanagement\config.ocio
+00:04.547  blend            | Read blend: "\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018.blend"
+00:08.297  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-front.png'
+front
+00:08.437  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-right.png'
+right
+00:08.578  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-left.png'
+left
+00:08.703  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-back.png'
+back
+00:08.859  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-bottom.png'
+bottom
+00:09.000  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-top.png'
+top
+00:09.140  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-angle.png'
+angle
+00:09.265  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\demo\objects\prism\v018-rear-angle.png'
+rear-angle
+Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
+
+Blender quit

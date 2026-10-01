@@ -39,3 +39,9 @@ Local lower front-left fillet smoothing; remaining v013 geometry and clear ice r
 
 ## Current version: v016
 Recovery of exact v014 geometry; rejected v015 corner smoothing reverted.
+
+## Current version: v017
+Continuous smoothing of lower-left surface and both adjoining edges; material controls unchanged.
+
+## Current version: v019
+v018 with 5% less overall width. Height, depth and material unchanged.

@@ -61,3 +61,12 @@ Smoothing extends down into the lower front-left fillet only (negative X, negati
 
 ## v016 recovery
 Exact v014 mesh and transforms restored after v015 lower-corner smoothing was rejected. Verified maximum vertex difference from v014: 0.0. No additional smoothing or reshaping. Blender MCP restored, saved and exported v016; Copy-Item installed the GLB; Set-Content updated scene.tsx.
+
+## v017
+Lower-left surface treated as one continuous region across both front-left and back-left transitions. Source v016. Crown, front face center, right side and underside locked; outside-region displacement 0.0. Maximum local displacement 0.040787 units. Zero non-manifold edges. Inspected left, front-left and back-left renders. Blender MCP executed v017.py and exported GLB; Copy-Item installed it; Set-Content updated scene.tsx. node demo/objects/prism/v017-check.mjs, npm run lint and npm run build passed.
+
+## v018
+User-requested left base narrowing: inward X shift up to 0.18 units, smoothly faded toward the center and upper face. Right side and crown unchanged; rounded corner retained. No non-manifold edges. Blender MCP executed v018.py, saved and exported. Copy-Item installed GLB; Set-Content updated scene.tsx.
+
+## v019
+User-requested slight overall narrowing. v018 mesh scaled by 0.95 along X about its bounding-box center only. Height, depth, topology and material preserved. Blender MCP saved v019.blend and exported v019.glb; Copy-Item installed public asset; Set-Content updated scene.tsx.
