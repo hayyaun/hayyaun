@@ -1,6 +1,0 @@
-00:00.047  color_management | Using OCIO=C:\Program Files\WindowsApps\BlenderFoundation.Blender_5.2.2.0_x64__ppwjx1n5r4v9t\Blender\5.2\datafiles\colormanagement\config.ocio
-00:02.391  blend            | Read blend: "\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-refined\prism-studio.blend"
-05:38.860  render           | Saved: '\\wsl$\Ubuntu\home\garfield\projects\hayyaun\mc-helper\prism-refined\prism-final.png'
-Blender 5.2.2 LTS (hash d13f752e3b9c built 2026-09-15 01:37:04)
-
-Blender quit
