@@ -44,3 +44,6 @@ The user approved the dimensions on this revision: 4.228592 x 2.642870 x 3.67. P
 Latest scene: prism-defined-edges.blend. Latest render: prism-defined-edges.png. The script defined-edges.py rebuilds the asymmetric corner profile and narrows the front/rear rounded edge bands from .28/.34 to .18/.23, then restores all three approved dimensions. The earlier state is backed up as before-edge-definition.blend. Mesh has zero non-manifold edges.
 
 Commands: Invoke-PrismBlender 'execute_code' executed defined-edges.py and saved the live scene; a background Blender process ran render-rectangle.py against prism-defined-edges.blend to produce the preview. Invoke-PrismBlender 'get_viewport_screenshot' captured defined-edges-viewport.png. Geometry and viewport state changed; no application preferences were saved.
+
+CURRENT OUTPUTS: ../prism/v001.blend and ../prism/v001.png. Previous generated design files and previews were deleted at the user's request. Future revisions must use v002, v003, etc.; do not reuse descriptive output names.
+

@@ -51,3 +51,6 @@ The live add-on completed the previously delayed evaluated-mesh check. `evaluate
 Visual limitation: this is a closer approximation, not an exact match. The reference has broader, smoother reflective patches at the base and along the left edge; the current render retains more fragmented internal reflections.
 
 On resume, `Get-Content` inspected `render-final.log` and `evaluated-mesh-validation.json`, `Get-Item` confirmed the output files, and `view_image` displayed the reference and final PNG. This note was updated with `Set-Content`; no Blender scene state was changed during this final inspection.
+
+CURRENT OUTPUTS: ../prism/v001.blend and ../prism/v001.png. Previous generated design files and previews were deleted at the user's request. Future revisions must use v002, v003, etc.; do not reuse descriptive output names.
+
