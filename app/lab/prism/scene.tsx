@@ -32,7 +32,7 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
   const smoke = useRef<ShaderMaterial>(null);
   const { invalidate, viewport } = useThree();
   const time = useRef(12);
-  const gltf = useLoader(GLTFLoader, "/lab/prism/v014.glb");
+  const gltf = useLoader(GLTFLoader, "/lab/prism/v017.glb");
   const geometry = useMemo(() => {
     const source = gltf.scene.getObjectByName("Reference_Prism");
     if (!(source instanceof Mesh)) throw new Error("The prism model is missing its mesh.");
@@ -117,13 +117,16 @@ export default function Scene() {
       <Suspense fallback={null}><Study reduced={reduced} active={active&&!lost} solid={solid} /></Suspense>
     </Canvas>
     <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
-      <span>v014 · Drag to orbit · Scroll to zoom</span>
+      <span>v017 · Drag to orbit · Scroll to zoom</span>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show ice" : "Inspect solid shape"}</button>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={()=>{controls.current?.reset();}}>Reset view</button>
     </div>
     {lost&&<p style={{position:"absolute",bottom:92,left:24,pointerEvents:"none",color:"#62586d"}}>The graphics context was interrupted. Reload to restore the scene.</p>}
   </div>;
 }
+
+
+
 
 
 

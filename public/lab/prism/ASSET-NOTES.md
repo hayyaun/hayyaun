@@ -36,3 +36,6 @@ Local left rounded-transition smoothing only. Approved crown, flat face interior
 
 ## Current version: v014
 Local lower front-left fillet smoothing; remaining v013 geometry and clear ice retained.
+
+## Current version: v016
+Recovery of exact v014 geometry; rejected v015 corner smoothing reverted.

@@ -58,3 +58,6 @@ Local left rounded-transition smoothing with feathered spatial weights. Geometry
 
 ## v014
 Smoothing extends down into the lower front-left fillet only (negative X, negative Y). v013 is the source. All vertices outside the feathered lower front-left patch remain identical (0.0 displacement); crown and flat interiors retained. Maximum local movement 0.05814 units; no non-manifold edges. Blender MCP executed v014.py, saved v014.blend and exported v014.glb. Set-Content updated the script and scene.tsx; Copy-Item installed the web asset.
+
+## v016 recovery
+Exact v014 mesh and transforms restored after v015 lower-corner smoothing was rejected. Verified maximum vertex difference from v014: 0.0. No additional smoothing or reshaping. Blender MCP restored, saved and exported v016; Copy-Item installed the GLB; Set-Content updated scene.tsx.
