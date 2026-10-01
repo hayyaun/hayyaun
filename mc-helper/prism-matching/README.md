@@ -37,3 +37,10 @@ Stop-Process -Id 20780
 This stopped only the specific superseded background render worker we had launched, after the user requested the rounder base. The interactive Blender process was not stopped.
 
 The older live scene is preserved as baseline.blend in this directory and prism-refined/prism-studio.blend. Intermediate candidates are retained for comparison. No portfolio website source or project dependencies were changed.
+
+## Accepted proportions and edge revision
+The user approved the dimensions on this revision: 4.228592 x 2.642870 x 3.67. Preserve these dimensions unless explicitly asked to change them. The left corner is rounder and raised; the right corner and apex are tighter. Edges should be defined while the corner vertices remain rounded.
+
+Latest scene: prism-defined-edges.blend. Latest render: prism-defined-edges.png. The script defined-edges.py rebuilds the asymmetric corner profile and narrows the front/rear rounded edge bands from .28/.34 to .18/.23, then restores all three approved dimensions. The earlier state is backed up as before-edge-definition.blend. Mesh has zero non-manifold edges.
+
+Commands: Invoke-PrismBlender 'execute_code' executed defined-edges.py and saved the live scene; a background Blender process ran render-rectangle.py against prism-defined-edges.blend to produce the preview. Invoke-PrismBlender 'get_viewport_screenshot' captured defined-edges-viewport.png. Geometry and viewport state changed; no application preferences were saved.
