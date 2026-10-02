@@ -122,3 +122,5 @@ a:hover .arrow-circle { transform:translateX(4px); }
   .experience-section { padding-block:155px 120px; }
 }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*:before,*:after { transition:none!important; animation:none!important; } }
+
+.hero-canvas, .prism-fallback { mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent),linear-gradient(to bottom,transparent,#000 7%,#000 93%,transparent); mask-composite:intersect; }
