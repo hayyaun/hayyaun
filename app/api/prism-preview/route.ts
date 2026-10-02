@@ -1,0 +1,1 @@
+import sharp from "sharp"; import path from "node:path"; export async function POST(request:Request){const data=await request.text(); await sharp(Buffer.from(data.split(",")[1],"base64")).webp({quality:95}).toFile(path.join(process.cwd(),"public/images/prism-dark2.webp")); return Response.json({saved:true});}

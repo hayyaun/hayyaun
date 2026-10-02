@@ -1,0 +1,1 @@
+"use client"; import dynamic from "next/dynamic"; const Scene=dynamic(()=>import("../scene"),{ssr:false}); export default function Capture(){return <main style={{position:"fixed",top:0,left:0,width:720,height:650}}><Scene presentation snapshot /></main>;}
