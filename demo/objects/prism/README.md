@@ -76,3 +76,12 @@ Light surface relaxation (maximum 0.006782 units) with crown locked. Added five 
 
 ## v021
 Light feathered smoothing on the lower surface to reduce unevenness while retaining the rounded right corner. Upper mesh locked. Air pockets retained. Blender MCP saved/exported v021; Copy-Item installed GLB; Set-Content updated scene.tsx.
+
+## v022
+Replaced the five v020 air pockets with one larger ellipsoidal inclusion at the bottom-right. Inclusion shares the outer prism's Blender material; web optical parameters match the prism. Outer v021 mesh unchanged. Blender MCP removed the generated bubble cluster, saved/exported v022. Copy-Item installed the GLB; Set-Content updated scene.tsx.
+
+## v023
+Added inset copy of approved prism filling upper region. Flat closed floor at local Z 0.94 above the rounded base. Shared material; existing bottom-right inclusion retained. Outer mesh untouched. Inner mesh is closed with zero non-manifold edges. Blender MCP executed v023.py and exported three selected meshes; Copy-Item installed GLB; python3 demo/objects/prism/v023-web.py updated renderer for the inner prism.
+
+## v025
+Upper inner prism removed. Bottom-right inclusion enlarged into a broad tapered pocket, then expanded toward outer faces with ray-limited clearance of 0.035 units. Outer mesh unchanged. Blender MCP saved/exported; Copy-Item installed GLB; Set-Content updated scene.tsx.

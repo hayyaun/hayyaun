@@ -48,3 +48,12 @@ v018 with 5% less overall width. Height, depth and material unchanged.
 
 ## Current version: v020
 Gentle surface smoothing plus five bottom-right air pockets. Two exported meshes; web bubbles use an approximate reflective/transmissive material.
+
+## Current version: v022
+One large bottom-right internal inclusion replaces five bubbles; same material as the prism. Outer v021 geometry retained.
+
+## Current version: v023
+Three meshes: outer prism, bottom-right inclusion, large upper inner prism with flat floor. Outer geometry unchanged.
+
+## Current version: v025
+One enlarged lower-right pocket close to body walls. No upper inner prism.
