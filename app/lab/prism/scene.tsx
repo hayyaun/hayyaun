@@ -8,12 +8,17 @@ import { Lightformer } from "@react-three/drei/core/Lightformer";
 import { Environment } from "@react-three/drei/core/Environment";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { Mesh } from "three";
+import { Mesh, TextureLoader } from "three";
 
 const vertex = /* glsl */ `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
-const shadowFragment = /* glsl */ `varying vec2 vUv; void main(){vec2 p=(vUv-.5)*2.;float a=exp(-dot(p*vec2(1.5,3.),p*vec2(1.5,3.)))*.13;gl_FragColor=vec4(.32,.34,.37,a);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
+const shadowFragment = /* glsl */ `varying vec2 vUv; void main(){vec2 p=(vUv-.5)*2.;float a=exp(-dot(p*vec2(1.5,2.),p*vec2(1.5,2.)))*.22;gl_FragColor=vec4(.42,.36,.53,a);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
 
-function Study({ solid }: { solid: boolean }) {
+function Smoke() {
+  const texture = useLoader(TextureLoader, "/lab/prism/smoke.webp");
+  return <mesh position={[0, .25, -1.5]}><planeGeometry args={[6, 5]} /><meshBasicMaterial map={texture} toneMapped={false} transparent opacity={.45} depthWrite={false} /></mesh>;
+}
+
+function Study({ solid, presentation, onReady }: { solid: boolean; presentation: boolean; onReady: () => void }) {
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
   const gltf = useLoader(GLTFLoader, "/lab/prism/v028.glb");
@@ -50,9 +55,11 @@ function Study({ solid }: { solid: boolean }) {
     return { geometry: copy, airGeometry: airCopy, sectionGeometry: sectionCopy };
   }, [gltf.scene]);
   useEffect(() => () => { geometry.dispose(); airGeometry?.dispose(); sectionGeometry?.dispose(); }, [geometry, airGeometry, sectionGeometry]);
+  useEffect(() => { onReady(); }, [onReady]);
   const scale = Math.min(.95, viewport.width / 4.7, viewport.height / 5.5);
   return <>
     <color attach="background" args={["white"]} />
+    {presentation && <Smoke />}
     <ambientLight intensity={.15} />
     <directionalLight position={[3,5,4]} intensity={.5} color="#ffffff" />
     <Environment background={false} frames={1} resolution={256}>
@@ -63,8 +70,8 @@ function Study({ solid }: { solid: boolean }) {
       <Lightformer form="rect" color="#707983" intensity={1} position={[-3,-2,-4]} scale={[4,3,1]} target={[0,0,0]} />
     </Environment>
     <group scale={scale}>
-      <mesh position={[0,-1.4,.1]} rotation={[-1.15,0,0]}>
-        <planeGeometry args={[4,1.5]} />
+      <mesh position={presentation ? [-.55,-1.43,1.15] : [0,-1.4,.1]} rotation={presentation ? [-Math.PI / 2,0,-.28] : [-1.15,0,0]}>
+        <planeGeometry args={presentation ? [5.5,3.8] : [4,1.5]} />
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>
       {!solid && airGeometry && <mesh geometry={airGeometry}>
@@ -80,11 +87,12 @@ function Study({ solid }: { solid: boolean }) {
   </>;
 }
 
-export default function Scene() {
+export default function Scene({ presentation = false }: { presentation?: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [reduced,setReduced]=useState(true);
   const [lost,setLost]=useState(false);
   const [solid,setSolid]=useState(false);
+  const [ready,setReady]=useState(false);
   const controls = useRef<OrbitControlsImpl>(null);
   useEffect(() => {
     const query=window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -92,16 +100,16 @@ export default function Scene() {
     syncMotion();query.addEventListener("change",syncMotion);
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
-  return <div ref={host} style={{height:"100%",width:"100%"}} role="region" aria-label="A rounded glass prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom.">
-    <Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:[0,0,7],fov:38}} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl})=>{gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={<p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
-      <OrbitControls ref={controls} makeDefault enablePan={false} minDistance={3.5} maxDistance={12} enableDamping={!reduced} dampingFactor={.08} />
-      <Suspense fallback={null}><Study solid={solid} /></Suspense>
+  return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? "Interactive glass prism. Drag to explore its reflections." : "A rounded glass prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
+    <Canvas frameloop="demand" dpr={[1,1.5]} camera={{position:presentation ? [1.6,.7,7] : [0,0,7],fov:38}} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl})=>{gl.setClearColor("white", 1);gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
+      <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />
+      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={() => setReady(true)} /></Suspense>
     </Canvas>
-    <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
+    {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
       <span>v028 · Drag to orbit · Scroll to zoom</span>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show ice" : "Inspect solid shape"}</button>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={()=>{controls.current?.reset();}}>Reset view</button>
-    </div>
+    </div>}
     {lost&&<p style={{position:"absolute",bottom:92,left:24,pointerEvents:"none",color:"#62586d"}}>The graphics context was interrupted. Reload to restore the scene.</p>}
   </div>;
 }
