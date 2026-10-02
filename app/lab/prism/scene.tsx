@@ -156,6 +156,9 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
       {!solid && sectionGeometry && <mesh geometry={sectionGeometry}>
         <meshPhysicalMaterial color="#ffffff" transmission={1} roughness={.025} ior={1.31} thickness={.008} envMapIntensity={1.2} />
       </mesh>}
+      {!solid && <mesh geometry={geometry} scale={.8} position={[0,0,0]}>
+        <meshStandardMaterial color="#08080a" roughness={.28} metalness={.15} envMapIntensity={.6} />
+      </mesh>}
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
         {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.3} clearcoatRoughness={.012} resolution={1024} samples={6} backside backsideResolution={1024} backsideThickness={.75} thickness={.98} ior={1.46} roughness={.008} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} color="#ffffff" attenuationColor="#dce7ff" attenuationDistance={24} envMapIntensity={.65} />}
       </mesh>
