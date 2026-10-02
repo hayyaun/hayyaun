@@ -4,4 +4,4 @@ v030.glb contains only the outer Reference_Prism mesh, with a tighter upper tape
 
 The rainbow studio environment is captured once and used for reflections only. The visible background remains white. The neutral carbon-metal material reflects the full spectrum, with white softboxes and dark cards defining the silhouette.
 
-The loading image is public/images/prism-rainbow-metal.webp, captured from the same camera at 1440 × 1300. Floor reflections remain faded. Blender sources and modeling scripts remain in demo/objects/prism.
+The loading image is public/images/prism-pastel-lilac.webp, captured from the same camera at 1440 × 1300. Floor reflections remain faded. Blender sources and modeling scripts remain in demo/objects/prism.

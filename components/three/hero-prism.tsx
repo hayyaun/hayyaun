@@ -5,6 +5,10 @@ import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 
 const Scene = dynamic(() => import("@/app/lab/prism/scene"), { ssr: false });
 
+const DevControls = process.env.NODE_ENV === "development"
+  ? dynamic(() => import("@/app/lab/prism/lab-controls"), { ssr: false })
+  : null;
+
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
@@ -26,5 +30,5 @@ export default function HeroPrism() {
     return () => { observer.disconnect(); motion.removeEventListener("change", sync); };
   }, []);
 
-  return <div ref={host} className="hero-canvas">{enabled && visible && <div className="hero-scene-frame"><SceneBoundary><Scene presentation /></SceneBoundary></div>}</div>;
+  return <div ref={host} className="hero-canvas">{enabled && visible && <div className="hero-scene-frame"><SceneBoundary>{DevControls ? <DevControls landing /> : <Scene presentation />}</SceneBoundary></div>}</div>;
 }

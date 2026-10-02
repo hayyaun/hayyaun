@@ -12,7 +12,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? <><Fallback /><p className={styles.notice}>The 3D scene is unavailable on this device.</p></> : this.props.children; }
 }
-const Scene = dynamic(() => import("./scene"), { ssr: false, loading: Fallback });
+const Scene = dynamic(() => import("./lab-controls"), { ssr: false, loading: Fallback });
 export default function PrismLab() {
   return <div className={styles.container}><SceneBoundary><Scene /></SceneBoundary><noscript><Fallback /></noscript></div>;
 }

@@ -17,15 +17,48 @@ const shadowFragment = /* glsl */ `varying vec2 vUv; void main(){vec2 p=(vUv-.5)
 const environmentVertex = /* glsl */ `varying vec3 direction; void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const environmentFragment = /* glsl */ `
 varying vec3 direction;
-float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
-float fbm(vec3 p){float n=0.,a=.5;for(int i=0;i<5;i++){n+=a*noise(p);p=p*2.03+vec3(3.7,1.8,4.2);a*=.5;}return n;}
-void main(){vec3 d=normalize(direction);vec3 p=d*5.;vec3 warp=vec3(fbm(p+2.4),fbm(p-3.1),fbm(p+5.6));float cloud=fbm(p+warp*3.);float wisps=pow(1.-abs(sin(cloud*18.)),3.);float density=smoothstep(.35,.72,cloud)*.5+wisps*.16;vec3 color=mix(vec3(1.),vec3(.7,.58,.86),density*.45);float studio=smoothstep(0.,.4,d.z);color=mix(color,vec3(.12,.09,.17),studio*.95);float softbox=pow(max(0.,dot(d,normalize(vec3(-.6,.5,.6)))),32.)+pow(max(0.,dot(d,normalize(vec3(.8,.2,.4)))),48.);color+=vec3(1.8)*softbox;float longitude=atan(d.x,d.z);float heightFade=smoothstep(-.85,-.6,d.y)*(1.-smoothstep(.65,.9,d.y));float hue=fract(longitude/2.4+d.y*.4+.52);vec3 rainbow=clamp(abs(fract(hue+vec3(0.,2./3.,1./3.))*6.-3.)-1.,0.,1.);rainbow=mix(vec3(.08),rainbow,.92);color=mix(color,rainbow*1.2,heightFade*.88);float edgeCards=exp(-pow((longitude-1.48)/.3,2.))+exp(-pow((longitude+1.42)/.3,2.));color=mix(color,vec3(.006),min(1.,edgeCards)*heightFade);float upperMask=smoothstep(.35,.65,d.y);float patches=smoothstep(.43,.56,fbm(d*18.+warp*4.));vec3 upperTexture=mix(vec3(.012),vec3(1.4),patches);color=mix(color,upperTexture,upperMask);gl_FragColor=vec4(color,1.);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
-function ReflectiveFloor() {
+void main() {
+  vec3 d = normalize(direction);
+  float longitude = atan(d.x, d.z);
+  float hue = fract(longitude / 2.4 + d.y * .4 + .52);
+  vec3 rainbow = clamp(abs(fract(hue + vec3(0., 2./3., 1./3.)) * 6. - 3.) - 1., 0., 1.);
+  vec3 color = mix(vec3(1.), rainbow, .42) * 1.2;
+  float edgeCards = exp(-pow((longitude - 1.48) / .3, 2.)) + exp(-pow((longitude + 1.42) / .3, 2.));
+  float cardHeight = smoothstep(-.85, -.6, d.y) * (1. - smoothstep(.65, .9, d.y));
+  color = mix(color, vec3(.006), min(1., edgeCards) * cardHeight);
+  gl_FragColor = vec4(color, 1.);
+  #include <colorspace_fragment>
+}`;
+
+function EnvironmentRotation({ rotation }: { rotation: readonly [number, number, number] }) {
+  const { scene, invalidate } = useThree();
+  const [x, y, z] = rotation;
+  useEffect(() => {
+    scene.environmentRotation.set(x * Math.PI / 180, y * Math.PI / 180, z * Math.PI / 180);
+    invalidate();
+  }, [scene, invalidate, x, y, z]);
+  return null;
+}
+function ContextLifecycle({ onLost }: { onLost: (lost: boolean) => void }) {
+  const { gl, invalidate } = useThree();
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const lost = (event: Event) => { event.preventDefault(); onLost(true); };
+    const restored = () => { onLost(false); invalidate(); };
+    canvas.addEventListener("webglcontextlost", lost);
+    canvas.addEventListener("webglcontextrestored", restored);
+    return () => {
+      canvas.removeEventListener("webglcontextlost", lost);
+      canvas.removeEventListener("webglcontextrestored", restored);
+    };
+  }, [gl, invalidate, onLost]);
+  return null;
+}
+function ReflectiveFloor({ tuning }: { tuning: boolean }) {
   const floor = useMemo(() => {
     const reflector = new Reflector(new PlaneGeometry(200, 200), {
       color: 0xeef2fa, clipBias: .003,
-      textureWidth: 1440, textureHeight: 1300, multisample: 4,
+      textureWidth: tuning ? 720 : 1440, textureHeight: tuning ? 650 : 1300, multisample: tuning ? 0 : 4,
     });
     // Fade Three.js's floor reflection toward the white ground.
     if (!(reflector.material instanceof ShaderMaterial)) throw new Error("The reflector shader is unavailable.");
@@ -36,7 +69,7 @@ function ReflectiveFloor() {
     reflector.rotation.x = -Math.PI / 2;
     reflector.position.y = -1.405;
     return reflector;
-  }, []);
+  }, [tuning]);
   useEffect(() => () => { floor.geometry.dispose(); floor.dispose(); }, [floor]);
   return <primitive object={floor} />;
 }
@@ -80,7 +113,7 @@ function EnvironmentMotion({ reduced }: { reduced: boolean }) {
   return null;
 }
 
-function Study({ solid, presentation, onReady }: { solid: boolean; presentation: boolean; onReady: () => void }) {
+function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: boolean; presentation: boolean; onReady: () => void; prismColor: string; tuning: boolean }) {
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
   const gltf = useLoader(GLTFLoader, "/lab/prism/v030.glb");
@@ -120,7 +153,7 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
     </Environment>
     <group scale={scale} position={presentation ? [-previewHeight * .008, -previewHeight * .025, 0] : [0,0,0]}>
       {presentation ? <>
-        <ReflectiveFloor />
+        <ReflectiveFloor tuning={tuning} />
         <mesh receiveShadow position={[0,-1.4,0]} rotation={[-Math.PI / 2,0,0]}>
           <planeGeometry args={[200,200]} />
           <shadowMaterial color="#76628f" opacity={.045} transparent depthWrite={false} />
@@ -130,13 +163,13 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>}
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color="#484848" metalness={1} roughness={.085} clearcoat={.65} clearcoatRoughness={.05} envMapIntensity={1.5} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color={prismColor} metalness={1} roughness={.085} clearcoat={.65} clearcoatRoughness={.05} envMapIntensity={1.5} />}
       </mesh>
     </group>
   </>;
 }
 
-export default function Scene({ presentation = false }: { presentation?: boolean }) {
+export default function Scene({ presentation = false, tuning = false, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; tuning?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [reduced,setReduced]=useState(true);
   const [lost,setLost]=useState(false);
@@ -156,11 +189,12 @@ export default function Scene({ presentation = false }: { presentation?: boolean
     syncMotion();query.addEventListener("change",syncMotion);
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
-  return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive carbon-metal prism. Drag to explore its reflections." : "Carbon-metal prism. Move the pointer to shift its environment reflections.") : "A rounded carbon-metal prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
-    <Canvas flat shadows={presentation ? "variance" : false} frameloop="demand" dpr={[1,2]} camera={cameraSettings} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
+  return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && !tuning && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive carbon-metal prism. Drag to explore its reflections." : "Carbon-metal prism. Move the pointer to shift its environment reflections.") : "A rounded carbon-metal prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
+    <Canvas flat style={{ visibility: lost ? "hidden" : "visible" }} shadows={presentation ? "variance" : false} frameloop="demand" dpr={tuning ? 1 : [1,2]} camera={cameraSettings} gl={{antialias:!tuning,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
+      <ContextLifecycle onLost={setLost} />
       {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
-      {presentation && <EnvironmentMotion reduced={reduced} />}
-      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} /></Suspense>
+      {presentation && !tuning && <EnvironmentMotion reduced={reduced} />}
+      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />{tuning && <EnvironmentRotation rotation={environmentRotation} />}</Suspense>
     </Canvas>
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
       <span>{development ? "v030 · Drag to orbit · Scroll to zoom" : "v030 · Carbon-metal prism study"}</span>
