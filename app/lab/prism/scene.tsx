@@ -21,19 +21,17 @@ void main() {
   vec3 d = normalize(direction);
   float longitude = atan(d.x, d.z);
   float hue = fract(longitude / 2.4 + d.y * .4 + .52);
-  // ColorBrewer / Nivo Dark2, converted from sRGB to linear light.
-  vec3 palette[8];
-  palette[0] = vec3(27., 158., 119.) / 255.;
-  palette[1] = vec3(217., 95., 2.) / 255.;
+  // Dark cyan, blue, violet, pink, gray, and black; smoothly blended.
+  vec3 palette[6];
+  palette[0] = vec3(8., 145., 178.) / 255.;
+  palette[1] = vec3(37., 99., 180.) / 255.;
   palette[2] = vec3(117., 112., 179.) / 255.;
   palette[3] = vec3(231., 41., 138.) / 255.;
-  palette[4] = vec3(102., 166., 30.) / 255.;
-  palette[5] = vec3(230., 171., 2.) / 255.;
-  palette[6] = vec3(166., 118., 29.) / 255.;
-  palette[7] = vec3(102.) / 255.;
-  float segment = hue * 8.;
+  palette[4] = vec3(102.) / 255.;
+  palette[5] = vec3(12.) / 255.;
+  float segment = hue * 6.;
   int index = int(floor(segment));
-  vec3 srgb = mix(palette[index], palette[(index + 1) % 8], smoothstep(0., 1., fract(segment)));
+  vec3 srgb = mix(palette[index], palette[(index + 1) % 6], smoothstep(0., 1., fract(segment)));
   vec3 color = mix(srgb / 12.92, pow((srgb + .055) / 1.055, vec3(2.4)), step(vec3(.04045), srgb));
   float edgeCards = exp(-pow((longitude - 1.48) / .3, 2.)) + exp(-pow((longitude + 1.42) / .3, 2.));
   float cardHeight = smoothstep(-.85, -.6, d.y) * (1. - smoothstep(.65, .9, d.y));
@@ -181,9 +179,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
   </>;
 }
 
-export default function Scene({ presentation = false, snapshot = false, tuning = false, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; snapshot?: boolean; tuning?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
-  const capture = useRef<() => void>(() => {});
-  const [saved, setSaved] = useState(false);
+export default function Scene({ presentation = false, tuning = false, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; tuning?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [reduced,setReduced]=useState(true);
   const [lost,setLost]=useState(false);
@@ -204,13 +200,12 @@ export default function Scene({ presentation = false, snapshot = false, tuning =
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
   return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && !tuning && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive carbon-metal prism. Drag to explore its reflections." : "Carbon-metal prism. Move the pointer to shift its environment reflections.") : "A rounded carbon-metal prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
-    <Canvas flat style={{ visibility: lost ? "hidden" : "visible" }} shadows={presentation ? "variance" : false} frameloop="demand" dpr={snapshot ? 2 : tuning ? 1 : [1,2]} camera={cameraSettings} gl={{preserveDrawingBuffer:snapshot,antialias:!tuning,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera,scene})=>{capture.current=()=>{gl.render(scene,camera); fetch("/api/prism-preview",{method:"POST",body:gl.domElement.toDataURL("image/png")}).then(response=>{if(response.ok)setSaved(true);});};camera.lookAt(0,0,0);gl.setClearColor("white", 1);}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
+    <Canvas flat style={{ visibility: lost ? "hidden" : "visible" }} shadows={presentation ? "variance" : false} frameloop="demand" dpr={tuning ? 1 : [1,2]} camera={cameraSettings} gl={{antialias:!tuning,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       <ContextLifecycle onLost={setLost} />
-      {development && !snapshot && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
-      {presentation && !tuning && !snapshot && <EnvironmentMotion reduced={reduced} />}
+      {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
+      {presentation && !tuning && <EnvironmentMotion reduced={reduced} />}
       <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />{tuning && <EnvironmentRotation rotation={environmentRotation} />}</Suspense>
     </Canvas>
-    {snapshot && ready && <button style={{position:"fixed",top:0,left:0}} onClick={()=>capture.current()}>{saved ? "Preview saved" : "Save preview"}</button>}
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
       <span>{development ? "v030 · Drag to orbit · Scroll to zoom" : "v030 · Carbon-metal prism study"}</span>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show carbon metal" : "Inspect solid shape"}</button>
