@@ -28,7 +28,7 @@ export default function Home() {
             <div className="hero-actions"><a className="work-action" href="#work"><span className="arrow-circle"><Arrow /></span>View work</a><a className="muted-link" href="#contact">Contact</a></div>
           </div>
           <div className="hero-art">
-            <Image src="/images/prism-bubbles.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
+            <Image src="/images/prism-smoke.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
             <HeroPrism />
             <span className="hero-note">Ideas<br />into<br />real<br />experiences</span>
           </div>
@@ -43,7 +43,7 @@ export default function Home() {
           </article>)}
         </section>
         <section id="about" className="about-section page-width" aria-labelledby="about-title">
-          <p className="section-label">About</p><h2 id="about-title">Hayyaun, behind the work.</h2><p className="section-intro">Frontend development, motion, and interactive 3D.</p>
+          <p className="section-label">About</p><h2 id="about-title">Behind the work.</h2><p className="section-intro">Frontend development, motion, and interactive 3D.</p>
           <div className="capabilities" aria-label="Technical capabilities">
             <article><div className="capability-art interface-art" aria-hidden="true"><div className="browser-object"><i /><div className="interface-orb" /></div><div className="phone-object"><i /><div /></div></div><h3>Interfaces</h3><p>Next.js · WordPress</p></article>
             <article><div className="capability-art dimension-art" aria-hidden="true"><div className="glass-ring" /><div className="dimension-orb" /></div><h3>Light &amp; dimension</h3><p>Three.js · R3F · GLSL</p></article>

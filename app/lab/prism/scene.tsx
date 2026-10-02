@@ -2,6 +2,7 @@
 
 import { Canvas, useThree, useLoader, useFrame } from "@react-three/fiber";
 import { MeshTransmissionMaterial } from "@react-three/drei/core/MeshTransmissionMaterial";
+import { MeshReflectorMaterial } from "@react-three/drei/core/MeshReflectorMaterial";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
@@ -14,25 +15,47 @@ import { useCubeCamera } from "@react-three/drei/core/CubeCamera";
 const vertex = /* glsl */ `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const shadowFragment = /* glsl */ `varying vec2 vUv; void main(){vec2 p=(vUv-.5)*2.;float a=exp(-dot(p*vec2(1.5,3.),p*vec2(1.5,3.)))*.13;gl_FragColor=vec4(.32,.34,.37,a);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
 
+const patchedFloors = new WeakSet<object>();
+
+const smokeFragment = /* glsl */ `
+varying vec2 vUv;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+1.),f.x),f.y);}
+float fbm(vec2 p){float n=0.,a=.5;for(int i=0;i<5;i++){n+=a*noise(p);p=mat2(.8,-.6,.6,.8)*p*2.1+3.7;a*=.5;}return n;}
+void main(){
+ vec2 p=vUv*vec2(5.,7.);
+ vec2 warp=vec2(fbm(p+2.4),fbm(p-3.1));
+ float cloud=fbm(p+warp*3.5);
+ float ribbons=pow(1.-abs(sin((cloud+vUv.y*.2)*15.)),3.);
+ vec2 edge=(vUv-.5)*2.;
+ float fade=pow(max(0.,1.-dot(edge,edge)),1.5)*smoothstep(0.,.16,vUv.y);
+ float alpha=(smoothstep(.36,.7,cloud)*.28+ribbons*.16)*fade;
+ gl_FragColor=vec4(mix(vec3(.78,.7,.9),vec3(.49,.34,.68),cloud),alpha);
+ #include <colorspace_fragment>
+}`;
+
 // Capture the actual floor and its shadow alongside the studio environment.
 // Hide the glass during capture to avoid recursive reflections.
 function FloorReflections({ children }: { children: (texture: Texture) => React.ReactNode }) {
   const objects = useRef<Group>(null);
   const captures = useRef(0);
 
-  const { camera, fbo, update } = useCubeCamera({ resolution: 256, near: .05, far: 50 });
+  const { camera, fbo, update } = useCubeCamera({ resolution: 512, near: .05, far: 50 });
   useFrame(({ gl, scene, invalidate }) => {
     if (!objects.current || captures.current >= 3) return;
     // Render the prism shadow once before capturing its surrounding floor.
     if (captures.current === 0) { captures.current = 1; invalidate(); return; }
     const background = scene.background;
+    const reflector = scene.getObjectByName("smoke-floor-reflector");
     // Keep the fixed shadow map when transmission temporarily hides the glass.
     gl.shadowMap.autoUpdate = false;
     objects.current.visible = false;
+    if (reflector) reflector.visible = false;
     scene.background = scene.environment;
     update();
     scene.background = background;
     objects.current.visible = true;
+    if (reflector) reflector.visible = true;
     captures.current += 1;
     invalidate();
   });
@@ -93,8 +116,8 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
   return <>
     <color attach="background" args={["white"]} />
     <ambientLight intensity={.15} />
-    <directionalLight position={presentation ? [2,8,-1.5] : [3,5,4]} intensity={.5} color="#ffffff" castShadow={presentation} shadow-mapSize={[512,512]} shadow-radius={12} shadow-blurSamples={16} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} shadow-camera-near={.1} shadow-camera-far={20} shadow-bias={-.0001} shadow-normalBias={.02} />
-    <Environment background={false} frames={1} resolution={256}>
+    <directionalLight position={presentation ? [2,8,-1.5] : [3,5,4]} intensity={.5} color="#ffffff" castShadow={presentation} shadow-mapSize={[1024,1024]} shadow-radius={12} shadow-blurSamples={16} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} shadow-camera-near={.1} shadow-camera-far={20} shadow-bias={-.0001} shadow-normalBias={.02} />
+    <Environment background={false} frames={1} resolution={512}>
       <color attach="background" args={[presentation ? "#51316b" : "#34383e"]} />
       <Lightformer form="rect" color={presentation ? "#dec4ff" : "#edf1f5"} intensity={4} position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} />
       <Lightformer form="rect" color={presentation ? "#a77bd6" : "#bcc4cc"} intensity={2} position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} />
@@ -103,9 +126,27 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
     </Environment>
     <group scale={scale} position={presentation ? [-previewHeight * .008, -previewHeight * .025, 0] : [0,0,0]}>
       {presentation ? <>
-        <mesh position={[0,-1.405,0]} rotation={[-Math.PI / 2,0,0]}>
+        <mesh position={[.45,.65,-1.65]} rotation={[0,.324,0]}>
+          <planeGeometry args={[6,5]} />
+          <shaderMaterial vertexShader={vertex} fragmentShader={smokeFragment} transparent depthWrite={false} />
+        </mesh>
+        <mesh position={[0,-1.406,0]} rotation={[-Math.PI / 2,0,0]}>
           <planeGeometry args={[200,200]} />
           <meshBasicMaterial color="white" toneMapped={false} />
+        </mesh>
+        <mesh name="smoke-floor-reflector" position={[0,-1.405,0]} rotation={[-Math.PI / 2,0,0]}>
+          <planeGeometry args={[200,200]} />
+          <MeshReflectorMaterial color="white" resolution={1024} blur={[220,80]} mixBlur={1} mixStrength={1} mirror={1} roughness={1} metalness={0} depthScale={0} toneMapped={false} onUpdate={(material) => {
+            if (patchedFloors.has(material)) return;
+            patchedFloors.add(material);
+            const compile = material.onBeforeCompile.bind(material);
+            material.onBeforeCompile = (shader) => {
+              compile(shader);
+              // Keep the white studio floor; blend only the captured reflection.
+              shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>", "outgoingLight = mix(vec3(1.), clamp(newMerge.rgb, 0., 1.), .18);\n#include <opaque_fragment>");
+            };
+            material.needsUpdate = true;
+          }} />
         </mesh>
         <mesh receiveShadow position={[0,-1.4,0]} rotation={[-Math.PI / 2,0,0]}>
           <planeGeometry args={[200,200]} />
@@ -123,11 +164,11 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
       </mesh>}
       {presentation ? <FloorReflections>{(floorEnvironment) => (
       <mesh castShadow={presentation} ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial envMap={floorEnvironment} toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={512} samples={4} backside backsideResolution={512} backsideThickness={.75} thickness={.98} ior={1.31} roughness={.025} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#ffffff" attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial envMap={floorEnvironment} toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={1024} samples={6} backside backsideResolution={1024} backsideThickness={.75} thickness={.98} ior={1.31} roughness={.025} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#ffffff" attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />}
       </mesh>
       )}</FloorReflections> : (
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={512} samples={4} backside backsideResolution={512} backsideThickness={.75} thickness={.98} ior={1.31} roughness={.025} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#ffffff" attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={1024} samples={6} backside backsideResolution={1024} backsideThickness={.75} thickness={.98} ior={1.31} roughness={.025} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#ffffff" attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />}
       </mesh>
       )}
     </group>
@@ -144,9 +185,6 @@ export default function Scene({ presentation = false }: { presentation?: boolean
 
 
 
-
-
-
   const cameraSettings = useMemo(() => ({ position: (presentation ? [2.464,1.232,7.336] : [0,0,7]) as [number,number,number], fov:38 }), [presentation]);
   const sceneReady = useCallback(() => { controls.current?.update(); setReady(true); }, []);
   useEffect(() => {
@@ -156,7 +194,7 @@ export default function Scene({ presentation = false }: { presentation?: boolean
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
   return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? "Interactive glass prism. Drag to explore its reflections." : "A rounded glass prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
-    <Canvas shadows={presentation ? "variance" : false} frameloop="demand" dpr={[1,1.5]} camera={cameraSettings} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
+    <Canvas shadows={presentation ? "variance" : false} frameloop="demand" dpr={[1,2]} camera={cameraSettings} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />
       <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} /></Suspense>
     </Canvas>    {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
