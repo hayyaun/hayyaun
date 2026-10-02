@@ -36,7 +36,46 @@ function ReflectiveFloor() {
   return <primitive object={floor} />;
 }
 
-function Study({ solid, presentation, lightOffset, onReady }: { solid: boolean; presentation: boolean; lightOffset: [number,number]; onReady: () => void }) {
+function EnvironmentMotion({ reduced }: { reduced: boolean }) {
+  const { scene, invalidate } = useThree();
+  useEffect(() => {
+    if (reduced) return;
+    let target: [number, number] = [0, 0];
+    let current: [number, number] = [0, 0];
+    let frame = 0;
+    let lastUpdate = 0;
+    const tick = (time: number) => {
+      if (time - lastUpdate >= 120) {
+        lastUpdate = time;
+        current = [current[0] + (target[0] - current[0]) * .2, current[1] + (target[1] - current[1]) * .2];
+        scene.environmentRotation.set(current[1] * .2, current[0] * .3, 0);
+        scene.backgroundRotation.copy(scene.environmentRotation);
+        invalidate();
+      }
+      if (Math.abs(target[0] - current[0]) + Math.abs(target[1] - current[1]) > .001) {
+        frame = requestAnimationFrame(tick);
+      } else {
+        frame = 0;
+      }
+    };
+    const move = (event: PointerEvent) => {
+      if (event.pointerType === "touch") return;
+      target = [
+        Math.max(-1, Math.min(1, 1 - event.clientX / window.innerWidth * 2)) * .18,
+        Math.max(-1, Math.min(1, 1 - event.clientY / window.innerHeight * 2)) * .18,
+      ];
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => {
+      window.removeEventListener("pointermove", move);
+      cancelAnimationFrame(frame);
+    };
+  }, [reduced, scene, invalidate]);
+  return null;
+}
+
+function Study({ solid, presentation, onReady }: { solid: boolean; presentation: boolean; onReady: () => void }) {
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
   const gltf = useLoader(GLTFLoader, "/lab/prism/v029.glb");
@@ -91,11 +130,11 @@ function Study({ solid, presentation, lightOffset, onReady }: { solid: boolean; 
     {!presentation && <color attach="background" args={["white"]} />}
     <ambientLight intensity={.15} />
     <directionalLight position={presentation ? [2,8,-1.5] : [3,5,4]} intensity={.5} color="#ffffff" castShadow={presentation} shadow-mapSize={[1024,1024]} shadow-radius={12} shadow-blurSamples={16} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} shadow-camera-near={.1} shadow-camera-far={20} shadow-bias={-.0001} shadow-normalBias={.02} />
-    <Environment key={presentation ? lightOffset.join(":") : "lab"} background={presentation} frames={1} resolution={512}>
-      {presentation ? <><Lightformer form="rect" intensity={4} color="#e3edff" position={[-4 + lightOffset[0] * 2,3 + lightOffset[1] * 1.5,4]} scale={[3,6,1]} target={[0,0,0]} /><Lightformer form="rect" intensity={2} color="#9fb6df" position={[4 + lightOffset[0] * 1.5,1 + lightOffset[1],2]} scale={[1,5,1]} target={[0,0,0]} /><mesh rotation={[lightOffset[1] * .2, lightOffset[0] * .3, 0]}><sphereGeometry args={[10,64,32]} /><shaderMaterial side={BackSide} vertexShader={environmentVertex} fragmentShader={environmentFragment} toneMapped={false} /></mesh></> : <>
+    <Environment background={presentation} frames={1} resolution={512}>
+      {presentation ? <><Lightformer form="rect" intensity={4} color="#e3edff" position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} /><Lightformer form="rect" intensity={2} color="#9fb6df" position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} /><mesh><sphereGeometry args={[10,64,32]} /><shaderMaterial side={BackSide} vertexShader={environmentVertex} fragmentShader={environmentFragment} toneMapped={false} /></mesh></> : <>
       <color attach="background" args={[presentation ? "#51316b" : "#34383e"]} />
-      <Lightformer form="rect" color={presentation ? "#dec4ff" : "#edf1f5"} intensity={4} position={[-4 + lightOffset[0] * 2,3 + lightOffset[1] * 1.5,4]} scale={[3,6,1]} target={[0,0,0]} />
-      <Lightformer form="rect" color={presentation ? "#a77bd6" : "#bcc4cc"} intensity={2} position={[4 + lightOffset[0] * 1.5,1 + lightOffset[1],2]} scale={[1,5,1]} target={[0,0,0]} />
+      <Lightformer form="rect" color={presentation ? "#dec4ff" : "#edf1f5"} intensity={4} position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} />
+      <Lightformer form="rect" color={presentation ? "#a77bd6" : "#bcc4cc"} intensity={2} position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} />
       <Lightformer form="rect" color="#ffffff" intensity={3} position={[0,5,-2]} scale={[5,2,1]} target={[0,0,0]} />
       <Lightformer form="rect" color={presentation ? "#79529e" : "#707983"} intensity={1} position={[-3,-2,-4]} scale={[4,3,1]} target={[0,0,0]} />
       </>}
@@ -132,7 +171,7 @@ export default function Scene({ presentation = false }: { presentation?: boolean
   const [ready,setReady]=useState(false);
   const controls = useRef<OrbitControlsImpl>(null);
 
-  const [lightOffset,setLightOffset]=useState<[number,number]>([0,0]);
+
 
   const development = process.env.NODE_ENV === "development";
 
@@ -144,42 +183,11 @@ export default function Scene({ presentation = false }: { presentation?: boolean
     syncMotion();query.addEventListener("change",syncMotion);
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
-  useEffect(() => {
-    if (!presentation || reduced) return;
-    let target: [number, number] = [0, 0];
-    let current: [number, number] = [0, 0];
-    let frame = 0;
-    let lastUpdate = 0;
-    const tick = (time: number) => {
-      if (time - lastUpdate >= 120) {
-        lastUpdate = time;
-        current = [current[0] + (target[0] - current[0]) * .2, current[1] + (target[1] - current[1]) * .2];
-        setLightOffset([Number(current[0].toFixed(3)), Number(current[1].toFixed(3))]);
-      }
-      if (Math.abs(target[0] - current[0]) + Math.abs(target[1] - current[1]) > .001) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        frame = 0;
-      }
-    };
-    const move = (event: PointerEvent) => {
-      if (event.pointerType === "touch") return;
-      target = [
-        Math.max(-1, Math.min(1, 1 - event.clientX / window.innerWidth * 2)) * .18,
-        Math.max(-1, Math.min(1, 1 - event.clientY / window.innerHeight * 2)) * .18,
-      ];
-      if (!frame) frame = requestAnimationFrame(tick);
-    };
-    window.addEventListener("pointermove", move, { passive: true });
-    return () => {
-      window.removeEventListener("pointermove", move);
-      cancelAnimationFrame(frame);
-    };
-  }, [presentation, reduced]);
   return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive glass prism. Drag to explore its reflections." : "Glass prism. Move the pointer to shift its studio lighting.") : "A rounded glass prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
     <Canvas flat shadows={presentation ? "variance" : false} frameloop="demand" dpr={[1,2]} camera={cameraSettings} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
-      <Suspense fallback={null}><Study solid={solid} presentation={presentation} lightOffset={lightOffset} onReady={sceneReady} /></Suspense>
+      {presentation && <EnvironmentMotion reduced={reduced} />}
+      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} /></Suspense>
     </Canvas>
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
       <span>{development ? "v029 · Drag to orbit · Scroll to zoom" : "v029 · Glass prism study"}</span>
