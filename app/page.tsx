@@ -28,7 +28,7 @@ export default function Home() {
             <div className="hero-actions"><a className="work-action" href="#work"><span className="arrow-circle"><Arrow /></span>View work</a><a className="muted-link" href="#contact">Contact</a></div>
           </div>
           <div className="hero-art">
-            <Image src="/images/prism-black-core.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
+            <Image src="/images/prism-gradient-core.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
             <HeroPrism />
             <span className="hero-note">Ideas<br />into<br />real<br />experiences</span>
           </div>
