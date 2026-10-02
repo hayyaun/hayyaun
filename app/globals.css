@@ -24,7 +24,7 @@ h1 { font-size:clamp(58px,12vw,100px); line-height:.95; letter-spacing:-.07em; f
 .hero-actions { display:flex; align-items:center; gap:30px; margin-top:26px; font-size:14px; }
 .work-action { display:flex; align-items:center; gap:12px; }
 .arrow-circle { display:inline-flex; align-items:center; justify-content:center; width:48px; height:48px; border-radius:50%; background:#101011; color:white; font-size:26px; font-weight:400; letter-spacing:0; transition:transform .2s; }
-a:hover .arrow-circle { transform:translateX(4px); }
+
 .muted-link { color:var(--muted); padding-block:14px; }
 .hero-art { position:relative; height:340px; margin-top:5px; isolation:isolate; }
 .prism-fallback { object-fit:contain; }
@@ -46,7 +46,7 @@ a:hover .arrow-circle { transform:translateX(4px); }
 .project-caption p { font-family:var(--font-geist-mono),monospace; font-size:9px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-top:4px; }
 .project-caption a { font-size:12px; white-space:nowrap; min-height:44px; display:flex; gap:10px; align-items:flex-start; }
 .project-caption a span { font-size:18px; line-height:1; }
-.project-caption a:hover { text-decoration:underline; text-underline-offset:4px; }
+
 .about-section { padding-top:65px; }
 .about-section h2 { font-size:clamp(32px,5.6vw,56px); letter-spacing:-.055em; line-height:1.15; margin-top:12px; font-weight:400; }
 .section-intro { color:var(--muted); font-size:18px; line-height:1.5; letter-spacing:-.025em; margin-top:10px; }
@@ -124,3 +124,30 @@ a:hover .arrow-circle { transform:translateX(4px); }
 @media(prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } *,*:before,*:after { transition:none!important; animation:none!important; } }
 
 .hero-canvas, .prism-fallback { mask-image:linear-gradient(to right,transparent,#000 7%,#000 93%,transparent),linear-gradient(to bottom,transparent,#000 7%,#000 93%,transparent); mask-composite:intersect; }
+
+/* Quiet interaction feedback, without adding client-side animation code. */
+:root { --interaction-ease:cubic-bezier(.22,1,.36,1); }
+.site-header nav a,.muted-link,.wordmark { position:relative; }
+.site-header nav a:after,.muted-link:after { content:""; position:absolute; bottom:9px; left:0; right:0; height:1px; background:currentColor; transform:scaleX(0); transform-origin:left; transition:transform 280ms var(--interaction-ease); }
+.site-header nav a,.muted-link,.wordmark,.project-caption a,.contact-links a { transition:color 250ms ease; }
+.arrow-circle { transition:transform 350ms var(--interaction-ease),background-color 250ms ease; }
+.arrow-circle>span,.project-caption a>span,.contact-links>a>span { transition:transform 350ms var(--interaction-ease); }
+.project-image { transition:transform 450ms var(--interaction-ease),box-shadow 450ms var(--interaction-ease); }
+.capability-art { transition:transform 450ms var(--interaction-ease); }
+button { transition:transform 250ms var(--interaction-ease),background-color 250ms ease,box-shadow 250ms ease; }
+.site-header nav a:focus-visible:after,.muted-link:focus-visible:after { transform:scaleX(1); }
+.project:focus-within .project-image { box-shadow:0 10px 24px #44324612; }
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  .site-header nav a:hover:after,.muted-link:hover:after { transform:scaleX(1); }
+  .wordmark:hover,.muted-link:hover,.project-caption a:hover,.contact-links a:hover { color:#695487; }
+  .work-action:hover .arrow-circle { transform:translateX(3px); background:#30263d; }
+  .work-action:hover .arrow-circle>span { transform:translateX(2px); }
+  .project:hover .project-image { transform:translateY(-3px); box-shadow:0 12px 28px #44324614; }
+  .project-caption a:hover>span,.contact-links>a:hover>span { transform:translate(2px,-2px); }
+  .capabilities article:hover .capability-art { transform:translateY(-4px); }
+  button:hover { transform:translateY(-2px); box-shadow:0 4px 12px #44324612; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  .work-action:active .arrow-circle { transform:scale(.95); }
+  button:active { transform:scale(.97); }
+}

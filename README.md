@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+![Hayyaun — Web development, motion, and interactive 3D. Technology logos: Go, Next.js, Nuxt, WordPress, React, TypeScript, Node.js, Three.js, GSAP, Docker, Git, and Flutter. Built with care. Made to be useful.](assets/profile-banner.png)
 
-## Getting Started
+# Hi, I’m Hayyaun.
 
-First, run the development server:
+I build web interfaces with an eye for detail, purposeful motion, and interactive 3D. I care about how a website feels—and how well it works for the people using it.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+**Thoughtful code. Meaningful experiences.**
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## What I work with
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Interfaces:** React, Next.js, Nuxt, TypeScript, Tailwind CSS, and WordPress.
+- **Backend & tooling:** Go, Node.js, Docker, and Git.
+- **Mobile:** Flutter.
+- **Interactive 3D:** Three.js, React Three Fiber, and GLSL.
+- **Motion:** GSAP and carefully considered interactions.
+- **Engineering:** accessibility, performance, architecture, and code review.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## My approach
 
-## Learn More
+Make the content clear. Give the details character. Let motion and depth earn their place.
 
-To learn more about Next.js, take a look at the following resources:
+I start with useful, accessible interfaces and add the touches that make them memorable. The best work brings design and engineering together.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Let’s connect
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Have an idea worth building? [Start a conversation with me on GitHub](https://github.com/hayyaun).
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+<sub>This repository also contains my portfolio, built with Next.js, TypeScript, Tailwind CSS, and React Three Fiber. To run it locally: `npm install`, then `npm run dev`. Check it with `npm run lint` and `npm run build`.</sub>

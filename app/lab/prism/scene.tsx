@@ -165,7 +165,7 @@ export default function Scene({ presentation = false }: { presentation?: boolean
     const move = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
       target = [
-        Math.max(-1, Math.min(1, event.clientX / window.innerWidth * 2 - 1)) * .18,
+        Math.max(-1, Math.min(1, 1 - event.clientX / window.innerWidth * 2)) * .18,
         Math.max(-1, Math.min(1, 1 - event.clientY / window.innerHeight * 2)) * .18,
       ];
       if (!frame) frame = requestAnimationFrame(tick);
