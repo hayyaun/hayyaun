@@ -28,7 +28,8 @@ a:hover .arrow-circle { transform:translateX(4px); }
 .muted-link { color:var(--muted); padding-block:14px; }
 .hero-art { position:relative; height:340px; margin-top:5px; isolation:isolate; }
 .prism-fallback { object-fit:contain; }
-.hero-canvas { position:absolute; inset:0; touch-action:pan-y; }
+.hero-canvas { position:absolute; inset:0; touch-action:pan-y; display:grid; place-items:center; container-type:size; }
+.hero-scene-frame { width:min(100cqw, 110.76923077cqh); height:min(100cqh, 90.27777778cqw); }
 .hero-canvas canvas { touch-action:pan-y!important; }
 .hero-note { position:absolute; right:0; top:26%; font-family:var(--font-geist-mono),monospace; font-size:10px; line-height:1.6; text-transform:uppercase; letter-spacing:.18em; color:var(--muted); pointer-events:none; }
 .work-section { padding-block:48px; display:grid; gap:38px; border-bottom:1px solid var(--line); }

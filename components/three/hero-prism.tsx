@@ -26,5 +26,5 @@ export default function HeroPrism() {
     return () => { observer.disconnect(); motion.removeEventListener("change", sync); };
   }, []);
 
-  return <div ref={host} className="hero-canvas">{enabled && visible && <SceneBoundary><Scene presentation /></SceneBoundary>}</div>;
+  return <div ref={host} className="hero-canvas">{enabled && visible && <div className="hero-scene-frame"><SceneBoundary><Scene presentation /></SceneBoundary></div>}</div>;
 }
