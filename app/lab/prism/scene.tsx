@@ -32,8 +32,8 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
   const smoke = useRef<ShaderMaterial>(null);
   const { invalidate, viewport } = useThree();
   const time = useRef(12);
-  const gltf = useLoader(GLTFLoader, "/lab/prism/v025.glb");
-  const { geometry, airGeometry } = useMemo(() => {
+  const gltf = useLoader(GLTFLoader, "/lab/prism/v027.glb");
+  const { geometry, airGeometry, sectionGeometry } = useMemo(() => {
     const source = gltf.scene.getObjectByName("Reference_Prism");
     if (!(source instanceof Mesh)) throw new Error("The prism model is missing its mesh.");
     // Preserve the supplied surface and normals; only normalize its framing.
@@ -52,10 +52,18 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
       airCopy.translate(-center.x, -center.y, -center.z);
       airCopy.scale(2.8 / height, 2.8 / height, 2.8 / height);
     }
+    const section = gltf.scene.getObjectByName("v027-section");
+    const sectionCopy = section instanceof Mesh ? section.geometry.clone() : null;
+    if (section instanceof Mesh && sectionCopy) {
+      section.updateWorldMatrix(true, false);
+      sectionCopy.applyMatrix4(section.matrixWorld);
+      sectionCopy.translate(-center.x, -center.y, -center.z);
+      sectionCopy.scale(2.8 / height, 2.8 / height, 2.8 / height);
+    }
     copy.translate(-center.x, -center.y, -center.z);
     copy.scale(2.8 / height, 2.8 / height, 2.8 / height);
     copy.computeBoundingSphere();
-    return { geometry: copy, airGeometry: airCopy };
+    return { geometry: copy, airGeometry: airCopy, sectionGeometry: sectionCopy };
   }, [gltf.scene]);
   const sourceTexture=useLoader(TextureLoader,"/lab/prism/smoke.webp");
   const texture=useMemo(()=>{
@@ -66,7 +74,7 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
   },[sourceTexture]);
   useEffect(()=>()=>texture.dispose(),[texture]);
   const smokeUniforms=useMemo(()=>({uTime:{value:12},uSmoke:{value:texture}}),[texture]);
-  useEffect(() => () => { geometry.dispose(); airGeometry?.dispose(); }, [geometry, airGeometry]);
+  useEffect(() => () => { geometry.dispose(); airGeometry?.dispose(); sectionGeometry?.dispose(); }, [geometry, airGeometry, sectionGeometry]);
   useEffect(() => {
     invalidate();
     if (!active || reduced) return;
@@ -97,6 +105,9 @@ function Study({ reduced, active, solid }: { reduced: boolean; active: boolean; 
       </mesh>
       {!solid && airGeometry && <mesh geometry={airGeometry}>
         <meshPhysicalMaterial color="#ffffff" roughness={.025} metalness={0} transmission={1} thickness={.38} ior={1.31} clearcoat={.12} clearcoatRoughness={.035} attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />
+      </mesh>}
+      {!solid && sectionGeometry && <mesh geometry={sectionGeometry}>
+        <meshPhysicalMaterial color="#ffffff" transmission={1} roughness={.025} ior={1.31} thickness={.008} envMapIntensity={1.2} />
       </mesh>}
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
         {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.12} clearcoatRoughness={.035} resolution={512} samples={4} backside backsideResolution={512} backsideThickness={.75} thickness={.98} ior={1.31} roughness={.025} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} distortionScale={.7} temporalDistortion={0} color="#ffffff" attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />}
@@ -129,13 +140,14 @@ export default function Scene() {
       <Suspense fallback={null}><Study reduced={reduced} active={active&&!lost} solid={solid} /></Suspense>
     </Canvas>
     <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
-      <span>v025 · Drag to orbit · Scroll to zoom</span>
+      <span>v027 · Drag to orbit · Scroll to zoom</span>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show ice" : "Inspect solid shape"}</button>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={()=>{controls.current?.reset();}}>Reset view</button>
     </div>
     {lost&&<p style={{position:"absolute",bottom:92,left:24,pointerEvents:"none",color:"#62586d"}}>The graphics context was interrupted. Reload to restore the scene.</p>}
   </div>;
 }
+
 
 
 

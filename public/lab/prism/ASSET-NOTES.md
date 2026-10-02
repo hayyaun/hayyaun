@@ -57,3 +57,7 @@ Three meshes: outer prism, bottom-right inclusion, large upper inner prism with 
 
 ## Current version: v025
 One enlarged lower-right pocket close to body walls. No upper inner prism.
+
+
+v026: Added a thin glass section at height 0.66 fitted inside the outer outline. Preserves v025 bubble and outer body; upper inner prism remains removed.
+v027: Sloped glass section joined to the surrounding outer contour.
