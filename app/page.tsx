@@ -3,9 +3,11 @@ import Link from "next/link";
 import HeroPrism from "@/components/three/hero-prism";
 import { projects } from "@/lib/projects";
 import type { Metadata } from "next";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  ...(process.env.SITE_URL ? { alternates: { canonical: "/" } } : {}),
+  alternates: { canonical: "/" },
+  openGraph: { title: site.title, description: site.description, url: site.url, siteName: site.name, locale: "en_US", type: "website" },
 };
 
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
@@ -15,6 +17,13 @@ function Arrow({ diagonal = false }: { diagonal?: boolean }) {
 export default function Home() {
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": [
+          { "@type": "Person", "@id": `${site.url}/#person`, name: site.name, url: site.url, email: site.email, sameAs: site.profiles, knowsAbout: ["Frontend development", "Next.js", "WordPress", "Three.js", "Interactive 3D", "Web animation"] },
+          { "@type": "WebSite", "@id": `${site.url}/#website`, url: site.url, name: site.name, description: site.description, inLanguage: "en", author: { "@id": `${site.url}/#person` } },
+        ],
+      }).replace(/</g, "\u003c") }} />
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="site-header page-width">
         <Link href="/" className="wordmark" aria-label="Hayyaun home">Hayyaun</Link>
@@ -38,7 +47,7 @@ export default function Home() {
           {projects.map((project, index) => <article className={`project project-${index + 1}`} key={project.slug}>
             <span className="project-number" aria-hidden="true">0{index + 1}</span>
             <div><Image src={project.image} alt={`${project.title} website preview`} width={project.width} height={project.height} sizes="(max-width: 700px) 90vw, 65vw" className="project-image" />
-              <div className="project-caption"><div><h3>{project.title}</h3><p>{project.category}</p></div><a href={project.image} aria-label={`Explore ${project.title} project preview`}>Explore project <Arrow diagonal /></a></div>
+              <div className="project-caption"><div><h3>{project.title}</h3><p>{project.category}</p></div><a href={project.liveUrl} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${project.title} website (opens in a new tab)`}>Explore project <Arrow diagonal /></a></div>
             </div>
           </article>)}
         </section>
@@ -51,7 +60,7 @@ export default function Home() {
           </div>
         </section>
         <section className="experience-section page-width" aria-labelledby="experience-title"><p className="section-label">Experience</p><h2 id="experience-title">Two years as a senior frontend developer.</h2><p className="section-intro">Architecture · Performance · Code review · Mentoring</p></section>
-        <section id="contact" className="contact-section" aria-labelledby="contact-title"><div className="page-width contact-inner"><h2 id="contact-title">Have something<br />in mind? <span className="arrow-circle"><Arrow /></span></h2><div className="contact-links"><a href={process.env.CONTACT_EMAIL ? `mailto:${process.env.CONTACT_EMAIL}` : "https://github.com/hayyaun"}>{process.env.CONTACT_EMAIL ? "Email Hayyaun" : "Contact Hayyaun"} <Arrow diagonal /></a><div className="contact-socials"><a href="https://github.com/hayyaun">GitHub</a>{process.env.LINKEDIN_URL && <a href={process.env.LINKEDIN_URL}>LinkedIn</a>}</div></div></div><footer className="page-width site-footer"><Link href="/" className="wordmark">Hayyaun</Link><p>Frontend development &amp; interactive 3D</p></footer></section>
+        <section id="contact" className="contact-section" aria-labelledby="contact-title"><div className="page-width contact-inner"><h2 id="contact-title">Have something<br />in mind? <span className="arrow-circle"><Arrow /></span></h2><div className="contact-links"><a href="mailto:hayyaun@outlook.com">Email Hayyaun <Arrow diagonal /></a><div className="contact-socials"><a href="https://github.com/hayyaun">GitHub</a><a href="https://www.linkedin.com/in/hayyaun/">LinkedIn</a></div></div></div><footer className="page-width site-footer"><Link href="/" className="wordmark">Hayyaun</Link><p>Frontend development &amp; interactive 3D</p></footer></section>
       </main>
     </>
   );

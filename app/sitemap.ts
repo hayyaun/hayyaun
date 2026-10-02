@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-
+import { site } from "@/lib/site";
 export default function sitemap(): MetadataRoute.Sitemap {
-  return process.env.SITE_URL ? [{ url: new URL("/", process.env.SITE_URL).href }] : [];
+  return [{ url: `${site.url}/` }];
 }

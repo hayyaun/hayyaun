@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { site, isPreview } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,17 +14,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hayyaun — Frontend development & interactive 3D",
-  description: "Selected work by Hayyaun. Frontend development, motion, and interactive 3D with clarity, depth, and character.",
-  metadataBase: new URL(process.env.SITE_URL || "http://localhost:3100"),
-  openGraph: {
-    title: "Hayyaun — Clarity. Depth. Character.",
-    description: "Frontend development, motion, and interactive 3D.",
-    type: "website",
+  metadataBase: new URL(site.url),
+  title: { default: site.title, template: "%s — Hayyaun" },
+  description: site.description,
+  applicationName: site.name,
+  authors: [{ name: site.name, url: site.url }],
+  creator: site.name,
+  category: "technology",
+  robots: isPreview ? { index: false, follow: false } : {
+    index: true, follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
   },
-  twitter: { card: "summary_large_image" },
+  openGraph: {
+    title: site.title, description: site.description,
+    siteName: site.name, locale: "en_US", type: "website",
+  },
+  twitter: { card: "summary_large_image", title: site.title, description: site.description },
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{

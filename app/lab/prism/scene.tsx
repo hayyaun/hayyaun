@@ -220,7 +220,7 @@ export default function Scene({ presentation = false, tuning = false, pointerMot
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
   return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && !tuning && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive carbon-metal prism. Drag to explore its reflections." : "Carbon-metal prism. Move the pointer to shift its environment reflections.") : "A rounded carbon-metal prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
-    <Canvas flat style={{ visibility: lost ? "hidden" : "visible" }} shadows={presentation ? "variance" : false} frameloop="demand" dpr={tuning ? 1 : [1,2]} camera={cameraSettings} gl={{antialias:!tuning,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
+    <Canvas flat style={{ visibility: lost ? "hidden" : "visible" }} shadows={presentation ? "variance" : false} frameloop="demand" dpr={tuning ? [1,1.5] : [1,2]} camera={cameraSettings} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       <ContextLifecycle onLost={setLost} />
       {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
 

@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
-
+import { site, isPreview } from "@/lib/site";
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: "*", allow: "/", disallow: "/lab/" },
-    ...(process.env.SITE_URL ? { sitemap: `${process.env.SITE_URL.replace(/\/$/, "")}/sitemap.xml` } : {}),
+    rules: isPreview ? { userAgent: "*", disallow: "/" } : { userAgent: "*", allow: "/", disallow: "/lab/" },
+    sitemap: `${site.url}/sitemap.xml`,
   };
 }
