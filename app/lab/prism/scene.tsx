@@ -40,15 +40,6 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
-function EnvironmentRotation({ rotation }: { rotation: readonly [number, number, number] }) {
-  const { scene, invalidate } = useThree();
-  const [x, y, z] = rotation;
-  useEffect(() => {
-    scene.environmentRotation.set(x * Math.PI / 180, y * Math.PI / 180, z * Math.PI / 180);
-    invalidate();
-  }, [scene, invalidate, x, y, z]);
-  return null;
-}
 function ContextLifecycle({ onLost }: { onLost: (lost: boolean) => void }) {
   const { gl, invalidate } = useThree();
   useEffect(() => {
@@ -84,45 +75,71 @@ function ReflectiveFloor({ tuning }: { tuning: boolean }) {
   return <primitive object={floor} />;
 }
 
-function EnvironmentMotion({ reduced }: { reduced: boolean }) {
-  const { scene, invalidate } = useThree();
+function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: {
+  reduced: boolean; autoRotate: boolean; rotation: readonly [number, number, number]; pointer: boolean;
+}) {
+  const { scene, invalidate, gl } = useThree();
+  const [x, y, z] = rotation;
   useEffect(() => {
-    if (reduced) return;
-    let target: [number, number] = [0, 0];
-    let current: [number, number] = [0, 0];
-    let frame = 0;
-    let lastUpdate = 0;
-    const tick = (time: number) => {
-      if (time - lastUpdate >= 120) {
-        lastUpdate = time;
-        current = [current[0] + (target[0] - current[0]) * .2, current[1] + (target[1] - current[1]) * .2];
-        scene.environmentRotation.set(current[1] * .2, current[0] * .3, 0);
-        scene.backgroundRotation.copy(scene.environmentRotation);
-        invalidate();
+    const base = [x, y, z].map(value => value * Math.PI / 180);
+    let angle = 0;
+    let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let last = performance.now();
+    let visible = true;
+    let contextLost = false;
+    const apply = () => {
+      scene.environmentRotation.set(base[0] + currentY * .2, base[1] + angle + currentX * .3, base[2]);
+      invalidate();
+    };
+    const tick = () => {
+      timer = undefined;
+      if (document.hidden || !visible || contextLost || reduced) return;
+      const now = performance.now();
+      const delta = Math.min((now - last) / 1000, .1);
+      last = now;
+      if (autoRotate) angle = (angle + delta * Math.PI * 2 / 180) % (Math.PI * 2);
+      const blend = 1 - Math.exp(-delta * 2);
+      currentX += (targetX - currentX) * blend;
+      currentY += (targetY - currentY) * blend;
+      apply();
+      if (autoRotate || Math.abs(targetX - currentX) + Math.abs(targetY - currentY) > .001) {
+        timer = setTimeout(tick, 1000 / 30);
       }
-      if (Math.abs(target[0] - current[0]) + Math.abs(target[1] - current[1]) > .001) {
-        frame = requestAnimationFrame(tick);
-      } else {
-        frame = 0;
-      }
+    };
+    const resume = () => {
+      clearTimeout(timer);
+      timer = undefined;
+      last = performance.now();
+      if (!document.hidden && visible && !contextLost && !reduced) timer = setTimeout(tick, 1000 / 30);
     };
     const move = (event: PointerEvent) => {
-      if (event.pointerType === "touch") return;
-      target = [
-        Math.max(-1, Math.min(1, 1 - event.clientX / window.innerWidth * 2)) * .18,
-        Math.max(-1, Math.min(1, 1 - event.clientY / window.innerHeight * 2)) * .18,
-      ];
-      if (!frame) frame = requestAnimationFrame(tick);
+      if (!pointer || reduced || event.pointerType === "touch") return;
+      targetX = Math.max(-1, Math.min(1, 1 - event.clientX / window.innerWidth * 2)) * .18;
+      targetY = Math.max(-1, Math.min(1, 1 - event.clientY / window.innerHeight * 2)) * .18;
+      if (timer === undefined) resume();
     };
+    const lost = () => { contextLost = true; resume(); };
+    const restored = () => { contextLost = false; resume(); };
+    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; resume(); });
+    observer.observe(gl.domElement);
+    document.addEventListener("visibilitychange", resume);
     window.addEventListener("pointermove", move, { passive: true });
+    gl.domElement.addEventListener("webglcontextlost", lost);
+    gl.domElement.addEventListener("webglcontextrestored", restored);
+    apply();
+    resume();
     return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("pointermove", move);
-      cancelAnimationFrame(frame);
+      gl.domElement.removeEventListener("webglcontextlost", lost);
+      gl.domElement.removeEventListener("webglcontextrestored", restored);
     };
-  }, [reduced, scene, invalidate]);
+  }, [reduced, autoRotate, pointer, x, y, z, scene, invalidate, gl]);
   return null;
 }
-
 function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: boolean; presentation: boolean; onReady: () => void; prismColor: string; tuning: boolean }) {
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
@@ -179,7 +196,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
   </>;
 }
 
-export default function Scene({ presentation = false, tuning = false, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; tuning?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
+export default function Scene({ presentation = false, tuning = false, autoRotate = true, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; tuning?: boolean; autoRotate?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [reduced,setReduced]=useState(true);
   const [lost,setLost]=useState(false);
@@ -203,8 +220,8 @@ export default function Scene({ presentation = false, tuning = false, environmen
     <Canvas flat style={{ visibility: lost ? "hidden" : "visible" }} shadows={presentation ? "variance" : false} frameloop="demand" dpr={tuning ? 1 : [1,2]} camera={cameraSettings} gl={{antialias:!tuning,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       <ContextLifecycle onLost={setLost} />
       {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
-      {presentation && !tuning && <EnvironmentMotion reduced={reduced} />}
-      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />{tuning && <EnvironmentRotation rotation={environmentRotation} />}</Suspense>
+
+      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />{presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={!tuning} />}</Suspense>
     </Canvas>
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
       <span>{development ? "v030 · Drag to orbit · Scroll to zoom" : "v030 · Carbon-metal prism study"}</span>
