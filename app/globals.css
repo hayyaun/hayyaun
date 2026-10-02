@@ -11,7 +11,7 @@ a:focus-visible,button:focus-visible { outline:2px solid #7352ac; outline-offset
 .page-width { width:min(var(--container),calc(100% - 40px)); margin-inline:auto; }
 .skip-link { position:fixed; top:12px; left:12px; padding:12px 18px; background:white; z-index:10; transform:translateY(-150%); }
 .skip-link:focus { transform:none; }
-.site-header { display:flex; justify-content:space-between; align-items:center; padding-block:25px; }
+.site-header { display:flex; justify-content:space-between; align-items:center; padding-block:12px; }
 .wordmark { font-size:20px; letter-spacing:-.06em; font-weight:500; }
 .site-header nav { display:flex; gap:22px; font-size:13px; }
 .site-header nav a { min-height:44px; display:flex; align-items:center; }
