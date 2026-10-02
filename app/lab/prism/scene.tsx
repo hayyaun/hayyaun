@@ -7,7 +7,7 @@ import { Lightformer } from "@react-three/drei/core/Lightformer";
 import { Environment } from "@react-three/drei/core/Environment";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { BackSide, Mesh, PlaneGeometry } from "three";
+import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 
 const vertex = /* glsl */ `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
@@ -27,6 +27,12 @@ function ReflectiveFloor() {
       color: 0xeef2fa, clipBias: .003,
       textureWidth: 1440, textureHeight: 1300, multisample: 4,
     });
+    // Fade Three.js's floor reflection toward the white ground.
+    if (!(reflector.material instanceof ShaderMaterial)) throw new Error("The reflector shader is unavailable.");
+    reflector.material.fragmentShader = reflector.material.fragmentShader.replace(
+      "blendOverlay( base.rgb, color )",
+      "mix( vec3( 1.0 ), blendOverlay( base.rgb, color ), 0.35 )",
+    );
     reflector.rotation.x = -Math.PI / 2;
     reflector.position.y = -1.405;
     return reflector;
@@ -117,7 +123,7 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
         <ReflectiveFloor />
         <mesh receiveShadow position={[0,-1.4,0]} rotation={[-Math.PI / 2,0,0]}>
           <planeGeometry args={[200,200]} />
-          <shadowMaterial color="#76628f" opacity={.08} transparent depthWrite={false} />
+          <shadowMaterial color="#76628f" opacity={.045} transparent depthWrite={false} />
         </mesh>
       </> : <mesh position={[0,-1.4,.1]} rotation={[-1.15,0,0]}>
         <planeGeometry args={[4,1.5]} />
