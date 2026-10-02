@@ -89,3 +89,4 @@ Upper inner prism removed. Bottom-right inclusion enlarged into a broad tapered 
 
 v026: Added a thin glass section at height 0.66 fitted inside the outer outline. Preserves v025 bubble and outer body; upper inner prism remains removed.
 v027: Glass section follows the exact outer contour with rounded edges and a small slope (z = 0.66 + 0.045x + 0.06y). Upper inner prism removed; outer body and v025 inclusion preserved.
+v028: Glass section inset radially by 0.016 Blender units to avoid intersection/z-fighting at the outer body; slope preserved.
