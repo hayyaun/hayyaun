@@ -20,7 +20,7 @@ varying vec3 direction;
 float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
 float fbm(vec3 p){float n=0.,a=.5;for(int i=0;i<5;i++){n+=a*noise(p);p=p*2.03+vec3(3.7,1.8,4.2);a*=.5;}return n;}
-void main(){vec3 d=normalize(direction);vec3 p=d*5.;vec3 warp=vec3(fbm(p+2.4),fbm(p-3.1),fbm(p+5.6));float cloud=fbm(p+warp*3.);float wisps=pow(1.-abs(sin(cloud*18.)),3.);float density=smoothstep(.35,.72,cloud)*.5+wisps*.16;vec3 color=mix(vec3(1.),vec3(.58,.66,.9),density*.45);float studio=smoothstep(0.,.4,d.z);color=mix(color,vec3(.23,.3,.46),studio*.95);float softbox=pow(max(0.,dot(d,normalize(vec3(-.6,.5,.6)))),32.)+pow(max(0.,dot(d,normalize(vec3(.8,.2,.4)))),48.);color+=vec3(1.8)*softbox;float longitude=atan(d.x,d.z);float heightFade=smoothstep(-.85,-.6,d.y)*(1.-smoothstep(.65,.9,d.y));float studioSide=smoothstep(-.1,.25,d.z);float spectrum=clamp((longitude+3.14159265)/6.2831853,0.,1.);vec3 rainbow=mix(vec3(.02,.85,1.),vec3(.48,.12,1.),spectrum);color=mix(color,rainbow*.8,heightFade*studioSide);float edgeCards=exp(-pow((longitude-1.48)/.3,2.))+exp(-pow((longitude+1.42)/.3,2.));color=mix(color,vec3(.008,.016,.035),min(1.,edgeCards)*heightFade);float upperMask=smoothstep(.35,.65,d.y);float patches=smoothstep(.43,.56,fbm(d*18.+warp*4.));vec3 upperTexture=mix(vec3(.012),vec3(1.4),patches);color=mix(color,upperTexture,upperMask);gl_FragColor=vec4(color,1.);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
+void main(){vec3 d=normalize(direction);vec3 p=d*5.;vec3 warp=vec3(fbm(p+2.4),fbm(p-3.1),fbm(p+5.6));float cloud=fbm(p+warp*3.);float wisps=pow(1.-abs(sin(cloud*18.)),3.);float density=smoothstep(.35,.72,cloud)*.5+wisps*.16;vec3 color=mix(vec3(1.),vec3(.7,.58,.86),density*.45);float studio=smoothstep(0.,.4,d.z);color=mix(color,vec3(.12,.09,.17),studio*.95);float softbox=pow(max(0.,dot(d,normalize(vec3(-.6,.5,.6)))),32.)+pow(max(0.,dot(d,normalize(vec3(.8,.2,.4)))),48.);color+=vec3(1.8)*softbox;float longitude=atan(d.x,d.z);float heightFade=smoothstep(-.85,-.6,d.y)*(1.-smoothstep(.65,.9,d.y));float studioSide=smoothstep(-.1,.25,d.z);float spectrum=clamp((longitude+3.14159265)/6.2831853,0.,1.);vec3 violet=mix(vec3(.14,.035,.25),vec3(.65,.3,.9),spectrum);color=mix(color,violet*.8,heightFade*studioSide);float edgeCards=exp(-pow((longitude-1.48)/.3,2.))+exp(-pow((longitude+1.42)/.3,2.));color=mix(color,vec3(.006),min(1.,edgeCards)*heightFade);float upperMask=smoothstep(.35,.65,d.y);float patches=smoothstep(.43,.56,fbm(d*18.+warp*4.));vec3 upperTexture=mix(vec3(.012),vec3(1.4),patches);color=mix(color,upperTexture,upperMask);gl_FragColor=vec4(color,1.);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
 function ReflectiveFloor() {
   const floor = useMemo(() => {
     const reflector = new Reflector(new PlaneGeometry(200, 200), {
@@ -100,16 +100,16 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
   const previewHeight = Math.min(viewport.height, viewport.width * 650 / 720) / (presentation ? 1.12 : 1);
   const scale = presentation ? previewHeight * (472 / 650) / 2.8 : Math.min(.95, viewport.width / 4.7, viewport.height / 5.5);
   return <>
-    {!presentation && <color attach="background" args={["white"]} />}
+    <color attach="background" args={["white"]} />
     <ambientLight intensity={.15} />
     <directionalLight position={presentation ? [2,8,-1.5] : [3,5,4]} intensity={.5} color="#ffffff" castShadow={presentation} shadow-mapSize={[1024,1024]} shadow-radius={12} shadow-blurSamples={16} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} shadow-camera-near={.1} shadow-camera-far={20} shadow-bias={-.0001} shadow-normalBias={.02} />
-    <Environment background={presentation} frames={1} resolution={512}>
-      {presentation ? <><Lightformer form="rect" intensity={4} color="#e3edff" position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} /><Lightformer form="rect" intensity={2} color="#9fb6df" position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} /><mesh><sphereGeometry args={[10,64,32]} /><shaderMaterial side={BackSide} vertexShader={environmentVertex} fragmentShader={environmentFragment} toneMapped={false} /></mesh></> : <>
-      <color attach="background" args={[presentation ? "#51316b" : "#34383e"]} />
-      <Lightformer form="rect" color={presentation ? "#dec4ff" : "#edf1f5"} intensity={4} position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} />
-      <Lightformer form="rect" color={presentation ? "#a77bd6" : "#bcc4cc"} intensity={2} position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} />
+    <Environment background={false} frames={1} resolution={512}>
+      {presentation ? <><Lightformer form="rect" intensity={4} color="#ffffff" position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} /><Lightformer form="rect" intensity={2} color="#c8a4ef" position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} /><mesh><sphereGeometry args={[10,64,32]} /><shaderMaterial side={BackSide} vertexShader={environmentVertex} fragmentShader={environmentFragment} toneMapped={false} /></mesh></> : <>
+      <color attach="background" args={[presentation ? "#51316b" : "#343434"]} />
+      <Lightformer form="rect" color={presentation ? "#dec4ff" : "#f5f5f5"} intensity={4} position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} />
+      <Lightformer form="rect" color={presentation ? "#a77bd6" : "#cccccc"} intensity={2} position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} />
       <Lightformer form="rect" color="#ffffff" intensity={3} position={[0,5,-2]} scale={[5,2,1]} target={[0,0,0]} />
-      <Lightformer form="rect" color={presentation ? "#79529e" : "#707983"} intensity={1} position={[-3,-2,-4]} scale={[4,3,1]} target={[0,0,0]} />
+      <Lightformer form="rect" color={presentation ? "#79529e" : "#777777"} intensity={1} position={[-3,-2,-4]} scale={[4,3,1]} target={[0,0,0]} />
       </>}
     </Environment>
     <group scale={scale} position={presentation ? [-previewHeight * .008, -previewHeight * .025, 0] : [0,0,0]}>
@@ -124,7 +124,7 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>}
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color="#353840" metalness={1} roughness={.19} clearcoat={.35} clearcoatRoughness={.12} envMapIntensity={1.35} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color="#49454f" metalness={1} roughness={.085} clearcoat={.65} clearcoatRoughness={.05} envMapIntensity={1.5} />}
       </mesh>
     </group>
   </>;

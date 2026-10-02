@@ -1,63 +1,7 @@
-# Smoke texture
+# Current prism assets
 
-`smoke.webp` is a 1024 × 1024, 42 KB asset generated with the built-in imagegen tool and optimized with Sharp. It is a smoke-only texture; the prism uses the supplied GLB geometry and refraction is rendered live. UV flow gently animates the smoke image; this is not a volumetric fluid simulation.
+v029.glb supplies Reference_Prism geometry to app/lab/prism/scene.tsx. The renderer uses only the outer mesh, with a reflective carbon-metal material. Internal model meshes are not rendered.
 
-## Prism model
-`v006.glb` is exported from `demo/objects/prism/v006.blend`. Its four upper faces are planar between rounded corner transitions and the rounded crown. The approved lower rounded geometry and dimensions are preserved. Only the prism mesh is exported (922,528 bytes); studio objects and Blender materials are excluded. Three.js loads the mesh as `Reference_Prism` and supplies the live glass or solid inspection material.
+The violet, black, and white environment is generated and captured once in the scene, used for reflections only. The visible background is white. No external HDR or smoke texture is required.
 
-Generation prompt:
-Create a production texture asset, NOT a website mockup. One diffuse lavender smoke plume on perfectly pure white (#ffffff), square 1024 or 1536 composition. Photorealistic high-speed studio photograph of very fine suspended lavender ink-like vapor in air. Elegant soft curls, translucent tendrils, layered turbulent wisps, with delicate internal shading, no coarse noise or outlines. Main plume rises diagonally from bottom right toward upper left, leaving substantial empty pure white outer margin of 15% on all four sides and a quieter translucent central opening where a glass prism could be placed later. Medium pale lavender in central thicker wisps, lighter pearl on outer wisps. Some thin streaks, some cloudy soft depth, no dense opaque mass. Smoke occupies about 70% of frame, centrally balanced. Soft diffuse lighting. Outer smoke fades completely into pure white seamlessly on every edge. NO glass, NO prism, no objects, no fabric, no ribbon, no text, no floor, no borders, no gray backdrop, no black. This is a background smoke texture that will be refracted through a separately rendered real 3D glass object. Natural volumetric smoke, realistic, beautiful, quiet. Overall light neutral atmosphere.
-
-## Studio environment
-`studio.hdr` is the studio_small_03_1k.hdr environment distributed in pmndrs/drei-assets (revision 456060a26bbeb8fdf79326f224b6d99b8bcce736), originally from Poly Haven. It is self-hosted and used for reflections, not the visible white background.
-Source: https://github.com/pmndrs/drei-assets/blob/456060a26bbeb8fdf79326f224b6d99b8bcce736/hdri/studio_small_03_1k.hdr
-
-
-## Current version: v007
-v007.glb supersedes v006. Smooth tangent shoulder and pale blue ice material; the web renderer uses matching roughness, IOR and transmission settings.
-
-## Current version: v008
-v008.glb replaces the stepped ring construction with four planar faces and rounded boundary fillets. Clear ice material: IOR 1.31, roughness 0.025, transmission 1. Only the prism is exported.
-
-## Current version: v009
-Restores v005 geometry with bounded upper face interior adjustments. Original rounded bottom and edges retained. Clear ice material; v008 is superseded.
-
-## Current version: v010
-Four continuous planar face interiors with rounded outlines replace the middle-height crown blend. Original lower geometry retained exactly through normalized height 0.23; clear ice material unchanged.
-
-## Current version: v011
-Local tip rounding and left rounded-edge smoothing on v010. Other vertices, including the base and planar face interiors, are unchanged. Clear ice retained.
-
-## Current version: v012
-Broader, smoothly joined crown on v011. Geometry below the crown is unchanged. Clear ice retained.
-
-## Current version: v013
-Local left rounded-transition smoothing only. Approved crown, flat face interiors, and underside retained.
-
-## Current version: v014
-Local lower front-left fillet smoothing; remaining v013 geometry and clear ice retained.
-
-## Current version: v016
-Recovery of exact v014 geometry; rejected v015 corner smoothing reverted.
-
-## Current version: v017
-Continuous smoothing of lower-left surface and both adjoining edges; material controls unchanged.
-
-## Current version: v019
-v018 with 5% less overall width. Height, depth and material unchanged.
-
-## Current version: v020
-Gentle surface smoothing plus five bottom-right air pockets. Two exported meshes; web bubbles use an approximate reflective/transmissive material.
-
-## Current version: v022
-One large bottom-right internal inclusion replaces five bubbles; same material as the prism. Outer v021 geometry retained.
-
-## Current version: v023
-Three meshes: outer prism, bottom-right inclusion, large upper inner prism with flat floor. Outer geometry unchanged.
-
-## Current version: v025
-One enlarged lower-right pocket close to body walls. No upper inner prism.
-
-
-v026: Added a thin glass section at height 0.66 fitted inside the outer outline. Preserves v025 bubble and outer body; upper inner prism remains removed.
-v027: Sloped glass section joined to the surrounding outer contour.
+The current loading image is public/images/prism-violet-metal.webp. Blender sources and modeling scripts remain in demo/objects/prism; superseded public exports, web previews, generated logs, and Blender backup files have been removed.
