@@ -42,8 +42,8 @@ function FloorReflections({ children }: { children: (texture: Texture) => React.
 function Study({ solid, presentation, onReady }: { solid: boolean; presentation: boolean; onReady: () => void }) {
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
-  const gltf = useLoader(GLTFLoader, "/lab/prism/v028.glb");
-  const { geometry, airGeometry, sectionGeometry } = useMemo(() => {
+  const gltf = useLoader(GLTFLoader, "/lab/prism/v029.glb");
+  const { geometry, airGeometry, extraBubbles, sectionGeometry } = useMemo(() => {
     const source = gltf.scene.getObjectByName("Reference_Prism");
     if (!(source instanceof Mesh)) throw new Error("The prism model is missing its mesh.");
     // Preserve the supplied surface and normals; only normalize its framing.
@@ -62,6 +62,16 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
       airCopy.translate(-center.x, -center.y, -center.z);
       airCopy.scale(2.8 / height, 2.8 / height, 2.8 / height);
     }
+    const extraBubbles = [0,1,2].map(index => {
+      const source = gltf.scene.getObjectByName(`lower-bubble-${index}`);
+      if (!(source instanceof Mesh)) throw new Error("A lower bubble is missing.");
+      source.updateWorldMatrix(true, false);
+      const bubble = source.geometry.clone();
+      bubble.applyMatrix4(source.matrixWorld);
+      bubble.translate(-center.x, -center.y, -center.z);
+      bubble.scale(2.8 / height, 2.8 / height, 2.8 / height);
+      return bubble;
+    });
     const section = gltf.scene.getObjectByName("v028-section");
     const sectionCopy = section instanceof Mesh ? section.geometry.clone() : null;
     if (section instanceof Mesh && sectionCopy) {
@@ -73,9 +83,9 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
     copy.translate(-center.x, -center.y, -center.z);
     copy.scale(2.8 / height, 2.8 / height, 2.8 / height);
     copy.computeBoundingSphere();
-    return { geometry: copy, airGeometry: airCopy, sectionGeometry: sectionCopy };
+    return { geometry: copy, airGeometry: airCopy, extraBubbles, sectionGeometry: sectionCopy };
   }, [gltf.scene]);
-  useEffect(() => () => { geometry.dispose(); airGeometry?.dispose(); sectionGeometry?.dispose(); }, [geometry, airGeometry, sectionGeometry]);
+  useEffect(() => () => { geometry.dispose(); airGeometry?.dispose(); extraBubbles.forEach(bubble => bubble.dispose()); sectionGeometry?.dispose(); }, [geometry, airGeometry, extraBubbles, sectionGeometry]);
   useEffect(() => { onReady(); }, [onReady]);
   // Match the visible bounds of the 720 × 650 loading preview.
   const previewHeight = Math.min(viewport.height, viewport.width * 650 / 720) / (presentation ? 1.12 : 1);
@@ -105,9 +115,9 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
         <planeGeometry args={[4,1.5]} />
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>}
-      {!solid && airGeometry && <mesh geometry={airGeometry}>
+      {!solid && [airGeometry, ...extraBubbles].map((bubble, index) => bubble && <mesh key={index} geometry={bubble}>
         <meshPhysicalMaterial color="#ffffff" roughness={.025} metalness={0} transmission={1} thickness={.38} ior={1.31} clearcoat={.12} clearcoatRoughness={.035} attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />
-      </mesh>}
+      </mesh>)}
       {!solid && sectionGeometry && <mesh geometry={sectionGeometry}>
         <meshPhysicalMaterial color="#ffffff" transmission={1} roughness={.025} ior={1.31} thickness={.008} envMapIntensity={1.2} />
       </mesh>}
@@ -131,6 +141,8 @@ export default function Scene({ presentation = false }: { presentation?: boolean
   const [solid,setSolid]=useState(false);
   const [ready,setReady]=useState(false);
   const controls = useRef<OrbitControlsImpl>(null);
+
+
 
 
 
