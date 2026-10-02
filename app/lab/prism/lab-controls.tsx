@@ -34,7 +34,7 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
     }
   }
   return <>
-    <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}><CanvasBoundary><Scene presentation tuning autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} /></CanvasBoundary></div>
+    <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}><CanvasBoundary><Scene presentation tuning pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} /></CanvasBoundary></div>
     {createPortal(<>
     <Leva titleBar={{ title: landing ? "Landing prism · Dev" : "Prism lab" }} collapsed={false} />
     <div style={{ position: "fixed", bottom: 24, right: 24, left: landing ? "auto" : 24, width: landing ? "min(360px, calc(100vw - 48px))" : undefined, zIndex: 1000 }} className="max-w-xl rounded-xl border border-gray-200 bg-white/95 p-4 text-sm text-gray-800">

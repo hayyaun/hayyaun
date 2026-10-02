@@ -84,6 +84,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: {
     const base = [x, y, z].map(value => value * Math.PI / 180);
     let angle = 0;
     let targetX = 0, targetY = 0, currentX = 0, currentY = 0;
+    let lastPointerMove = -Infinity;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let last = performance.now();
     let visible = true;
@@ -96,6 +97,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: {
       timer = undefined;
       if (document.hidden || !visible || contextLost || reduced) return;
       const now = performance.now();
+      if (now - lastPointerMove > 700) { targetX = 0; targetY = 0; }
       const delta = Math.min((now - last) / 1000, .1);
       last = now;
       if (autoRotate) angle = (angle + delta * Math.PI * 2 / 180) % (Math.PI * 2);
@@ -103,7 +105,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: {
       currentX += (targetX - currentX) * blend;
       currentY += (targetY - currentY) * blend;
       apply();
-      if (autoRotate || Math.abs(targetX - currentX) + Math.abs(targetY - currentY) > .001) {
+      if (autoRotate || now - lastPointerMove <= 700 || Math.abs(targetX - currentX) + Math.abs(targetY - currentY) > .001) {
         timer = setTimeout(tick, 1000 / 30);
       }
     };
@@ -115,6 +117,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: {
     };
     const move = (event: PointerEvent) => {
       if (!pointer || reduced || event.pointerType === "touch") return;
+      lastPointerMove = performance.now();
       targetX = Math.max(-1, Math.min(1, 1 - event.clientX / window.innerWidth * 2)) * .18;
       targetY = Math.max(-1, Math.min(1, 1 - event.clientY / window.innerHeight * 2)) * .18;
       if (timer === undefined) resume();
@@ -196,7 +199,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
   </>;
 }
 
-export default function Scene({ presentation = false, tuning = false, autoRotate = true, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; tuning?: boolean; autoRotate?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
+export default function Scene({ presentation = false, tuning = false, pointerMotion = !tuning, autoRotate = true, environmentRotation = [0, 0, 0], prismColor = "#8b82aa" }: { presentation?: boolean; tuning?: boolean; pointerMotion?: boolean; autoRotate?: boolean; environmentRotation?: readonly [number, number, number]; prismColor?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const [reduced,setReduced]=useState(true);
   const [lost,setLost]=useState(false);
@@ -221,7 +224,7 @@ export default function Scene({ presentation = false, tuning = false, autoRotate
       <ContextLifecycle onLost={setLost} />
       {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
 
-      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />{presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={!tuning} />}</Suspense>
+      <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />{presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}</Suspense>
     </Canvas>
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
       <span>{development ? "v030 · Drag to orbit · Scroll to zoom" : "v030 · Carbon-metal prism study"}</span>
