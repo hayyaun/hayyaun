@@ -20,7 +20,7 @@ varying vec3 direction;
 float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
 float noise(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);}
 float fbm(vec3 p){float n=0.,a=.5;for(int i=0;i<5;i++){n+=a*noise(p);p=p*2.03+vec3(3.7,1.8,4.2);a*=.5;}return n;}
-void main(){vec3 d=normalize(direction);vec3 p=d*5.;vec3 warp=vec3(fbm(p+2.4),fbm(p-3.1),fbm(p+5.6));float cloud=fbm(p+warp*3.);float wisps=pow(1.-abs(sin(cloud*18.)),3.);float density=smoothstep(.35,.72,cloud)*.5+wisps*.16;vec3 color=mix(vec3(1.),vec3(.7,.58,.86),density*.45);float studio=smoothstep(0.,.4,d.z);color=mix(color,vec3(.12,.09,.17),studio*.95);float softbox=pow(max(0.,dot(d,normalize(vec3(-.6,.5,.6)))),32.)+pow(max(0.,dot(d,normalize(vec3(.8,.2,.4)))),48.);color+=vec3(1.8)*softbox;float longitude=atan(d.x,d.z);float heightFade=smoothstep(-.85,-.6,d.y)*(1.-smoothstep(.65,.9,d.y));float studioSide=smoothstep(-.1,.25,d.z);float spectrum=clamp((longitude+3.14159265)/6.2831853,0.,1.);vec3 violet=mix(vec3(.14,.035,.25),vec3(.65,.3,.9),spectrum);color=mix(color,violet*.8,heightFade*studioSide);float edgeCards=exp(-pow((longitude-1.48)/.3,2.))+exp(-pow((longitude+1.42)/.3,2.));color=mix(color,vec3(.006),min(1.,edgeCards)*heightFade);float upperMask=smoothstep(.35,.65,d.y);float patches=smoothstep(.43,.56,fbm(d*18.+warp*4.));vec3 upperTexture=mix(vec3(.012),vec3(1.4),patches);color=mix(color,upperTexture,upperMask);gl_FragColor=vec4(color,1.);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
+void main(){vec3 d=normalize(direction);vec3 p=d*5.;vec3 warp=vec3(fbm(p+2.4),fbm(p-3.1),fbm(p+5.6));float cloud=fbm(p+warp*3.);float wisps=pow(1.-abs(sin(cloud*18.)),3.);float density=smoothstep(.35,.72,cloud)*.5+wisps*.16;vec3 color=mix(vec3(1.),vec3(.7,.58,.86),density*.45);float studio=smoothstep(0.,.4,d.z);color=mix(color,vec3(.12,.09,.17),studio*.95);float softbox=pow(max(0.,dot(d,normalize(vec3(-.6,.5,.6)))),32.)+pow(max(0.,dot(d,normalize(vec3(.8,.2,.4)))),48.);color+=vec3(1.8)*softbox;float longitude=atan(d.x,d.z);float heightFade=smoothstep(-.85,-.6,d.y)*(1.-smoothstep(.65,.9,d.y));float hue=fract(longitude/2.4+d.y*.4+.52);vec3 rainbow=clamp(abs(fract(hue+vec3(0.,2./3.,1./3.))*6.-3.)-1.,0.,1.);rainbow=mix(vec3(.08),rainbow,.92);color=mix(color,rainbow*1.2,heightFade*.88);float edgeCards=exp(-pow((longitude-1.48)/.3,2.))+exp(-pow((longitude+1.42)/.3,2.));color=mix(color,vec3(.006),min(1.,edgeCards)*heightFade);float upperMask=smoothstep(.35,.65,d.y);float patches=smoothstep(.43,.56,fbm(d*18.+warp*4.));vec3 upperTexture=mix(vec3(.012),vec3(1.4),patches);color=mix(color,upperTexture,upperMask);gl_FragColor=vec4(color,1.);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
 function ReflectiveFloor() {
   const floor = useMemo(() => {
     const reflector = new Reflector(new PlaneGeometry(200, 200), {
@@ -83,7 +83,7 @@ function EnvironmentMotion({ reduced }: { reduced: boolean }) {
 function Study({ solid, presentation, onReady }: { solid: boolean; presentation: boolean; onReady: () => void }) {
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
-  const gltf = useLoader(GLTFLoader, "/lab/prism/v029.glb");
+  const gltf = useLoader(GLTFLoader, "/lab/prism/v030.glb");
   const geometry = useMemo(() => {
     const source = gltf.scene.getObjectByName("Reference_Prism");
     if (!(source instanceof Mesh)) throw new Error("The prism model is missing its mesh.");
@@ -110,7 +110,7 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
     <ambientLight intensity={.15} />
     <directionalLight position={presentation ? [2,8,-1.5] : [3,5,4]} intensity={.5} color="#ffffff" castShadow={presentation} shadow-mapSize={[1024,1024]} shadow-radius={12} shadow-blurSamples={16} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} shadow-camera-near={.1} shadow-camera-far={20} shadow-bias={-.0001} shadow-normalBias={.02} />
     <Environment background={false} frames={1} resolution={512}>
-      {presentation ? <><Lightformer form="rect" intensity={4} color="#ffffff" position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} /><Lightformer form="rect" intensity={2} color="#c8a4ef" position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} /><mesh><sphereGeometry args={[10,64,32]} /><shaderMaterial side={BackSide} vertexShader={environmentVertex} fragmentShader={environmentFragment} toneMapped={false} /></mesh></> : <>
+      {presentation ? <><Lightformer form="rect" intensity={4} color="#ffffff" position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} /><Lightformer form="rect" intensity={2} color="#ffffff" position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} /><mesh><sphereGeometry args={[10,64,32]} /><shaderMaterial side={BackSide} vertexShader={environmentVertex} fragmentShader={environmentFragment} toneMapped={false} /></mesh></> : <>
       <color attach="background" args={[presentation ? "#51316b" : "#343434"]} />
       <Lightformer form="rect" color={presentation ? "#dec4ff" : "#f5f5f5"} intensity={4} position={[-4,3,4]} scale={[3,6,1]} target={[0,0,0]} />
       <Lightformer form="rect" color={presentation ? "#a77bd6" : "#cccccc"} intensity={2} position={[4,1,2]} scale={[1,5,1]} target={[0,0,0]} />
@@ -130,7 +130,7 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>}
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color="#49454f" metalness={1} roughness={.085} clearcoat={.65} clearcoatRoughness={.05} envMapIntensity={1.5} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color="#484848" metalness={1} roughness={.085} clearcoat={.65} clearcoatRoughness={.05} envMapIntensity={1.5} />}
       </mesh>
     </group>
   </>;
@@ -163,7 +163,7 @@ export default function Scene({ presentation = false }: { presentation?: boolean
       <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} /></Suspense>
     </Canvas>
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
-      <span>{development ? "v029 · Drag to orbit · Scroll to zoom" : "v029 · Carbon-metal prism study"}</span>
+      <span>{development ? "v030 · Drag to orbit · Scroll to zoom" : "v030 · Carbon-metal prism study"}</span>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show carbon metal" : "Inspect solid shape"}</button>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={()=>{controls.current?.reset();}}>Reset view</button>
     </div>}

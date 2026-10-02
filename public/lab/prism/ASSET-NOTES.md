@@ -1,7 +1,7 @@
 # Current prism assets
 
-v029.glb supplies Reference_Prism geometry to app/lab/prism/scene.tsx. The renderer uses only the outer mesh, with a reflective carbon-metal material. Internal model meshes are not rendered.
+v030.glb contains only the outer Reference_Prism mesh, with a tighter upper taper, relaxed edge ripples, and smooth normals. Generate it with node demo/objects/prism/v030-metal.mjs; v029.glb remains the source asset.
 
-The violet, black, and white environment is generated and captured once in the scene, used for reflections only. The visible background is white. No external HDR or smoke texture is required.
+The rainbow studio environment is captured once and used for reflections only. The visible background remains white. The neutral carbon-metal material reflects the full spectrum, with white softboxes and dark cards defining the silhouette.
 
-The current loading image is public/images/prism-violet-soft-floor.webp. Blender sources and modeling scripts remain in demo/objects/prism; superseded public exports, web previews, generated logs, and Blender backup files have been removed.
+The loading image is public/images/prism-rainbow-metal.webp, captured from the same camera at 1440 × 1300. Floor reflections remain faded. Blender sources and modeling scripts remain in demo/objects/prism.
