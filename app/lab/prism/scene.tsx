@@ -1,6 +1,5 @@
 "use client";
 
-import { MeshTransmissionMaterial } from "@react-three/drei/core/MeshTransmissionMaterial";
 import { Canvas, useThree, useLoader } from "@react-three/fiber";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
@@ -79,7 +78,7 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
   const gltf = useLoader(GLTFLoader, "/lab/prism/v029.glb");
-  const { geometry, airGeometry, extraBubbles, sectionGeometry } = useMemo(() => {
+  const geometry = useMemo(() => {
     const source = gltf.scene.getObjectByName("Reference_Prism");
     if (!(source instanceof Mesh)) throw new Error("The prism model is missing its mesh.");
     // Preserve the supplied surface and normals; only normalize its framing.
@@ -90,38 +89,12 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
     const bounds = copy.boundingBox!;
     const height = bounds.max.y - bounds.min.y;
     const center = bounds.getCenter(source.position.clone());
-    const air = gltf.scene.getObjectByName("v025-inclusion");
-    const airCopy = air instanceof Mesh ? air.geometry.clone() : null;
-    if (air instanceof Mesh && airCopy) {
-      air.updateWorldMatrix(true, false);
-      airCopy.applyMatrix4(air.matrixWorld);
-      airCopy.translate(-center.x, -center.y, -center.z);
-      airCopy.scale(2.8 / height, 2.8 / height, 2.8 / height);
-    }
-    const extraBubbles = [0,1,2].map(index => {
-      const source = gltf.scene.getObjectByName(`lower-bubble-${index}`);
-      if (!(source instanceof Mesh)) throw new Error("A lower bubble is missing.");
-      source.updateWorldMatrix(true, false);
-      const bubble = source.geometry.clone();
-      bubble.applyMatrix4(source.matrixWorld);
-      bubble.translate(-center.x, -center.y, -center.z);
-      bubble.scale(2.8 / height, 2.8 / height, 2.8 / height);
-      return bubble;
-    });
-    const section = gltf.scene.getObjectByName("v028-section");
-    const sectionCopy = section instanceof Mesh ? section.geometry.clone() : null;
-    if (section instanceof Mesh && sectionCopy) {
-      section.updateWorldMatrix(true, false);
-      sectionCopy.applyMatrix4(section.matrixWorld);
-      sectionCopy.translate(-center.x, -center.y, -center.z);
-      sectionCopy.scale(2.8 / height, 2.8 / height, 2.8 / height);
-    }
     copy.translate(-center.x, -center.y, -center.z);
     copy.scale(2.8 / height, 2.8 / height, 2.8 / height);
     copy.computeBoundingSphere();
-    return { geometry: copy, airGeometry: airCopy, extraBubbles, sectionGeometry: sectionCopy };
+    return copy;
   }, [gltf.scene]);
-  useEffect(() => () => { geometry.dispose(); airGeometry?.dispose(); extraBubbles.forEach(bubble => bubble.dispose()); sectionGeometry?.dispose(); }, [geometry, airGeometry, extraBubbles, sectionGeometry]);
+  useEffect(() => () => { geometry.dispose(); }, [geometry]);
   useEffect(() => { onReady(); }, [onReady]);
   // Match the visible bounds of the 720 × 650 loading preview.
   const previewHeight = Math.min(viewport.height, viewport.width * 650 / 720) / (presentation ? 1.12 : 1);
@@ -150,17 +123,8 @@ function Study({ solid, presentation, onReady }: { solid: boolean; presentation:
         <planeGeometry args={[4,1.5]} />
         <shaderMaterial vertexShader={vertex} fragmentShader={shadowFragment} transparent depthWrite={false} />
       </mesh>}
-      {!solid && [airGeometry, ...extraBubbles].map((bubble, index) => bubble && <mesh key={index} geometry={bubble}>
-        <meshPhysicalMaterial color="#ffffff" roughness={.025} metalness={0} transmission={1} thickness={.38} ior={1.31} clearcoat={.12} clearcoatRoughness={.035} attenuationColor="#f2f9ff" attenuationDistance={12} envMapIntensity={1.2} />
-      </mesh>)}
-      {!solid && sectionGeometry && <mesh geometry={sectionGeometry}>
-        <meshPhysicalMaterial color="#ffffff" transmission={1} roughness={.025} ior={1.31} thickness={.008} envMapIntensity={1.2} />
-      </mesh>}
-      {!solid && <mesh geometry={geometry} scale={.8} position={[0,0,0]}>
-        <meshStandardMaterial color="#08080a" roughness={.28} metalness={.15} envMapIntensity={.6} />
-      </mesh>}
       <mesh ref={mesh} geometry={geometry} rotation={[0,0,0]}>
-        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <MeshTransmissionMaterial toneMapped={false} clearcoat={.3} clearcoatRoughness={.012} resolution={1024} samples={6} backside backsideResolution={1024} backsideThickness={.75} thickness={.98} ior={1.46} roughness={.008} transmission={1} chromaticAberration={.003} anisotropicBlur={0} distortion={0} color="#ffffff" attenuationColor="#dce7ff" attenuationDistance={24} envMapIntensity={.65} />}
+        {solid ? <meshStandardMaterial color="#b6afc1" roughness={.4} /> : <meshPhysicalMaterial color="#353840" metalness={1} roughness={.19} clearcoat={.35} clearcoatRoughness={.12} envMapIntensity={1.35} />}
       </mesh>
     </group>
   </>;
@@ -186,15 +150,15 @@ export default function Scene({ presentation = false }: { presentation?: boolean
     syncMotion();query.addEventListener("change",syncMotion);
     return ()=>query.removeEventListener("change",syncMotion);
   },[]);
-  return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive glass prism. Drag to explore its reflections." : "Glass prism. Move the pointer to shift its studio lighting.") : "A rounded glass prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
+  return <div ref={host} style={{height:"100%",width:"100%", opacity: presentation && (!ready || lost) ? 0 : 1}} role="region" aria-label={presentation ? (development ? "Interactive carbon-metal prism. Drag to explore its reflections." : "Carbon-metal prism. Move the pointer to shift its environment reflections.") : "A rounded carbon-metal prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}>
     <Canvas flat shadows={presentation ? "variance" : false} frameloop="demand" dpr={[1,2]} camera={cameraSettings} gl={{antialias:true,alpha:false,powerPreference:"low-power"}} onCreated={({gl,camera})=>{camera.lookAt(0,0,0);gl.setClearColor("white", 1);gl.domElement.addEventListener("webglcontextlost",()=>setLost(true),{once:true});}} fallback={presentation ? null : <p style={{padding:24,color:"#62586d"}}>WebGL is unavailable on this device.</p>}>
       {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={.08} />}
       {presentation && <EnvironmentMotion reduced={reduced} />}
       <Suspense fallback={null}><Study solid={solid} presentation={presentation} onReady={sceneReady} /></Suspense>
     </Canvas>
     {!presentation && <div style={{position:"absolute",bottom:24,left:24,display:"flex",flexWrap:"wrap",right:24,gap:12,alignItems:"center",fontSize:12,fontFamily:"var(--font-geist-sans),sans-serif",color:"#51475f"}}>
-      <span>{development ? "v029 · Drag to orbit · Scroll to zoom" : "v029 · Glass prism study"}</span>
-      <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show ice" : "Inspect solid shape"}</button>
+      <span>{development ? "v029 · Drag to orbit · Scroll to zoom" : "v029 · Carbon-metal prism study"}</span>
+      <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={()=>setSolid(!solid)}>{solid ? "Show carbon metal" : "Inspect solid shape"}</button>
       <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" onClick={()=>{controls.current?.reset();}}>Reset view</button>
     </div>}
     {lost&&<p style={{position:"absolute",bottom:92,left:24,pointerEvents:"none",color:"#62586d"}}>The graphics context was interrupted. Reload to restore the scene.</p>}
