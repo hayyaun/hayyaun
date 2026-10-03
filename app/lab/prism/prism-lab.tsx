@@ -34,6 +34,7 @@ export default function PrismLab() {
       <SceneBoundary>
         <Scene />
       </SceneBoundary>
+      <div className={styles.grain} aria-hidden="true" />
       <noscript>
         <Fallback />
       </noscript>

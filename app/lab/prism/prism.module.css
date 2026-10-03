@@ -13,6 +13,14 @@
   background: white;
   overflow: hidden;
 }
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("/lab/prism/grain.svg");
+  background-size: 192px 192px;
+}
 .smoke {
   position: absolute;
   width: min(75vw, 650px);
