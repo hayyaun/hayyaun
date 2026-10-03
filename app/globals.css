@@ -278,7 +278,7 @@ h1 {
   aspect-ratio: 2.55;
 }
 .project-preview {
-  object-fit: cover;
+  object-fit: fill;
   opacity: 0;
   transition: opacity 500ms var(--interaction-ease);
 }
@@ -812,5 +812,13 @@ button {
   }
 }
 
-.arrow-icon { display:inline-block; flex-shrink:0; vertical-align:middle; }
-.arrow-circle .arrow-icon { width:26px; height:26px; display:block; }
+.arrow-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+.arrow-circle .arrow-icon {
+  width: 26px;
+  height: 26px;
+  display: block;
+}

@@ -82,7 +82,7 @@ const fragmentSource = `
 `;
 
 /** A single-pass image transition. Animation scheduling belongs to the component. */
-export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTMLImageElement, preview: HTMLImageElement, coverPositionY = 0.5, previewPositionY = 0.5): ProjectImageRenderer | null {
+export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTMLImageElement, preview: HTMLImageElement, coverPositionY = 0.5): ProjectImageRenderer | null {
   if (!cover.naturalWidth || !cover.naturalHeight || !preview.naturalWidth || !preview.naturalHeight) return null;
 
   const gl = canvas.getContext("webgl", {
@@ -190,7 +190,8 @@ export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTM
         gl.viewport(0, 0, canvas.width, canvas.height);
         gl.uniform1f(uniforms.aspect, width / height);
         setCrop(uniforms.coverCrop, cover, width / height, Math.min(1, Math.max(0, coverPositionY)));
-        setCrop(uniforms.previewCrop, preview, width / height, Math.min(1, Math.max(0, previewPositionY)));
+        // Website captures should stay fully visible; stretch the sub-percent aspect mismatch.
+        gl.uniform4f(uniforms.previewCrop, 1, 1, 0, 0);
       },
       render(progress, originX, originY) {
         if (disposed || gl.isContextLost()) return;
