@@ -30,6 +30,8 @@ a:focus-visible,button:focus-visible { outline:2px solid #7352ac; outline-offset
 .wordmark { font-size:20px; letter-spacing:-.06em; font-weight:500; }
 .site-header nav { display:flex; gap:22px; font-size:13px; }
 .site-header nav a { min-height:44px; display:flex; align-items:center; }
+.dev-tools-toggle { min-height:44px; min-width:44px; display:flex; align-items:center; justify-content:center; border:1px solid transparent; border-radius:999px; color:var(--muted); font-size:16px; }
+.dev-tools-toggle[aria-pressed="true"] { border-color:currentColor; color:#695487; }
 .hero { position:relative; display:grid; padding-block:30px 48px; border-bottom:1px solid var(--line); }
 .hero-copy { position:relative; z-index:2; pointer-events:none; }
 .hero-copy a { pointer-events:auto; }

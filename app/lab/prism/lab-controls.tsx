@@ -1,7 +1,7 @@
 "use client";
 
-import { Leva, useControls } from "leva";
-import { Component, type ReactNode, useState } from "react";
+import { LevaPanel, useControls, useCreateStore } from "leva";
+import { Component, type ReactNode, useEffect, useState } from "react";
 import Scene from "./scene";
 import { createPortal } from "react-dom";
 
@@ -16,13 +16,22 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
   }
 }
 export default function LabControls({ landing = false }: { landing?: boolean }) {
+  const [debugOpen, setDebugOpen] = useState(false);
+  const levaStore = useCreateStore();
   const { x, y, z, color, autoRotate } = useControls("Prism environment", {
     autoRotate: { value: landing, label: "Auto rotate" },
     x: { value: 0, min: -180, max: 180, step: 0.1, label: "X rotation (°)" },
     y: { value: 0, min: -180, max: 180, step: 0.1, label: "Y rotation (°)" },
     z: { value: 0, min: -180, max: 180, step: 0.1, label: "Z rotation (°)" },
     color: { value: "#8b82aa", label: "Prism color" },
-  });
+  }, { store: levaStore });
+  useEffect(() => {
+    function handleDebugTools(event: Event) {
+      setDebugOpen((event as CustomEvent<boolean>).detail);
+    }
+    window.addEventListener("hayyaun:debug-tools", handleDebugTools);
+    return () => window.removeEventListener("hayyaun:debug-tools", handleDebugTools);
+  }, []);
   const [message, setMessage] = useState("");
   const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color });
   async function copySettings() {
@@ -35,14 +44,14 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
   }
   return <>
     <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}><CanvasBoundary><Scene presentation tuning pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} /></CanvasBoundary></div>
-    {createPortal(<>
-    <Leva titleBar={{ title: landing ? "Landing prism · Dev" : "Prism lab" }} collapsed={false} />
+    {createPortal(debugOpen ? <>
+    <LevaPanel store={levaStore} titleBar={{ title: landing ? "Landing prism · Dev" : "Prism lab" }} collapsed={false} />
     <div style={{ position: "fixed", bottom: 24, right: 24, left: landing ? "auto" : 24, width: landing ? "min(360px, calc(100vw - 48px))" : undefined, zIndex: 1000 }} className="max-w-xl rounded-xl border border-gray-200 bg-white/95 p-4 text-sm text-gray-800">
       <p>Rotate the environment in degrees, then copy your preferred settings.</p>
       <input aria-label="Prism settings to share" readOnly value={settings} onFocus={(event) => event.currentTarget.select()} className="my-3 w-full rounded border border-gray-300 p-2 font-mono text-xs" />
       <button onClick={copySettings} className="rounded-full bg-black px-4 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">Copy settings</button>
       <p role="status" className="mt-2">{message}</p>
     </div>
-    </>, document.body)}
+    </> : null, document.body)}
   </>;
 }
