@@ -1,0 +1,55 @@
+import { PixelBudgetExperiment } from "@/components/blog/experiments";
+
+A 3D hero shares the page with everything else: text rendering, navigation, input, images, and the browser itself. A scene that looks smooth in an isolated demo can still make a real page less comfortable to use.
+
+Give the scene a budget before adding detail. Define what it needs to communicate, how much screen space it occupies, and what the page should show when the scene cannot run.
+
+## Start with the fallback composition
+
+Build the heading, description, and links in HTML. Reserve the visual region with CSS so the layout does not depend on a canvas initializing. Use a still image or a simple visual treatment that works with the same composition.
+
+This fallback is part of the design. It should feel intentional on a device without WebGL, during a failed asset request, and while the scene is loading. A blank rectangle with an indefinite spinner does not explain the developer’s work.
+
+Load the interactive scene as an enhancement after the useful page is available. Keep its error boundary local so a rendering failure does not remove the rest of the hero.
+
+## Pixel density is a multiplier
+
+The canvas’s CSS size is only part of its cost. Its drawing buffer can contain several device pixels for each CSS pixel along both axes. Doubling density therefore produces four times as many pixels, not twice as many.
+
+Try the sizing model below. It uses a fixed 800 × 450 CSS-pixel canvas so only density changes.
+
+<PixelBudgetExperiment />
+
+More pixels can increase the work of shading and post-processing. The exact frame-time impact depends on the scene, GPU, and render passes. This calculation is useful for understanding scale; it cannot predict frame rate.
+
+## Render when something changes
+
+A static scene does not always need a continuous animation loop. React Three Fiber supports demand rendering, where frames are requested as needed:
+
+```tsx
+<Canvas frameloop="demand" dpr={[1, 1.5]}>
+  <Scene />
+</Canvas>
+```
+
+That density cap is an example starting point, not a device-independent optimum. Evaluate the visual difference at the actual display size.
+
+Demand rendering also needs a scene designed for it. Imperative changes may need `invalidate()` to request a frame. A shader driven by time cannot keep moving if no new frames are scheduled. Decide which behavior is essential before choosing the render loop.
+
+## Spend detail where it can be seen
+
+A texture that looks impressive in an asset viewer may be indistinguishable from a smaller version once the object occupies a small corner of the page. The same applies to geometry hidden by distance, lighting, or a shallow viewing angle.
+
+Review texture dimensions, repeated geometry, material count, shadows, and full-screen effects. Change one expensive choice at a time and compare both appearance and frame time. A lower-detail scene with deliberate lighting can be a stronger result than a complex scene that competes with input responsiveness.
+
+Pause ongoing work when the page is hidden, and consider visibility when deciding whether an off-screen scene should update. Avoid treating reduced motion as merely a slower spin; a still composition may communicate the same idea more comfortably.
+
+## Test the page as a page
+
+Load a production build on a modest device. Scroll while the scene is active, follow a link, and use the keyboard. Repeat with the scene unavailable. Check whether the fallback and canvas occupy the same space and whether loading shifts nearby content.
+
+The success condition is a readable, responsive portfolio with an interesting enhancement. Once the scene meets that goal, additional effects need a concrete reason to exist.
+
+## Further reading
+
+[React Three Fiber: Scaling performance](https://r3f.docs.pmnd.rs/advanced/scaling-performance) covers demand rendering, invalidation, and other scene optimization techniques.

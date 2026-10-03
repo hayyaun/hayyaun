@@ -1,0 +1,51 @@
+import { ContrastExperiment } from "@/components/blog/experiments";
+
+A restrained palette can still be difficult to read. Pale surfaces, fine borders, and muted labels may look calm in a design file, but a reader needs enough separation to recognize text and controls without extra effort.
+
+The challenge is to preserve hierarchy without making secondary information disappear. Contrast is one measurable part of that work.
+
+## Measure the pair, not the swatch
+
+A text color is not accessible in isolation. Its contrast depends on the surface behind it. The same purple can be readable on white and difficult to read on a darker lavender panel.
+
+For ordinary text, WCAG’s AA minimum is 4.5:1. Large text has a 3:1 minimum; the definition uses at least 18-point text, or 14-point bold text. Those are points, not CSS pixels. Do not treat every visually prominent label as large text.
+
+The ratio is calculated from relative luminance after converting sRGB channels into linear values. It is not the difference between the two hexadecimal numbers. When measuring, do not round a result up to claim it passes a threshold.
+
+## Try a quieter palette
+
+Change either color below. First find a combination that looks subtle, then check whether the text still passes the normal-text threshold. The result stays outside the preview so it remains readable even when you choose identical colors.
+
+<ContrastExperiment />
+
+The calculator assumes opaque, solid colors. A translucent panel over a photograph needs to be checked against the actual composite background. A gradient may have a readable end and an unreadable middle. Sampling one convenient point is not enough.
+
+## Build hierarchy with more than opacity
+
+When every secondary label becomes lighter, the interface eventually runs out of readable shades. Try changing size, weight, spacing, or placement before lowering contrast again.
+
+A category label can feel secondary because it is smaller and separated from the headline. A timestamp can sit below a description. A quiet button can use a border instead of a filled surface. None of those decisions requires the text to become hard to see.
+
+Make the relationship explicit in your tokens:
+
+```css
+:root {
+  --text-primary: #101011;
+  --text-secondary: #655c78;
+  --surface-soft: #eee8f6;
+}
+```
+
+These tokens are a starting pair for review, not a promise that every combination will work. If a component introduces a different background, review that pairing separately. Avoid applying opacity to an entire component when the intent is only to soften a decorative layer.
+
+## Review the states people actually use
+
+A default-state screenshot leaves out hover, focus, selected, error, and loading states. A button can start with readable text and lose it when its surface changes on hover. An error message can have sufficient contrast yet still rely only on red to communicate what happened.
+
+Test keyboard focus against adjacent surfaces. Add words or icons with accessible names to communicate status. Keep visible link styling where the surrounding text makes a destination otherwise difficult to identify.
+
+Passing a text contrast check does not establish that a whole interface is accessible. It answers one specific question. Use that answer alongside semantic markup, keyboard testing, and a review of the content itself. A readable sentence still needs to explain the right thing.
+
+## Further reading
+
+[W3C: Understanding Contrast (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) defines the text thresholds and their exceptions.

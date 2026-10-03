@@ -1,0 +1,52 @@
+import { LayoutExperiment } from "@/components/blog/experiments";
+
+Responsive layouts tend to fail between the screenshots. A design looks balanced at a wide desktop size and readable on a phone, but somewhere in the middle a heading wraps awkwardly, a card becomes too narrow, or a row leaves an isolated item behind.
+
+That is a sign that the layout needs rules based on its content, not just a longer list of device widths.
+
+## Give a card a useful minimum
+
+Start by asking how narrow a card can become before its content stops working. A label and a number need less room than an image, a paragraph, and two links. The minimum should come from those contents.
+
+CSS Grid can use that minimum to determine how many columns fit:
+
+```css
+.cards {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1.5rem;
+}
+```
+
+The `16rem` is a design choice, not a universal card size. The nested `min()` lets the track shrink below that value when the entire container is narrower. Without that guard, a fixed minimum can create horizontal overflow on a small screen.
+
+`auto-fit` allows empty tracks to collapse, and `1fr` shares the remaining width among the occupied tracks. That creates a useful default: fill the row with as many readable cards as will fit.
+
+## Try the space between breakpoints
+
+The experiment uses a smaller minimum so you can see the same principle inside an article. Drag the slider slowly. Watch where the cards move to another row, rather than looking for a particular device width.
+
+<LayoutExperiment />
+
+At narrow viewport sizes, there may only be enough room for a single column throughout the slider’s range. That is expected: the card’s readable minimum still matters when its parent is small.
+
+## Intrinsic layout is a starting point
+
+An automatically fitting grid does not know your editorial priorities. A featured project may deserve more space than a supporting link. A comparison may need aligned rows. An odd final card may stretch more than the composition allows.
+
+Use a breakpoint when the relationship between elements changes. For example, a screenshot and an explanation can stack until there is enough room to read the text comfortably beside the image. That is a meaningful layout change, not a correction for one inconvenient screenshot.
+
+Likewise, set an appropriate maximum width for the overall section. A grid that keeps adding columns on a very wide screen can make the page feel fragmented. The available space is not an obligation to fill it.
+
+## Test uncomfortable content
+
+Before declaring the layout finished, replace the shortest title with the longest real title. Add a long technology name. Increase the browser’s text size. Check a card with no optional image and one with an unusually tall image.
+
+For each case, look for the same three failures: horizontal overflow, clipped content, and a reading order that no longer matches the visual order. Avoid solving these with fixed heights unless the design genuinely requires clipping and communicates that limitation.
+
+The best responsive rule is one you can explain in terms of the content: “cards stay readable,” “the description never becomes a very long line,” or “the action stays near its context.” Those rules survive more screen sizes than a collection of carefully chosen screenshots.
+
+## Further reading
+
+[MDN: repeat()](https://developer.mozilla.org/en-US/docs/Web/CSS/repeat) documents the track repetition syntax, including `auto-fit` and `auto-fill`.

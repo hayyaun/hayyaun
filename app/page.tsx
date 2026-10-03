@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  alternates: { canonical: "/" },
+  alternates: { canonical: "/", types: { "application/rss+xml": "/rss.xml" } },
   openGraph: { title: site.title, description: site.description, url: site.url, siteName: site.name, locale: "en_US", type: "website" },
 };
 
@@ -27,7 +27,7 @@ export default function Home() {
       <a className="skip-link" href="#main">Skip to content</a>
       <header className="site-header page-width">
         <Link href="/" className="wordmark" aria-label="Hayyaun home">Hayyaun</Link>
-        <nav aria-label="Main navigation"><a href="#work">Work</a><a href="#about">About</a><a href="#contact">Contact</a></nav>
+        <nav aria-label="Main navigation"><a href="#work">Work</a><a href="#about">About</a><Link href="/blog">Blog</Link><a href="#contact">Contact</a></nav>
       </header>
       <main id="main">
         <section className="hero page-width" aria-labelledby="hero-title">

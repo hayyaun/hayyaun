@@ -1,0 +1,65 @@
+A portfolio page usually contains much more information than interaction. The introduction, project descriptions, and contact links are useful before anyone clicks a button. That makes them a good place to start when deciding how much JavaScript a page needs.
+
+The useful question is not “Can this component run in the browser?” It is “What does this component need the browser to do?” That distinction changes where you place a client boundary.
+
+## Start with the interaction
+
+Imagine a case study with a title, several paragraphs, a screenshot, and a before-and-after slider. Only the slider needs pointer input and state. Giving the whole case study a client boundary makes the static content part of the client module graph without adding a useful capability.
+
+Keep the page as a Server Component and import a small interactive component into it:
+
+```tsx
+// app/projects/example/page.tsx
+import ComparisonSlider from "./comparison-slider";
+
+export default function CaseStudy() {
+  return (
+    <article>
+      <h1>A clearer checkout</h1>
+      <p>The redesign groups related fields together.</p>
+      <ComparisonSlider />
+    </article>
+  );
+}
+```
+
+The slider’s file begins with `"use client"`. The page does not. This keeps the boundary close to the behavior it enables and gives the slider a clear responsibility: presenting and controlling a comparison.
+
+## A boundary follows imports
+
+The directive describes a module boundary, not a visual region. Modules imported by a Client Component can become part of its client graph. Moving a directive down one file is not enough if that file still imports a large static page and all its dependencies.
+
+A useful composition pattern is to pass server-rendered content as `children` into an interactive shell. The shell can control whether a panel is open without importing the server content itself. Data passed across the boundary must also be serializable by React; arbitrary functions are not ordinary serializable props.
+
+Client Components can still receive server-rendered HTML on the initial load. “Client” does not mean that the visitor must always wait for JavaScript to see anything. Hydration connects that HTML to interactive behavior. The aim is to keep that behavior focused, not to eliminate every Client Component.
+
+## Try the boundary decision
+
+Choose an implementation before opening each answer. These disclosures use native HTML, so they work without React state.
+
+<details>
+  <summary>A project description with an external link</summary>
+  <p>Use a Server Component with a normal anchor. Navigation already has browser behavior, keyboard support, and a useful destination without a click handler.</p>
+</details>
+
+<details>
+  <summary>A control that changes a live shader parameter</summary>
+  <p>Keep the control and scene inside a client boundary. Keep the title, explanation, and fallback outside it. The interaction needs browser state; the explanation does not.</p>
+</details>
+
+<details>
+  <summary>A frequently asked question that expands</summary>
+  <p>Start with details and summary, as this example does. Add JavaScript only if the requirements exceed the native interaction, such as coordinating state with another part of the interface.</p>
+</details>
+
+## Check the result, not just the directive
+
+Review the page with JavaScript disabled. Can a visitor understand the project and follow the important links? Then enable JavaScript and test the actual control using a keyboard. A smaller boundary is useful only if the page still communicates clearly.
+
+Next, inspect the production network requests. A large library imported by one small control can still dominate the cost. Boundary size in lines of code is not a bundle-size measurement.
+
+The practical habit is simple: write the content first, identify the behavior second, and put the boundary around the smallest coherent interaction. The result is easier to reason about because the architecture reflects what the visitor can actually do.
+
+## Further reading
+
+[Next.js: Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components) explains the rendering model and supported composition patterns.

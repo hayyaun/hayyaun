@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   authors: [{ name: site.name, url: site.url }],
   creator: site.name,
   category: "technology",
+  alternates: { types: { "application/rss+xml": [{ url: "/rss.xml", title: "Hayyaun’s blog" }] } },
   robots: isPreview ? { index: false, follow: false } : {
     index: true, follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },

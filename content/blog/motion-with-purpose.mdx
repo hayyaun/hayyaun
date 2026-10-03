@@ -1,0 +1,55 @@
+import { MotionExperiment } from "@/components/blog/experiments";
+
+The most useful motion often answers a small question. Where did that item go? Which panel opened? Did the control respond? An animation earns its place when it makes a state change easier to understand.
+
+Start with the state change itself. The interface should still communicate the result if the transition is removed. That gives you a clear baseline for both accessibility and implementation.
+
+## Separate duration from easing
+
+Duration describes how long a change takes. Easing describes how progress is distributed across that time. Two movements with the same start, end, and duration can feel different because one moves steadily while the other slows near its destination.
+
+An ease-out movement can make an element feel responsive at the start and settled at the end. Linear timing can be useful when a constant rate is meaningful. Neither is automatically correct for every interaction.
+
+Judge timing in context. A short movement inside a button and a large panel crossing the screen involve different distances and levels of attention. Reusing one duration everywhere creates consistency in the stylesheet without necessarily creating consistency in the experience.
+
+## Feel the difference
+
+Choose a duration and easing, then move the marker. Compare the same duration with different curves before changing both controls. This isolates the effect you are evaluating.
+
+<MotionExperiment />
+
+The marker’s position is also described in text. If your operating system requests reduced motion, the marker changes position immediately. The control still has a result; it simply omits the transition.
+
+## Keep the content available
+
+A common mistake is hiding a heading until an entrance animation finishes. That makes the animation a prerequisite for reading. It also complicates failures: if a script never initializes, the content may stay hidden.
+
+Render the content in its readable state first. If an enhancement adds movement, it should not postpone access to the words, links, or controls. Avoid leaving keyboard focus on an element that is temporarily invisible or displaced far from its apparent location.
+
+For a small component, a targeted media query is usually enough to remove the transition:
+
+```css
+.panel {
+  transition: transform 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition: none;
+  }
+}
+```
+
+Target the component’s nonessential motion rather than globally forcing every animation to an extremely short duration. Global overrides can disrupt unrelated behavior, especially if code incorrectly depends on an animation event to finish a state change.
+
+## Animate the right property
+
+For production movement, transforms are often a better starting point than changing layout coordinates. They can avoid layout work, though actual rendering cost still depends on the element and its effects. A large blurred layer can remain expensive even when its transform is cheap to update.
+
+The small experiment above moves `left` to keep the container-relative endpoint easy to inspect. It is a teaching control, not a recommendation to animate layout properties across a page. Measure a real interaction in the browser’s performance tools before assuming it is inexpensive.
+
+Finally, remove the animation and try the task again. If the interaction becomes clearer, the motion was doing too much. If a useful spatial relationship disappears, simplify the movement until that relationship is the main thing it communicates.
+
+## Further reading
+
+[MDN: prefers-reduced-motion](https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion) describes how to respond to the user’s motion preference.

@@ -57,6 +57,11 @@ npm run build
 
 before production changes are considered complete.
 
+## Development Server and Dependency Installation
+
+- The developer is responsible for starting and managing the development server. Agents must not run `npm run dev` or start the development server through an equivalent command. When a development server is needed, ask the developer to run it.
+- If network issues prevent installing dependencies, continue any work that does not depend on the installation and ask the developer to run `npm install` manually afterwards. Report any checks that remain blocked by missing dependencies.
+
 ---
 
 # 2. Next.js Architecture
