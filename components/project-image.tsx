@@ -11,10 +11,11 @@ type ProjectImageProps = {
   width: number;
   height: number;
   coverPositionY?: number;
+  previewPositionY?: number;
 };
 
 /** HTML images are the baseline; a short, on-demand shader enhances the swap. */
-export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5 }: ProjectImageProps) {
+export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5, previewPositionY = 0.5 }: ProjectImageProps) {
   const host = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
@@ -102,7 +103,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       try {
         const { createProjectImageRenderer } = await import("@/lib/project-image-renderer");
         if (disposed || !visible || !motion.matches) return;
-        renderer = createProjectImageRenderer(canvas, coverImage, previewImage, coverPositionY);
+        renderer = createProjectImageRenderer(canvas, coverImage, previewImage, coverPositionY, previewPositionY);
         if (!renderer) {
           failed = true;
           return;
@@ -205,12 +206,12 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       delete element.dataset.shaderReady;
       delete element.dataset.previewReady;
     };
-  }, [src, previewSrc, coverPositionY]);
+  }, [src, previewSrc, coverPositionY, previewPositionY]);
 
   return (
     <div className="project-visual" ref={host}>
       <Image ref={cover} src={src} alt={alt} width={width} height={height} sizes="(max-width: 700px) 90vw, 65vw" className="project-image" />
-      <Image ref={preview} src={previewSrc} alt="" aria-hidden="true" fill sizes="(max-width: 700px) 90vw, 65vw" className="project-preview" />
+      <Image ref={preview} src={previewSrc} alt="" aria-hidden="true" fill sizes="(max-width: 700px) 90vw, 65vw" className="project-preview" style={{ objectPosition: `center ${previewPositionY * 100}%` }} />
       <canvas ref={surface} className="project-transition" aria-hidden="true" hidden />
     </div>
   );

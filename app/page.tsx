@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroPrism from "@/components/three/hero-prism";
+import HeroSlogan from "@/components/hero-slogan";
 import ProjectImage from "@/components/project-image";
 import { projects } from "@/lib/projects";
 import type { Metadata } from "next";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
-  return <span aria-hidden="true">{diagonal ? "↗" : "→"}</span>;
+  return <svg className="arrow-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={diagonal ? "M6 18 18 6M6 6h12v12" : "M4 12h16m-6-6 6 6-6 6"} /></svg>;
 }
 
 export default function Home() {
@@ -60,15 +61,7 @@ export default function Home() {
           <div className="hero-art">
             <Image src="/images/prism-dark2-cool.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
             <HeroPrism />
-            <span className="hero-note">
-              Ideas
-              <br />
-              into
-              <br />
-              real
-              <br />
-              experiences
-            </span>
+            <HeroSlogan />
           </div>
         </section>
         <section id="work" className="work-section page-width" aria-labelledby="work-title">
@@ -86,7 +79,7 @@ export default function Home() {
                 0{index + 1}
               </span>
               <div>
-                <ProjectImage src={project.image} previewSrc={project.previewImage} alt={`${project.title} website preview`} width={project.width} height={project.height} coverPositionY={index === 1 ? 0.35 : 0.5} />
+                <ProjectImage src={project.image} previewSrc={project.previewImage} alt={`${project.title} website preview`} width={project.width} height={project.height} coverPositionY={index === 1 ? 0.35 : 0.5} previewPositionY={project.previewPositionY} />
                 <div className="project-caption">
                   <div>
                     <h3>{project.title}</h3>

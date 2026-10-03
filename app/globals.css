@@ -208,6 +208,8 @@ h1 {
   touch-action: pan-y !important;
 }
 .hero-note {
+  /* Reserve the longest word, including tracking, throughout the scramble. */
+  width: calc(11ch + 1.98em);
   position: absolute;
   right: 0;
   top: 26%;
@@ -218,6 +220,10 @@ h1 {
   letter-spacing: 0.18em;
   color: var(--muted);
   pointer-events: none;
+}
+.hero-slogan-line {
+  display: block;
+  white-space: nowrap;
 }
 .work-section {
   padding-block: 48px;
@@ -748,9 +754,9 @@ h1 {
     transform 350ms var(--interaction-ease),
     background-color 250ms ease;
 }
-.arrow-circle > span,
-.project-caption a > span,
-.contact-links > a > span {
+.arrow-circle > svg,
+.project-caption a > svg,
+.contact-links > a > svg {
   transition: transform 350ms var(--interaction-ease);
 }
 .capability-art {
@@ -781,11 +787,11 @@ button {
     transform: translateX(3px);
     background: #30263d;
   }
-  .work-action:hover .arrow-circle > span {
+  .work-action:hover .arrow-circle > svg {
     transform: translateX(2px);
   }
-  .project-caption a:hover > span,
-  .contact-links > a:hover > span {
+  .project-caption a:hover > svg,
+  .contact-links > a:hover > svg {
     transform: translate(2px, -2px);
   }
   .capabilities article:hover .capability-art {
@@ -804,3 +810,6 @@ button {
     transform: scale(0.97);
   }
 }
+
+.arrow-icon { display:inline-block; flex-shrink:0; vertical-align:middle; }
+.arrow-circle .arrow-icon { width:26px; height:26px; display:block; }
