@@ -12,11 +12,11 @@ export default function SiteHeader() {
           Hayyaun
         </Link>
         <nav aria-label="Main navigation">
+          {process.env.NODE_ENV === "development" && <DevToolsToggle />}
           <Link href="/#work">Work</Link>
           <Link href="/#about">About</Link>
           <Link href="/blog">Blog</Link>
           <Link href="/#contact">Contact</Link>
-          {process.env.NODE_ENV === "development" && <DevToolsToggle />}
         </nav>
       </header>
     </>
