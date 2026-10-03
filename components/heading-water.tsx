@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import type { WaterStroke, WaterRenderer } from "@/lib/heading-water-renderer";
 
-const selector = "h1,h2,h3,h4,h5,h6";
+const selector = "#hero-title";
 const settleSeconds = 8;
 type Point = { x: number; y: number; time: number };
 type TextLine = { text: string; rect: DOMRect; style: CSSStyleDeclaration };
@@ -86,6 +86,8 @@ function headingLines(element: HTMLElement): TextLine[] {
 /** Optional lighting over real HTML text; the canvas never replaces a heading. */
 export default function HeadingWater() {
   useEffect(() => {
+    const heroHeading = document.querySelector<HTMLElement>(selector);
+    if (!heroHeading) return;
     const preference = matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none)");
     let renderer: WaterRenderer | null = null;
     let canvas: HTMLCanvasElement | null = null;
@@ -97,6 +99,7 @@ export default function HeadingWater() {
     let disposed = false;
     let unavailable = false;
     let loading = false;
+    let visible = false;
     let dirty = true;
     let frame = 0;
     let lines: TextLine[] = [];
@@ -128,7 +131,7 @@ export default function HeadingWater() {
         canvas.style.width = `${width}px`;
         canvas.style.height = `${height}px`;
       }
-      // A single bounded-resolution surface is shared by all visible headings.
+      // Keep the hero's text mask at a bounded resolution.
       const ratio = Math.min(window.devicePixelRatio || 1, 1.5, 2048 / Math.max(width, height));
       mask.width = Math.max(1, Math.round(width * ratio));
       mask.height = Math.max(1, Math.round(height * ratio));
@@ -168,7 +171,7 @@ export default function HeadingWater() {
 
     const draw = (milliseconds: number) => {
       frame = 0;
-      if (!renderer || !canvas || !preference.matches || document.hidden) {
+      if (!renderer || !canvas || !visible || !preference.matches || document.hidden) {
         stop();
         return;
       }
@@ -228,7 +231,7 @@ export default function HeadingWater() {
       loading = true;
       try {
         const [{ createWaterRenderer }] = await Promise.all([import("@/lib/heading-water-renderer"), document.fonts.ready]);
-        if (disposed || !preference.matches || document.hidden) return;
+        if (disposed || !visible || !preference.matches || document.hidden) return;
         canvas = document.createElement("canvas");
         canvas.className = "heading-water-canvas";
         canvas.setAttribute("aria-hidden", "true");
@@ -257,10 +260,10 @@ export default function HeadingWater() {
     };
 
     const move = (event: PointerEvent) => {
-      if (event.pointerType !== "mouse" || !preference.matches || document.hidden || unavailable) return;
+      if (event.pointerType !== "mouse" || !visible || !preference.matches || document.hidden || unavailable) return;
       pending = { x: event.clientX, y: event.clientY, time: event.timeStamp };
       if (!renderer) {
-        // Defer the shader download and GPU context until a heading is approached.
+        // Defer the shader download and GPU context until the hero is approached.
         const nearHeading = Array.from(document.querySelectorAll(selector)).some((heading) => {
           const rect = heading.getBoundingClientRect();
           return event.clientX >= rect.left - 80 && event.clientX <= rect.right + 80 && event.clientY >= rect.top - 80 && event.clientY <= rect.bottom + 80;
@@ -286,14 +289,13 @@ export default function HeadingWater() {
       // Main-page scroll translates the existing water with its text mask.
       if (renderer && lastFrame && !frame) frame = requestAnimationFrame(draw);
     };
-    const observer = new MutationObserver((records) => {
-      const affectsHeadings = records.some((record) => {
-        const element = record.target instanceof Element ? record.target : record.target.parentElement;
-        return element?.closest(selector) || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(selector) || node.querySelector(selector)));
-      });
-      if (affectsHeadings) invalidate();
+    const intersection = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      if (!visible) stop();
     });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    intersection.observe(heroHeading);
+    const observer = new MutationObserver(invalidate);
+    observer.observe(heroHeading, { childList: true, subtree: true, characterData: true });
     const resize = new ResizeObserver(() => {
       dirty = true;
     });
@@ -311,6 +313,7 @@ export default function HeadingWater() {
       disposed = true;
       stop();
       observer.disconnect();
+      intersection.disconnect();
       resize.disconnect();
       canvas?.removeEventListener("webglcontextlost", contextLost);
       renderer?.dispose();

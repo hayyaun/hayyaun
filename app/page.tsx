@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import HeroPrism from "@/components/three/hero-prism";
 import HeroSlogan from "@/components/hero-slogan";
+import HeadingWater from "@/components/heading-water";
 import ProjectImage from "@/components/project-image";
 import { projects } from "@/lib/projects";
 import type { Metadata } from "next";
@@ -42,6 +43,7 @@ export default function Home() {
               <br />
               Character.
             </h1>
+            <HeadingWater />
             <p>
               I’m Hayyaun. Frontend development,
               <br className="desktop-break" /> motion, and interactive 3D.
