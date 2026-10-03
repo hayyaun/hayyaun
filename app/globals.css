@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+/* The wave field is painted only inside glyphs, never over the page. */
+@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) and (forced-colors:none) {
+  :is(h1,h2,h3,h4,h5,h6)[data-water-active] {
+    background-image:var(--heading-water);
+    background-color:currentColor;
+    background-clip:text;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+  :is(h1,h2,h3,h4,h5,h6)[data-water-active] .arrow-circle {
+    -webkit-text-fill-color:currentColor;
+  }
+}
+
 :root { --background:#fff; --foreground:#101011; --muted:#77738b; --lavender:#eee8f6; --line:#e9e7ec; --container:1200px; }
 @theme inline { --color-background:var(--background); --color-foreground:var(--foreground); --font-sans:var(--font-geist-sans); --font-mono:var(--font-geist-mono); }
 * { box-sizing:border-box; }
