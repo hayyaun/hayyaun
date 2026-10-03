@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
-/* The wave field is painted only inside glyphs, never over the page. */
-@media (hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference) and (forced-colors:none) {
-  :is(h1,h2,h3,h4,h5,h6)[data-water-active] {
-    background-image:var(--heading-water);
-    background-color:currentColor;
-    background-clip:text;
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-  }
-  :is(h1,h2,h3,h4,h5,h6)[data-water-active] .arrow-circle {
-    -webkit-text-fill-color:currentColor;
-  }
+/* Decorative water lighting; the underlying HTML lettering stays untouched. */
+.heading-water-canvas {
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:3;
+}
+.heading-water-canvas[hidden] { display:none; }
+@media (prefers-reduced-motion:reduce), (forced-colors:active), (hover:none), (pointer:coarse) {
+  .heading-water-canvas { display:none; }
 }
 
 :root { --background:#fff; --foreground:#101011; --muted:#77738b; --lavender:#eee8f6; --line:#e9e7ec; --container:1200px; }
@@ -25,7 +25,8 @@ a:focus-visible,button:focus-visible { outline:2px solid #7352ac; outline-offset
 .page-width { width:min(var(--container),calc(100% - 40px)); margin-inline:auto; }
 .skip-link { position:fixed; top:12px; left:12px; padding:12px 18px; background:white; z-index:10; transform:translateY(-150%); }
 .skip-link:focus { transform:none; }
-.site-header { display:flex; justify-content:space-between; align-items:center; padding-block:12px; }
+.site-header { display:flex; flex-wrap:wrap; gap:8px 20px; justify-content:space-between; align-items:center; padding-block:12px; }
+.brand-logo { display:inline-flex; align-items:center; justify-content:center; width:44px; min-height:44px; flex-shrink:0; }
 .wordmark { font-size:20px; letter-spacing:-.06em; font-weight:500; }
 .site-header nav { display:flex; gap:22px; font-size:13px; }
 .site-header nav a { min-height:44px; display:flex; align-items:center; }

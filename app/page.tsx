@@ -24,11 +24,7 @@ export default function Home() {
           { "@type": "WebSite", "@id": `${site.url}/#website`, url: site.url, name: site.name, description: site.description, inLanguage: "en", author: { "@id": `${site.url}/#person` } },
         ],
       }).replace(/</g, "\u003c") }} />
-      <a className="skip-link" href="#main">Skip to content</a>
-      <header className="site-header page-width">
-        <Link href="/" className="wordmark" aria-label="Hayyaun home">Hayyaun</Link>
-        <nav aria-label="Main navigation"><a href="#work">Work</a><a href="#about">About</a><Link href="/blog">Blog</Link><a href="#contact">Contact</a></nav>
-      </header>
+
       <main id="main">
         <section className="hero page-width" aria-labelledby="hero-title">
           <div className="hero-copy">
