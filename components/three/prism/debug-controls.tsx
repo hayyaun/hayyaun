@@ -4,7 +4,6 @@ import { button, LevaPanel, useControls, useCreateStore } from "leva";
 import { Component, type ReactNode, useEffect, useState } from "react";
 import Scene from "./scene";
 import { createPortal } from "react-dom";
-import { BlendFunction } from "postprocessing";
 
 class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -39,10 +38,10 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
   const { noiseEnabled, noiseOpacity, noisePremultiply, noiseBlend } = useControls(
     "Noise",
     {
-      noiseEnabled: { value: !landing, label: "Enabled" },
+      noiseEnabled: { value: false, label: "Enabled" },
       noiseOpacity: { value: 0.08, min: 0, max: 1, step: 0.01, label: "Strength" },
       noisePremultiply: { value: false, label: "Premultiply" },
-      noiseBlend: { value: BlendFunction.NORMAL, options: { Normal: BlendFunction.NORMAL, Screen: BlendFunction.SCREEN, "Soft light": BlendFunction.SOFT_LIGHT, Add: BlendFunction.ADD }, label: "Blend mode" },
+      noiseBlend: { value: "Normal", options: ["Normal", "Screen", "Soft light", "Add"], label: "Blend mode" },
     },
     { store: levaStore }
   );
@@ -54,6 +53,7 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
     return () => window.removeEventListener("hayyaun:debug-tools", handleDebugTools);
   }, []);
   const [message, setMessage] = useState("");
+  const blend = noiseBlend === "Screen" || noiseBlend === "Soft light" || noiseBlend === "Add" ? noiseBlend : "Normal";
   const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, noise: { enabled: noiseEnabled, opacity: noiseOpacity, premultiply: noisePremultiply, blendFunction: noiseBlend } });
   useControls(() => ({ "Copy settings": button(async () => {
     try {
@@ -67,7 +67,7 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
     <>
       <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
         <CanvasBoundary>
-          <Scene presentation tuning grain={noiseEnabled} grainOpacity={noiseOpacity} grainPremultiply={noisePremultiply} grainBlend={noiseBlend} pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
+          <Scene presentation tuning grain={noiseEnabled} grainOpacity={noiseOpacity} grainPremultiply={noisePremultiply} grainBlend={blend} pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
         </CanvasBoundary>
       </div>
       {createPortal(

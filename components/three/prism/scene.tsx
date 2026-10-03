@@ -1,16 +1,17 @@
 "use client";
 
 import { Canvas, useThree, useLoader } from "@react-three/fiber";
-import { EffectComposer, Noise } from "@react-three/postprocessing";
-import { BlendFunction } from "postprocessing";
+import type { NoiseBlend } from "./noise-effects";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
 import { Environment } from "@react-three/drei/core/Environment";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
+
+const NoiseEffects = lazy(() => import("./noise-effects"));
 
 const vertex = /* glsl */ `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const shadowFragment = /* glsl */ `varying vec2 vUv; void main(){vec2 p=(vUv-.5)*2.;float a=exp(-dot(p*vec2(1.5,3.),p*vec2(1.5,3.)))*.13;gl_FragColor=vec4(.32,.34,.37,a);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
@@ -270,7 +271,7 @@ export default function Scene({
   grain = false,
   grainOpacity = 0.08,
   grainPremultiply = false,
-  grainBlend = BlendFunction.NORMAL,
+  grainBlend,
   presentation = false,
   tuning = false,
   pointerMotion = !tuning,
@@ -281,7 +282,7 @@ export default function Scene({
   grain?: boolean;
   grainOpacity?: number;
   grainPremultiply?: boolean;
-  grainBlend?: BlendFunction;
+  grainBlend?: NoiseBlend;
   presentation?: boolean;
   tuning?: boolean;
   pointerMotion?: boolean;
@@ -337,11 +338,7 @@ export default function Scene({
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />
           {presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
-          {grain && (
-            <EffectComposer multisampling={2} enableNormalPass={false}>
-              <Noise opacity={grainOpacity} premultiply={grainPremultiply} blendFunction={grainBlend} />
-            </EffectComposer>
-          )}
+          {grain && <Suspense fallback={null}><NoiseEffects opacity={grainOpacity} premultiply={grainPremultiply} blendFunction={grainBlend} /></Suspense>}
         </Suspense>
       </Canvas>
       {!presentation && (
