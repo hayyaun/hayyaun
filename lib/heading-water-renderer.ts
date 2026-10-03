@@ -120,10 +120,17 @@ const lightingSource = `#version 300 es
     float glint = max(0.0, keyLight - pow(key.z, 10.0));
     float sheen = max(0.0, fillLight - pow(fill.z, 5.0));
     float energy = 1.0 - exp(-length(slope) * 2.6);
-    float alpha = (1.0 - exp(-(glint * 0.85 + sheen * 0.35 + energy * 0.10))) * 0.48;
+    float alpha = (1.0 - exp(-(glint * 1.35 + sheen * 0.60 + energy * 0.20))) * 0.72;
     alpha *= mask * uOpacity;
-    vec3 violet = mix(vec3(0.72, 0.58, 0.91), vec3(0.93, 0.85, 1.0), glint);
-    result = vec4(violet * alpha, alpha);
+    // White crests roll through blue into violet as the reflection softens,
+    // echoing the prism's lighting while following the actual water normals.
+    float spectrum = clamp(glint * 1.25 + sheen * 0.50, 0.0, 1.0);
+    vec3 violet = vec3(0.66, 0.30, 1.0);
+    vec3 blue = vec3(0.22, 0.52, 1.0);
+    vec3 pearl = vec3(0.97, 0.98, 1.0);
+    vec3 color = mix(violet, blue, smoothstep(0.0, 0.35, spectrum));
+    color = mix(color, pearl, smoothstep(0.35, 0.70, spectrum));
+    result = vec4(color * alpha, alpha);
   }
 `;
 
