@@ -20,3 +20,17 @@ Keep the publication date stable; if an article is revised later, add a separate
 modification field before using revision dates in the sitemap or structured data.
 All five initial articles were authored on October 3, 2026; examples are
 illustrative and do not claim measured client or project outcomes.
+
+## Markdown features
+
+GFM tables, task lists, strikethrough (`~~text~~`), and literal URL autolinks are
+supported. Task checkboxes represent static content, not saved interactive tasks.
+Tables scroll horizontally and their scroll region is keyboard-focusable.
+
+Fenced code blocks are highlighted at build time. Specify a language such as
+`tsx`, `css`, `bash`, or `python` after the opening fence. Inline code keeps its
+simple styling. No syntax-highlighting JavaScript is sent to the browser.
+
+H2–H6 headings receive generated IDs and clickable permalinks. Duplicate headings
+receive distinct suffixes. Keep heading wording stable when others may link to it.
+Use H2 for the main sections; the article template already provides the H1.
