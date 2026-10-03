@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 
-const Scene = dynamic(() => import("@/app/lab/prism/scene"), { ssr: false });
+const Scene = dynamic(() => import("@/components/three/prism/scene"), { ssr: false });
 
-const DevControls = process.env.NODE_ENV === "development" ? dynamic(() => import("@/app/lab/prism/lab-controls"), { ssr: false }) : null;
+const DevControls = process.env.NODE_ENV === "development" ? dynamic(() => import("@/components/three/prism/debug-controls"), { ssr: false }) : null;
 
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -45,3 +45,4 @@ export default function HeroPrism() {
     </div>
   );
 }
+

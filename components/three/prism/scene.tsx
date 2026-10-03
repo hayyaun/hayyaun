@@ -1,6 +1,8 @@
 "use client";
 
 import { Canvas, useThree, useLoader } from "@react-three/fiber";
+import { EffectComposer, Noise } from "@react-three/postprocessing";
+import { BlendFunction } from "postprocessing";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
@@ -265,6 +267,10 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
 }
 
 export default function Scene({
+  grain = false,
+  grainOpacity = 0.08,
+  grainPremultiply = false,
+  grainBlend = BlendFunction.NORMAL,
   presentation = false,
   tuning = false,
   pointerMotion = !tuning,
@@ -272,6 +278,10 @@ export default function Scene({
   environmentRotation = [0, 0, 0],
   prismColor = "#8b82aa",
 }: {
+  grain?: boolean;
+  grainOpacity?: number;
+  grainPremultiply?: boolean;
+  grainBlend?: BlendFunction;
   presentation?: boolean;
   tuning?: boolean;
   pointerMotion?: boolean;
@@ -327,6 +337,11 @@ export default function Scene({
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />
           {presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
+          {grain && (
+            <EffectComposer multisampling={2} enableNormalPass={false}>
+              <Noise opacity={grainOpacity} premultiply={grainPremultiply} blendFunction={grainBlend} />
+            </EffectComposer>
+          )}
         </Suspense>
       </Canvas>
       {!presentation && (
