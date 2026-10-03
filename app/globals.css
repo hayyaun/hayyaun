@@ -486,6 +486,7 @@ h1 {
   box-shadow: 0 4px 5px #71617620;
 }
 .experience-section {
+  border-bottom: 1px solid var(--line);
   padding-block: 110px 95px;
 }
 .experience-section h2 {
@@ -496,7 +497,7 @@ h1 {
   margin-top: 12px;
 }
 .contact-section {
-  background: var(--lavender);
+  background: var(--background);
   padding-top: 55px;
 }
 .contact-inner {
