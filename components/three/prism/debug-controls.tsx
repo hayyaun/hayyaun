@@ -1,6 +1,6 @@
 "use client";
 
-import { LevaPanel, useControls, useCreateStore } from "leva";
+import { button, LevaPanel, useControls, useCreateStore } from "leva";
 import { Component, type ReactNode, useEffect, useState } from "react";
 import Scene from "./scene";
 import { createPortal } from "react-dom";
@@ -55,14 +55,14 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
   }, []);
   const [message, setMessage] = useState("");
   const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, noise: { enabled: noiseEnabled, opacity: noiseOpacity, premultiply: noisePremultiply, blendFunction: noiseBlend } });
-  async function copySettings() {
+  useControls(() => ({ "Copy settings": button(async () => {
     try {
       await navigator.clipboard.writeText(settings);
       setMessage("Copied — paste these values into the chat.");
     } catch {
-      setMessage("Select and copy the values below.");
+      setMessage("Could not copy settings. Check browser clipboard permissions.");
     }
-  }
+  }) }), { store: levaStore }, [settings]);
   return (
     <>
       <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
@@ -74,16 +74,7 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
         debugOpen ? (
           <>
             <LevaPanel store={levaStore} titleBar={{ title: landing ? "Landing prism · Dev" : "Prism lab" }} collapsed={false} />
-            <div style={{ position: "fixed", bottom: 24, right: 24, left: landing ? "auto" : 24, width: landing ? "min(360px, calc(100vw - 48px))" : undefined, zIndex: 1000 }} className="max-w-xl rounded-xl border border-gray-200 bg-white/95 p-4 text-sm text-gray-800">
-              <p>Rotate the environment in degrees, then copy your preferred settings.</p>
-              <input aria-label="Prism settings to share" readOnly value={settings} onFocus={(event) => event.currentTarget.select()} className="my-3 w-full rounded border border-gray-300 p-2 font-mono text-xs" />
-              <button onClick={copySettings} className="rounded-full bg-black px-4 py-2 text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
-                Copy settings
-              </button>
-              <p role="status" className="mt-2">
-                {message}
-              </p>
-            </div>
+            <p className="sr-only" role="status">{message}</p>
           </>
         ) : null,
         document.body
@@ -91,3 +82,4 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
     </>
   );
 }
+
