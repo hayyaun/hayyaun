@@ -35,8 +35,8 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     let failed = false;
     let preparing = false;
     let visible = false;
-    let hovered = false;
-    let focused = false;
+    let hovered = hover.matches && card.matches(":hover");
+    let focused = card.matches(":focus-within");
     let frame = 0;
     let previousTime = 0;
     let progress = 0;
@@ -56,6 +56,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       failed = true;
       renderer?.dispose();
       renderer = null;
+      delete element.dataset.shaderReady;
     };
     const size = () => {
       const rect = element.getBoundingClientRect();
@@ -82,12 +83,16 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     };
     const animate = () => {
       if (!renderer || !motion.matches || !visible || document.hidden) return;
-      if (!frame) {
-        size();
-        // Paint the existing state before showing the canvas to avoid a flash.
-        renderer.render(progress * progress * (3 - 2 * progress), originX, originY);
-        canvas.hidden = false;
-        frame = requestAnimationFrame(draw);
+      if (!frame && progress !== target()) {
+        try {
+          size();
+          // Paint the existing state before showing the canvas to avoid a flash.
+          renderer.render(progress * progress * (3 - 2 * progress), originX, originY);
+          canvas.hidden = false;
+          frame = requestAnimationFrame(draw);
+        } catch {
+          disable();
+        }
       }
     };
     const prepare = async () => {
@@ -105,6 +110,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
         size();
         progress = target();
         renderer.render(progress, originX, originY);
+        element.dataset.shaderReady = "true";
       } catch {
         disable();
       } finally {
@@ -152,6 +158,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       stop();
       failed = true;
       renderer = null;
+      delete element.dataset.shaderReady;
     };
     const intersection = new IntersectionObserver(
       ([entry]) => {
@@ -195,6 +202,8 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       hover.removeEventListener("change", preferences);
       document.removeEventListener("visibilitychange", visibility);
       renderer?.dispose();
+      delete element.dataset.shaderReady;
+      delete element.dataset.previewReady;
     };
   }, [src, previewSrc, coverPositionY]);
 

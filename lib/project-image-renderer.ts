@@ -108,7 +108,8 @@ export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTM
     textures.forEach((texture) => gl.deleteTexture(texture));
     gl.deleteProgram(program);
     gl.deleteBuffer(buffer);
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    // React can reuse this canvas after an effect cleanup or an image change.
+    // Release our resources without permanently losing that reusable context.
   };
 
   try {

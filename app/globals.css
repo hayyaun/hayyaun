@@ -276,6 +276,10 @@ h1 {
   opacity: 0;
   transition: opacity 500ms var(--interaction-ease);
 }
+.project-visual[data-shader-ready] .project-preview {
+  /* The HTML layer must be at its endpoint when a reversed shader hands back. */
+  transition: none;
+}
 .project-transition {
   position: absolute;
   inset: 0;
@@ -749,11 +753,6 @@ h1 {
 .contact-links > a > span {
   transition: transform 350ms var(--interaction-ease);
 }
-.project-visual {
-  transition:
-    transform 450ms var(--interaction-ease),
-    box-shadow 450ms var(--interaction-ease);
-}
 .capability-art {
   transition: transform 450ms var(--interaction-ease);
 }
@@ -766,9 +765,6 @@ button {
 .site-header nav a:focus-visible:after,
 .muted-link:focus-visible:after {
   transform: scaleX(1);
-}
-.project:focus-within .project-visual {
-  box-shadow: 0 10px 24px #44324612;
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   .site-header nav a:hover:after,
@@ -787,10 +783,6 @@ button {
   }
   .work-action:hover .arrow-circle > span {
     transform: translateX(2px);
-  }
-  .project:hover .project-visual {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 28px #44324614;
   }
   .project-caption a:hover > span,
   .contact-links > a:hover > span {
