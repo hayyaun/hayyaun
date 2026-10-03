@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useGraphicsPerformance } from "@/lib/graphics-performance";
 import type { WaterStroke, WaterRenderer } from "@/lib/heading-water-renderer";
 
 const selector = "#hero-title";
@@ -85,7 +86,9 @@ function headingLines(element: HTMLElement): TextLine[] {
 
 /** Optional lighting over real HTML text; the canvas never replaces a heading. */
 export default function HeadingWater() {
+  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
   useEffect(() => {
+    if (lowPerformance) return;
     const heroHeading = document.querySelector<HTMLElement>(selector);
     if (!heroHeading) return;
     const preference = matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none)");
@@ -327,7 +330,7 @@ export default function HeadingWater() {
       window.removeEventListener("resize", invalidate);
       preference.removeEventListener("change", invalidate);
     };
-  }, []);
+  }, [lowPerformance]);
 
   return null;
 }

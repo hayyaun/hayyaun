@@ -4,6 +4,7 @@ import { button, LevaPanel, useControls, useCreateStore } from "leva";
 import { Component, type ReactNode, useEffect, useState } from "react";
 import Scene from "./scene";
 import { createPortal } from "react-dom";
+import { useGraphicsPerformance } from "@/lib/graphics-performance";
 
 class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -21,9 +22,16 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
     );
   }
 }
-export default function LabControls({ landing = false }: { landing?: boolean }) {
+export default function LabControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
+  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
   const [debugOpen, setDebugOpen] = useState(false);
   const levaStore = useCreateStore();
+  useControls("Performance", {
+    fpsThreshold: { value: 20, min: 5, max: 60, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
+    lowSeconds: { value: 5, min: 1, max: 30, step: 1, label: "Seconds below FPS", onChange: (lowSeconds: number) => useGraphicsPerformance.setState({ lowSeconds }) },
+    showPerf: { value: false, label: "Show r3f-perf", onChange: (showPerf: boolean) => useGraphicsPerformance.setState({ showPerf }) },
+    "Retry canvas": button(() => useGraphicsPerformance.setState({ lowPerformance: false })),
+  }, { store: levaStore });
   const { x, y, z, color, autoRotate } = useControls(
     "Prism environment",
     {
@@ -66,9 +74,9 @@ export default function LabControls({ landing = false }: { landing?: boolean }) 
   return (
     <>
       <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
-        <CanvasBoundary>
+        {active && !lowPerformance && <CanvasBoundary>
           <Scene presentation tuning grain={noiseEnabled} grainOpacity={noiseOpacity} grainPremultiply={noisePremultiply} grainBlend={blend} pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
-        </CanvasBoundary>
+        </CanvasBoundary>}
       </div>
       {createPortal(
         debugOpen ? (

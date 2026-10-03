@@ -10,6 +10,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
+import GraphicsPerformance from "./performance";
 
 const NoiseEffects = lazy(() => import("./noise-effects"));
 
@@ -333,6 +334,7 @@ export default function Scene({
         fallback={presentation ? null : <p style={{ padding: 24, color: "#62586d" }}>WebGL is unavailable on this device.</p>}
       >
         <ContextLifecycle onLost={setLost} />
+        {presentation && <GraphicsPerformance ready={ready && !reduced && !lost && autoRotate} />}
         {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
