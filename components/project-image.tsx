@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import type { ProjectImageRenderer } from "@/lib/project-image-renderer";
+import { useGraphicsPerformance } from "@/lib/graphics-performance";
 
 type ProjectImageProps = {
   src: string;
@@ -15,6 +16,7 @@ type ProjectImageProps = {
 
 /** HTML images are the baseline; a short, on-demand shader enhances the swap. */
 export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5 }: ProjectImageProps) {
+  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
   const host = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
@@ -27,6 +29,17 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     const canvas = surface.current;
     const card = element?.closest("article");
     if (!element || !coverImage || !previewImage || !canvas || !card) return;
+    if (lowPerformance) {
+      const loaded = () => {
+        if (previewImage.complete && previewImage.naturalWidth) element.dataset.previewReady = "true";
+      };
+      loaded();
+      previewImage.addEventListener("load", loaded);
+      return () => {
+        previewImage.removeEventListener("load", loaded);
+        delete element.dataset.previewReady;
+      };
+    }
 
     const motion = matchMedia("(prefers-reduced-motion: no-preference) and (forced-colors: none)");
     const hover = matchMedia("(hover: hover) and (pointer: fine)");
@@ -205,7 +218,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       delete element.dataset.shaderReady;
       delete element.dataset.previewReady;
     };
-  }, [src, previewSrc, coverPositionY]);
+  }, [src, previewSrc, coverPositionY, lowPerformance]);
 
   return (
     <div className="project-visual" ref={host}>

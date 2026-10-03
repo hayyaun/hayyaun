@@ -1,18 +1,15 @@
 "use client";
 
 import { Canvas, useThree, useLoader } from "@react-three/fiber";
-import type { NoiseBlend } from "./noise-effects";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
 import { Environment } from "@react-three/drei/core/Environment";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
-import GraphicsPerformance from "./performance";
 
-const NoiseEffects = lazy(() => import("./noise-effects"));
 
 const vertex = /* glsl */ `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
 const shadowFragment = /* glsl */ `varying vec2 vUv; void main(){vec2 p=(vUv-.5)*2.;float a=exp(-dot(p*vec2(1.5,3.),p*vec2(1.5,3.)))*.13;gl_FragColor=vec4(.32,.34,.37,a);#include <colorspace_fragment>}`.replace(";#include", ";\n#include");
@@ -269,10 +266,6 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
 }
 
 export default function Scene({
-  grain = false,
-  grainOpacity = 0.08,
-  grainPremultiply = false,
-  grainBlend,
   presentation = false,
   tuning = false,
   pointerMotion = !tuning,
@@ -280,10 +273,6 @@ export default function Scene({
   environmentRotation = [0, 0, 0],
   prismColor = "#8b82aa",
 }: {
-  grain?: boolean;
-  grainOpacity?: number;
-  grainPremultiply?: boolean;
-  grainBlend?: NoiseBlend;
   presentation?: boolean;
   tuning?: boolean;
   pointerMotion?: boolean;
@@ -334,13 +323,11 @@ export default function Scene({
         fallback={presentation ? null : <p style={{ padding: 24, color: "#62586d" }}>WebGL is unavailable on this device.</p>}
       >
         <ContextLifecycle onLost={setLost} />
-        {presentation && <GraphicsPerformance ready={ready && !reduced && !lost && autoRotate} />}
         {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />
           {presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
-          {grain && <Suspense fallback={null}><NoiseEffects opacity={grainOpacity} premultiply={grainPremultiply} blendFunction={grainBlend} /></Suspense>}
         </Suspense>
       </Canvas>
       {!presentation && (

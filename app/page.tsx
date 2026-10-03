@@ -3,6 +3,7 @@ import Link from "next/link";
 import HeroPrism from "@/components/three/hero-prism";
 import HeroSlogan from "@/components/hero-slogan";
 import HeadingWater from "@/components/heading-water";
+import FrameRateMonitor from "@/components/frame-rate-monitor";
 import ProjectImage from "@/components/project-image";
 import { projects } from "@/lib/projects";
 import type { Metadata } from "next";
@@ -38,6 +39,7 @@ export default function Home() {
       />
 
       <main id="main">
+        <FrameRateMonitor />
         <section className="hero page-width" aria-labelledby="hero-title">
           <div className="hero-copy">
             <h1 id="hero-title">

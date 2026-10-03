@@ -27,10 +27,11 @@ export default function LabControls({ landing = false, active = true }: { landin
   const [debugOpen, setDebugOpen] = useState(false);
   const levaStore = useCreateStore();
   useControls("Performance", {
-    fpsThreshold: { value: 20, min: 5, max: 60, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
+    warmupSeconds: { value: 5, min: 1, max: 60, step: 1, label: "Warmup seconds", onChange: (warmupSeconds: number) => useGraphicsPerformance.setState({ warmupSeconds }) },
+    fpsThreshold: { value: 30, min: 5, max: 120, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
     lowSeconds: { value: 5, min: 1, max: 30, step: 1, label: "Seconds below FPS", onChange: (lowSeconds: number) => useGraphicsPerformance.setState({ lowSeconds }) },
-    showPerf: { value: false, label: "Show r3f-perf", onChange: (showPerf: boolean) => useGraphicsPerformance.setState({ showPerf }) },
-    "Retry canvas": button(() => useGraphicsPerformance.setState({ lowPerformance: false })),
+    showPerf: { value: false, label: "Show page FPS", onChange: (showPerf: boolean) => useGraphicsPerformance.setState({ showPerf }) },
+    "Retry WebGL": button(() => useGraphicsPerformance.setState({ lowPerformance: false })),
   }, { store: levaStore });
   const { x, y, z, color, autoRotate } = useControls(
     "Prism environment",
@@ -43,16 +44,6 @@ export default function LabControls({ landing = false, active = true }: { landin
     },
     { store: levaStore }
   );
-  const { noiseEnabled, noiseOpacity, noisePremultiply, noiseBlend } = useControls(
-    "Noise",
-    {
-      noiseEnabled: { value: false, label: "Enabled" },
-      noiseOpacity: { value: 0.08, min: 0, max: 1, step: 0.01, label: "Strength" },
-      noisePremultiply: { value: false, label: "Premultiply" },
-      noiseBlend: { value: "Normal", options: ["Normal", "Screen", "Soft light", "Add"], label: "Blend mode" },
-    },
-    { store: levaStore }
-  );
   useEffect(() => {
     function handleDebugTools(event: Event) {
       setDebugOpen((event as CustomEvent<boolean>).detail);
@@ -61,8 +52,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     return () => window.removeEventListener("hayyaun:debug-tools", handleDebugTools);
   }, []);
   const [message, setMessage] = useState("");
-  const blend = noiseBlend === "Screen" || noiseBlend === "Soft light" || noiseBlend === "Add" ? noiseBlend : "Normal";
-  const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, noise: { enabled: noiseEnabled, opacity: noiseOpacity, premultiply: noisePremultiply, blendFunction: noiseBlend } });
+  const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color });
   useControls(() => ({ "Copy settings": button(async () => {
     try {
       await navigator.clipboard.writeText(settings);
@@ -75,7 +65,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     <>
       <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
         {active && !lowPerformance && <CanvasBoundary>
-          <Scene presentation tuning grain={noiseEnabled} grainOpacity={noiseOpacity} grainPremultiply={noisePremultiply} grainBlend={blend} pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
+          <Scene presentation tuning pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
         </CanvasBoundary>}
       </div>
       {createPortal(
