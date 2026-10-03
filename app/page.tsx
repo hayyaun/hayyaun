@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroPrism from "@/components/three/hero-prism";
+import ProjectImage from "@/components/project-image";
 import { projects } from "@/lib/projects";
 import type { Metadata } from "next";
 import { site } from "@/lib/site";
@@ -85,7 +86,7 @@ export default function Home() {
                 0{index + 1}
               </span>
               <div>
-                <Image src={project.image} alt={`${project.title} website preview`} width={project.width} height={project.height} sizes="(max-width: 700px) 90vw, 65vw" className="project-image" />
+                <ProjectImage src={project.image} previewSrc={project.previewImage} alt={`${project.title} website preview`} width={project.width} height={project.height} coverPositionY={index === 1 ? 0.35 : 0.5} />
                 <div className="project-caption">
                   <div>
                     <h3>{project.title}</h3>
