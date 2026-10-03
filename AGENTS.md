@@ -132,7 +132,7 @@ Keep client boundaries as small and deep in the component tree as practical.
 Bad:
 
 ```tsx
-"use client"
+"use client";
 
 export default function HomePage() {
   // entire website becomes part of client graph
@@ -152,7 +152,7 @@ export default function HomePage() {
       <Projects />
       <About />
     </>
-  )
+  );
 }
 ```
 
@@ -422,7 +422,7 @@ Every indexable page must have an appropriate:
 Use either:
 
 ```tsx
-export const metadata: Metadata = {}
+export const metadata: Metadata = {};
 ```
 
 or:
@@ -597,12 +597,18 @@ Prefer:
 
 ```html
 <header>
-<nav>
-<main>
-<section>
-<article>
-<aside>
-<footer>
+  <nav>
+    <main>
+      <section>
+        <article>
+          <aside>
+            <footer></footer>
+          </aside>
+        </article>
+      </section>
+    </main>
+  </nav>
+</header>
 ```
 
 where semantically appropriate.
@@ -610,13 +616,13 @@ where semantically appropriate.
 Use actual:
 
 ```html
-<a>
+<a></a>
 ```
 
 for navigation and actual:
 
 ```html
-<button>
+<button></button>
 ```
 
 for actions.
@@ -788,7 +794,7 @@ Prefer consistent design tokens over arbitrary values.
 Good:
 
 ```tsx
-className="mx-auto max-w-7xl px-6 lg:px-8"
+className = "mx-auto max-w-7xl px-6 lg:px-8";
 ```
 
 Use arbitrary values only when the design genuinely requires them.
@@ -800,7 +806,7 @@ Extract a React component when repetition represents an actual reusable UI compo
 Keep responsive styles mobile-first:
 
 ```tsx
-className="text-4xl md:text-6xl lg:text-7xl"
+className = "text-4xl md:text-6xl lg:text-7xl";
 ```
 
 Do not write desktop styles first and then fight them with overrides.
@@ -812,7 +818,7 @@ Use a class-merging utility such as `cn()` only when conditional composition act
 Avoid excessive:
 
 ```tsx
-!important
+!important;
 ```
 
 and Tailwind's important modifier.
@@ -977,16 +983,16 @@ Project content should support fields such as:
 
 ```ts
 type Project = {
-  slug: string
-  title: string
-  summary: string
-  role: string
-  technologies: string[]
-  coverImage: string
-  liveUrl?: string
-  repositoryUrl?: string
-  year: number
-}
+  slug: string;
+  title: string;
+  summary: string;
+  role: string;
+  technologies: string[];
+  coverImage: string;
+  liveUrl?: string;
+  repositoryUrl?: string;
+  year: number;
+};
 ```
 
 Extend this according to actual content rather than hypothetical requirements.

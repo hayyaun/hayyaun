@@ -1,5 +1,40 @@
-.container{height:100%;width:100%;background:#fff;position:relative;touch-action:pan-y}
-.fallback{position:absolute;inset:0;display:grid;place-items:center;background:white;overflow:hidden}
-.smoke{position:absolute;width:min(75vw,650px);height:min(65vw,500px);background:radial-gradient(ellipse at 38% 40%,#c5afe852,transparent 55%),radial-gradient(ellipse at 65% 60%,#b8a5d83d,transparent 50%);filter:blur(25px)}
-.prism{width:min(58vw,360px);aspect-ratio:1;clip-path:polygon(50% 3%,98% 91%,2% 91%);background:linear-gradient(120deg,#fff9,#c4b8d652 45%,#fff9 48%,#cfc5dd52 75%,white);filter:drop-shadow(0 16px 20px #a898c62b)}
-.notice{position:absolute;bottom:24px;left:24px;right:24px;text-align:center;font:12px var(--font-geist-sans),sans-serif;color:#655e6e}
+.container {
+  height: 100%;
+  width: 100%;
+  background: #fff;
+  position: relative;
+  touch-action: pan-y;
+}
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: white;
+  overflow: hidden;
+}
+.smoke {
+  position: absolute;
+  width: min(75vw, 650px);
+  height: min(65vw, 500px);
+  background: radial-gradient(ellipse at 38% 40%, #c5afe852, transparent 55%), radial-gradient(ellipse at 65% 60%, #b8a5d83d, transparent 50%);
+  filter: blur(25px);
+}
+.prism {
+  width: min(58vw, 360px);
+  aspect-ratio: 1;
+  clip-path: polygon(50% 3%, 98% 91%, 2% 91%);
+  background: linear-gradient(120deg, #fff9, #c4b8d652 45%, #fff9 48%, #cfc5dd52 75%, white);
+  filter: drop-shadow(0 16px 20px #a898c62b);
+}
+.notice {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  text-align: center;
+  font:
+    12px var(--font-geist-sans),
+    sans-serif;
+  color: #655e6e;
+}

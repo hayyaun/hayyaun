@@ -8,6 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function PrismPage() {
-  return <main id="main" style={{ position: "relative", height: "80svh", background: "white", color: "#34303d" }}><h1 className="sr-only">Glass prism studio study</h1><PrismLab /></main>;
+  return (
+    <main id="main" style={{ position: "relative", height: "80svh", background: "white", color: "#34303d" }}>
+      <h1 className="sr-only">Glass prism studio study</h1>
+      <PrismLab />
+    </main>
+  );
 }
-
