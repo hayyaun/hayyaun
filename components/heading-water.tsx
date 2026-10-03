@@ -1,12 +1,43 @@
 "use client";
 
 import { useEffect } from "react";
-import type { WaterImpulse, WaterRenderer } from "@/lib/heading-water-renderer";
+import type { WaterStroke, WaterRenderer } from "@/lib/heading-water-renderer";
 
 const selector = "h1,h2,h3,h4,h5,h6";
-const lifetime = 5.5;
+const settleSeconds = 8;
 type Point = { x: number; y: number; time: number };
 type TextLine = { text: string; rect: DOMRect; style: CSSStyleDeclaration };
+
+/** Clip the swept mouse segment to a text line, including fast crossings. */
+function strokeInLine(from: Point, to: Point, rect: DOMRect): WaterStroke | null {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  let enter = 0;
+  let exit = 1;
+  for (const [start, delta, min, max] of [
+    [from.x, dx, rect.left, rect.right],
+    [from.y, dy, rect.top, rect.bottom],
+  ]) {
+    if (Math.abs(delta) < 0.001) {
+      if (start < min || start > max) return null;
+    } else {
+      const a = (min - start) / delta;
+      const b = (max - start) / delta;
+      enter = Math.max(enter, Math.min(a, b));
+      exit = Math.min(exit, Math.max(a, b));
+      if (exit <= enter) return null;
+    }
+  }
+  const speed = Math.hypot(dx, dy) / Math.max(8, to.time - from.time);
+  return {
+    fromX: from.x + dx * enter,
+    fromY: from.y + dy * enter,
+    x: from.x + dx * exit,
+    y: from.y + dy * exit,
+    radius: Math.max(12, Math.min(25, rect.height * 0.24)),
+    strength: 0.45 + Math.min(0.35, speed * 0.12),
+  };
+}
 
 /** Measure the actual DOM line breaks, including nested links and inline text. */
 function headingLines(element: HTMLElement): TextLine[] {
@@ -69,29 +100,40 @@ export default function HeadingWater() {
     let dirty = true;
     let frame = 0;
     let lines: TextLine[] = [];
-    let impulses: WaterImpulse[] = [];
     let previous: Point | null = null;
     let pending: Point | null = null;
-    let lastImpulse = -Infinity;
+    let lastStroke = -Infinity;
+    let lastFrame = 0;
     let width = 0;
     let height = 0;
+    let scrollX = window.scrollX;
+    let scrollY = window.scrollY;
 
     const stop = () => {
       cancelAnimationFrame(frame);
       frame = 0;
-      impulses = [];
+      lastStroke = -Infinity;
+      lastFrame = 0;
       pending = previous = null;
+      renderer?.reset();
       if (canvas) canvas.hidden = true;
     };
 
     const rebuildMask = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
+      // innerWidth includes the scrollbar, but the fixed canvas does not.
+      // Give the mask, simulation, and displayed canvas identical CSS extents.
+      width = document.documentElement.clientWidth;
+      height = document.documentElement.clientHeight;
+      if (canvas) {
+        canvas.style.width = `${width}px`;
+        canvas.style.height = `${height}px`;
+      }
       // A single bounded-resolution surface is shared by all visible headings.
       const ratio = Math.min(window.devicePixelRatio || 1, 1.5, 2048 / Math.max(width, height));
       mask.width = Math.max(1, Math.round(width * ratio));
       mask.height = Math.max(1, Math.round(height * ratio));
-      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      // Account for rounded backing-buffer dimensions at fractional zoom/DPR.
+      context.setTransform(mask.width / width, 0, 0, mask.height / height, 0, 0);
       context.fillStyle = "white";
       context.textBaseline = "alphabetic";
       lines = [];
@@ -119,7 +161,7 @@ export default function HeadingWater() {
         context.fillText(content, rect.left, baseline);
       }
 
-      renderer?.resize(mask.width, mask.height);
+      renderer?.resize(mask.width, mask.height, width, height);
       renderer?.setMask(mask);
       dirty = false;
     };
@@ -130,38 +172,54 @@ export default function HeadingWater() {
         stop();
         return;
       }
-      if (dirty) rebuildMask();
+      try {
+        if (dirty) rebuildMask();
+      } catch {
+        stop();
+        unavailable = true;
+        renderer.dispose();
+        renderer = null;
+        canvas.remove();
+        canvas = null;
+        return;
+      }
+      if (scrollX !== window.scrollX || scrollY !== window.scrollY) {
+        renderer.shift(window.scrollX - scrollX, window.scrollY - scrollY);
+        scrollX = window.scrollX;
+        scrollY = window.scrollY;
+      }
       const time = milliseconds / 1000;
-      impulses = impulses.filter((impulse) => time - impulse.born < lifetime);
+      const strokes: WaterStroke[] = [];
 
       if (pending) {
         const point = pending;
-        const from = previous && point.time - previous.time < 150 ? previous : point;
+        const from = previous && point.time - previous.time < 200 ? previous : point;
         const dx = point.x - from.x;
         const dy = point.y - from.y;
         const distance = Math.hypot(dx, dy);
-        if (distance > 1 && time - lastImpulse > 0.055) {
-          const steps = Math.min(8, Math.max(1, Math.ceil(distance / 18)));
-          for (let step = 1; step <= steps; step++) {
-            const x = from.x + (dx * step) / steps;
-            const y = from.y + (dy * step) / steps;
-            if (!lines.some(({ rect }) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) continue;
-            const speed = distance / Math.max(16, point.time - from.time);
-            impulses.push({ x, y, born: time, dx: dx / distance, dy: dy / distance, strength: Math.min(0.85, 0.38 + speed * 0.12) / Math.sqrt(steps) });
-            lastImpulse = time;
+        if (distance >= 0.5) {
+          for (const { rect } of lines) {
+            const stroke = strokeInLine(from, point, rect);
+            if (stroke) strokes.push(stroke);
           }
-          impulses = impulses.slice(-32);
+          if (strokes.length) lastStroke = time;
         }
-        previous = point;
+        if (distance >= 0.5 || from === point) previous = point;
         pending = null;
       }
 
-      if (impulses.length) {
+      const idle = time - lastStroke;
+      if (idle < settleSeconds) {
         canvas.hidden = false;
-        renderer.render(time, impulses, width, height);
+        // Natural damping does most of the settling; ease out the final 2 seconds.
+        const fade = Math.max(0, Math.min(1, (idle - 6) / 2));
+        renderer.render(lastFrame ? time - lastFrame : 1 / 60, strokes, 1 - fade * fade * (3 - 2 * fade));
+        lastFrame = time;
         frame = requestAnimationFrame(draw);
       } else {
         canvas.hidden = true;
+        if (lastFrame) renderer.reset();
+        lastFrame = 0;
       }
     };
 
@@ -207,7 +265,7 @@ export default function HeadingWater() {
           const rect = heading.getBoundingClientRect();
           return event.clientX >= rect.left - 80 && event.clientX <= rect.right + 80 && event.clientY >= rect.top - 80 && event.clientY <= rect.bottom + 80;
         });
-        previous = pending;
+        if (!previous) previous = pending;
         if (nearHeading) void initialize();
       } else if (!frame) {
         frame = requestAnimationFrame(draw);
@@ -221,19 +279,31 @@ export default function HeadingWater() {
       dirty = true;
       stop();
     };
+    const scroll = (event: Event) => {
+      dirty = true;
+      pending = previous = null;
+      if (event.target !== document) stop();
+      // Main-page scroll translates the existing water with its text mask.
+      if (renderer && lastFrame && !frame) frame = requestAnimationFrame(draw);
+    };
     const observer = new MutationObserver((records) => {
-      if (records.every((record) => record.target === canvas || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every((node) => node === canvas)))) return;
-      invalidate();
+      const affectsHeadings = records.some((record) => {
+        const element = record.target instanceof Element ? record.target : record.target.parentElement;
+        return element?.closest(selector) || [...record.addedNodes, ...record.removedNodes].some((node) => node instanceof Element && (node.matches(selector) || node.querySelector(selector)));
+      });
+      if (affectsHeadings) invalidate();
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    const resize = new ResizeObserver(invalidate);
+    const resize = new ResizeObserver(() => {
+      dirty = true;
+    });
     resize.observe(document.body);
     document.fonts.addEventListener("loadingdone", invalidate);
     document.addEventListener("pointermove", move, { passive: true });
     document.addEventListener("pointerleave", leave);
     document.addEventListener("visibilitychange", stop);
     window.addEventListener("blur", stop);
-    window.addEventListener("scroll", invalidate, { passive: true, capture: true });
+    window.addEventListener("scroll", scroll, { passive: true, capture: true });
     window.addEventListener("resize", invalidate, { passive: true });
     preference.addEventListener("change", invalidate);
 
@@ -242,15 +312,15 @@ export default function HeadingWater() {
       stop();
       observer.disconnect();
       resize.disconnect();
-      renderer?.dispose();
       canvas?.removeEventListener("webglcontextlost", contextLost);
+      renderer?.dispose();
       canvas?.remove();
       document.fonts.removeEventListener("loadingdone", invalidate);
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerleave", leave);
       document.removeEventListener("visibilitychange", stop);
       window.removeEventListener("blur", stop);
-      window.removeEventListener("scroll", invalidate, true);
+      window.removeEventListener("scroll", scroll, true);
       window.removeEventListener("resize", invalidate);
       preference.removeEventListener("change", invalidate);
     };

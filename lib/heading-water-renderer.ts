@@ -1,136 +1,134 @@
-export type WaterImpulse = {
+export type WaterStroke = {
+  fromX: number;
+  fromY: number;
   x: number;
   y: number;
-  born: number;
+  radius: number;
   strength: number;
-  dx: number;
-  dy: number;
 };
 
 export type WaterRenderer = {
-  resize(width: number, height: number): void;
+  resize(width: number, height: number, widthCss: number, heightCss: number): void;
   setMask(source: HTMLCanvasElement): void;
-  render(timeSeconds: number, ripples: readonly WaterImpulse[], widthCss: number, heightCss: number): void;
+  shift(dx: number, dy: number): void;
+  render(deltaSeconds: number, strokes: readonly WaterStroke[], opacity: number): void;
+  reset(): void;
   dispose(): void;
 };
 
-const VERTEX_SHADER = `
-  attribute vec2 aPosition;
-  varying vec2 vUv;
+const strokeCapacity = 16;
+const stepSeconds = 1 / 60;
 
+const vertexSource = `#version 300 es
+  in vec2 aPosition;
+  out vec2 vUv;
   void main() {
     vUv = aPosition * 0.5 + 0.5;
     gl_Position = vec4(aPosition, 0.0, 1.0);
   }
 `;
 
-function fragmentShader(capacity: number) {
-  return `
-    precision mediump float;
+// A damped height/velocity field, stepped at 60 Hz. New strokes perturb the
+// existing water instead of replacing older ripples in an impulse queue.
+// Technique references (independent implementation):
+// https://madebyevan.com/webgl-water/ - height-field propagation
+// https://developer.nvidia.com/gpugems/gpugems/part-i-natural-effects/chapter-1-effective-water-simulation-physical-models
+const updateSource = `#version 300 es
+  precision highp float;
+  precision highp sampler2D;
+  in vec2 vUv;
+  out vec4 result;
+  uniform sampler2D uWater;
+  uniform vec2 uTexel;
+  uniform vec2 uSize;
+  uniform vec2 uPropagation;
+  uniform vec2 uShift;
+  uniform int uAdvance;
+  uniform int uCount;
+  uniform vec4 uStrokes[${strokeCapacity}];
+  uniform vec2 uBrushes[${strokeCapacity}];
 
-    varying vec2 vUv;
-    uniform sampler2D uMask;
-    uniform vec2 uMaskTexel;
-    uniform vec2 uSize;
-    uniform int uCount;
-    // CSS x/y, age in seconds, strength. Ages keep precision on long-lived tabs.
-    uniform vec4 uImpulses[${capacity}];
-    uniform vec2 uDirections[${capacity}];
-
-    void main() {
-      float mask = texture2D(uMask, vUv).a;
-      if (mask < 0.1) discard;
-
-      // Stay inside the glyph even where Canvas and DOM font antialiasing differ.
-      mask = min(mask, texture2D(uMask, vUv + vec2(uMaskTexel.x, 0.0)).a);
-      mask = min(mask, texture2D(uMask, vUv - vec2(uMaskTexel.x, 0.0)).a);
-      mask = min(mask, texture2D(uMask, vUv + vec2(0.0, uMaskTexel.y)).a);
-      mask = min(mask, texture2D(uMask, vUv - vec2(0.0, uMaskTexel.y)).a);
-      if (mask < 0.1) discard;
-
-      vec2 point = vec2(vUv.x, 1.0 - vUv.y) * uSize;
-      vec2 slope = vec2(0.0);
-      float activity = 0.0;
-
-      for (int i = 0; i < ${capacity}; i++) {
-        if (i >= uCount) break;
-        vec4 impulse = uImpulses[i];
-        float age = impulse.z;
-        if (age < 0.0 || age > 5.5) continue;
-
-        vec2 direction = uDirections[i];
-        vec2 crossDirection = vec2(-direction.y, direction.x);
-        vec2 delta = point - impulse.xy;
-
-        // A small, slow domain warp breaks perfect circular outlines. Adjacent
-        // pointer samples still share a continuous surface instead of particles.
-        vec2 warp = 3.2 * vec2(
-          sin(point.y * 0.017 + age * 0.31),
-          sin(point.x * 0.014 - age * 0.27)
-        );
-        vec2 displaced = delta + warp + direction * age * 3.0;
-        vec2 local = vec2(dot(displaced, direction) * 0.78, dot(displaced, crossDirection));
-        float radius = sqrt(dot(local, local) + 9.0);
-        float width = 28.0 + age * 5.0;
-        float front = 12.0 + age * 32.0;
-        float offset = (radius - front) / width;
-
-        // Broad, dispersing packets have a soft onset and settle for 5.5 seconds.
-        float life = smoothstep(0.0, 0.18, age)
-          * (1.0 - smoothstep(2.7, 5.5, age)) * exp(-age * 0.06);
-        float envelope = exp(-offset * offset) * life * impulse.w
-          / sqrt(1.0 + radius * 0.008);
-        float phase = radius * 0.115 - age * 3.6;
-        float phaseSlow = radius * 0.067 - age * 2.15 + 1.2;
-        float wave = sin(phase) * 0.72 + sin(phaseSlow) * 0.28;
-        float derivative = cos(phase) * 0.0828 + cos(phaseSlow) * 0.01876;
-        float envelopeDerivative = envelope
-          * (-2.0 * offset / width - 0.004 / (1.0 + radius * 0.008));
-        vec2 radialDirection = (direction * local.x * 0.78
-          + crossDirection * local.y) / radius;
-        // Differentiate the warp as well as the radial packet, without extra
-        // height-field evaluations or derivative-extension requirements.
-        radialDirection = vec2(
-          radialDirection.x + radialDirection.y * 0.0448 * cos(point.x * 0.014 - age * 0.27),
-          radialDirection.y + radialDirection.x * 0.0544 * cos(point.y * 0.017 + age * 0.31)
-        );
-        slope += radialDirection * (derivative * envelope + wave * envelopeDerivative) * 5.2;
-
-        // An elongated low-frequency wake joins samples along the mouse path.
-        // Its analytic normal adds fluid interference rather than a bright ring.
-        float along = dot(delta, direction);
-        float across = dot(delta, crossDirection);
-        float wakeWidth = 20.0 + age * 5.0;
-        float wakeLength = 55.0 + age * 9.0;
-        float wake = exp(-across * across / (wakeWidth * wakeWidth)
-          - along * along / (wakeLength * wakeLength)) * life * impulse.w * 0.34;
-        float wakePhase = across * 0.09 - age * 1.65;
-        slope += crossDirection * wake * (
-          cos(wakePhase) * 0.09
-          - sin(wakePhase) * 2.0 * across / (wakeWidth * wakeWidth)
-        ) * 4.5;
-        slope -= direction * wake * sin(wakePhase)
-          * 2.0 * along / (wakeLength * wakeLength) * 4.5;
-        activity += envelope + wake;
-      }
-
-      // Soft saturation keeps a fast pointer stroke from becoming a neon flash.
-      slope /= 1.0 + length(slope) * 0.75;
-      vec3 normal = normalize(vec3(-slope, 1.0));
-      float reflection = pow(max(dot(normal, normalize(vec3(-0.22, -0.32, 1.0))), 0.0), 18.0);
-      float broadLight = pow(max(dot(normal, normalize(vec3(0.45, 0.12, 1.0))), 0.0), 7.0);
-      float fresnel = pow(1.0 - normal.z, 2.0);
-      float energy = 1.0 - exp(-activity * 1.35);
-      float alpha = min(0.34, energy * (0.025 + reflection * 0.42 + broadLight * 0.16 + fresnel * 0.07));
-      alpha *= smoothstep(0.1, 0.95, mask);
-      vec3 silverBlue = mix(vec3(0.42, 0.58, 0.65), vec3(0.7, 0.8, 0.83), reflection);
-      gl_FragColor = vec4(silverBlue * alpha, alpha);
+  void main() {
+    vec2 uv = vUv + uShift;
+    if (any(lessThan(uv, vec2(0.0))) || any(greaterThan(uv, vec2(1.0)))) {
+      result = vec4(0.0);
+      return;
     }
-  `;
-}
+    vec2 water = texture(uWater, uv).rg;
+    if (uAdvance == 1) {
+      float left = texture(uWater, uv - vec2(uTexel.x, 0.0)).r;
+      float right = texture(uWater, uv + vec2(uTexel.x, 0.0)).r;
+      float bottom = texture(uWater, uv - vec2(0.0, uTexel.y)).r;
+      float top = texture(uWater, uv + vec2(0.0, uTexel.y)).r;
+      float acceleration = (left + right - 2.0 * water.r) * uPropagation.x
+        + (bottom + top - 2.0 * water.r) * uPropagation.y;
+      water.g = (water.g + acceleration) * 0.996;
+      water.r = (water.r + water.g) * 0.9995;
+      // An absorbing border prevents the viewport acting like a rectangular tank.
+      vec2 edge = min(uv, 1.0 - uv) * uSize;
+      water *= mix(0.90, 1.0, smoothstep(0.0, 40.0, min(edge.x, edge.y)));
+    }
+
+    vec2 point = vec2(vUv.x, 1.0 - vUv.y) * uSize;
+    for (int i = 0; i < ${strokeCapacity}; i++) {
+      if (i >= uCount) break;
+      vec2 start = uStrokes[i].xy;
+      vec2 segment = uStrokes[i].zw - start;
+      float lengthSquared = dot(segment, segment);
+      float along = clamp(dot(point - start, segment) / max(lengthSquared, 0.001), 0.0, 1.0);
+      vec2 offset = point - start - segment * along;
+      float radius = uBrushes[i].x;
+      float q = dot(offset, offset) / (radius * radius);
+      // Smooth pressure depression with a raised rim. Capsule-shaped input
+      // connects pointer samples without dotted splats or hard-edged rings.
+      float pressure = (1.0 - q) * exp(-q);
+      float travel = min(sqrt(lengthSquared) / radius, 1.5);
+      water.g -= pressure * uBrushes[i].y * travel * 0.07;
+    }
+    result = vec4(water, 0.0, 1.0);
+  }
+`;
+
+const lightingSource = `#version 300 es
+  precision highp float;
+  precision highp sampler2D;
+  in vec2 vUv;
+  out vec4 result;
+  uniform sampler2D uWater;
+  uniform sampler2D uMask;
+  uniform vec2 uTexel;
+  uniform vec2 uCell;
+  uniform float uOpacity;
+
+  void main() {
+    // Keep antialiasing inside glyphs without eroding thin letter strokes.
+    float mask = smoothstep(0.55, 0.98, texture(uMask, vUv).a);
+    if (mask < 0.01) discard;
+    float left = texture(uWater, vUv - vec2(uTexel.x, 0.0)).r;
+    float right = texture(uWater, vUv + vec2(uTexel.x, 0.0)).r;
+    float bottom = texture(uWater, vUv - vec2(0.0, uTexel.y)).r;
+    float top = texture(uWater, vUv + vec2(0.0, uTexel.y)).r;
+    vec2 slope = vec2(right - left, top - bottom) / (2.0 * uCell) * 12.0;
+    slope /= 1.0 + length(slope) * 0.45;
+    vec3 normal = normalize(vec3(-slope, 1.0));
+    vec3 reflected = reflect(vec3(0.0, 0.0, -1.0), normal);
+    // Soft studio lights relative to still water: only changing normals light up.
+    vec3 key = normalize(vec3(-0.35, 0.55, 1.0));
+    vec3 fill = normalize(vec3(0.60, -0.20, 1.0));
+    float keyLight = pow(max(dot(reflected, key), 0.0), 10.0);
+    float fillLight = pow(max(dot(reflected, fill), 0.0), 5.0);
+    float glint = max(0.0, keyLight - pow(key.z, 10.0));
+    float sheen = max(0.0, fillLight - pow(fill.z, 5.0));
+    float energy = 1.0 - exp(-length(slope) * 2.6);
+    float alpha = (1.0 - exp(-(glint * 0.85 + sheen * 0.35 + energy * 0.10))) * 0.48;
+    alpha *= mask * uOpacity;
+    vec3 violet = mix(vec3(0.72, 0.58, 0.91), vec3(0.93, 0.85, 1.0), glint);
+    result = vec4(violet * alpha, alpha);
+  }
+`;
 
 export function createWaterRenderer(canvas: HTMLCanvasElement): WaterRenderer | null {
-  const gl = canvas.getContext("webgl", {
+  const gl = canvas.getContext("webgl2", {
     alpha: true,
     antialias: false,
     depth: false,
@@ -139,108 +137,209 @@ export function createWaterRenderer(canvas: HTMLCanvasElement): WaterRenderer | 
     powerPreference: "low-power",
   });
   if (!gl) return null;
+  const loseContext = () => gl.getExtension("WEBGL_lose_context")?.loseContext();
+  if (!gl.getExtension("EXT_color_buffer_float")) {
+    loseContext();
+    return null;
+  }
 
-  // WebGL1 devices vary considerably in fragment-uniform capacity.
-  const capacity = Math.min(32, Math.floor((Number(gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)) - 8) / 2));
-  if (capacity < 1) return null;
-
-  const compile = (type: number, source: string) => {
-    const shader = gl.createShader(type);
-    if (!shader) return null;
-    gl.shaderSource(shader, source);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      gl.deleteShader(shader);
-      return null;
-    }
-    return shader;
-  };
-
-  const vertex = compile(gl.VERTEX_SHADER, VERTEX_SHADER);
-  const fragment = compile(gl.FRAGMENT_SHADER, fragmentShader(capacity));
-  const program = gl.createProgram();
+  const shaders: WebGLShader[] = [];
+  const programs: WebGLProgram[] = [];
+  const textures: WebGLTexture[] = [];
+  const framebuffers: WebGLFramebuffer[] = [];
   const buffer = gl.createBuffer();
-  const maskTexture = gl.createTexture();
   const dispose = () => {
-    gl.deleteShader(vertex);
-    gl.deleteShader(fragment);
-    gl.deleteProgram(program);
+    shaders.forEach((shader) => gl.deleteShader(shader));
+    programs.forEach((program) => gl.deleteProgram(program));
+    textures.forEach((texture) => gl.deleteTexture(texture));
+    framebuffers.forEach((framebuffer) => gl.deleteFramebuffer(framebuffer));
     gl.deleteBuffer(buffer);
-    gl.deleteTexture(maskTexture);
+    loseContext();
   };
 
-  if (!vertex || !fragment || !program || !buffer || !maskTexture) {
-    dispose();
-    return null;
-  }
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    dispose();
-    return null;
-  }
+  const program = (source: string) => {
+    const compiled = gl.createProgram();
+    if (!compiled) throw new Error("Water program unavailable");
+    programs.push(compiled);
+    for (const [type, code] of [
+      [gl.VERTEX_SHADER, vertexSource],
+      [gl.FRAGMENT_SHADER, source],
+    ] as const) {
+      const shader = gl.createShader(type);
+      if (!shader) throw new Error("Water shader unavailable");
+      shaders.push(shader);
+      gl.shaderSource(shader, code);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error("Water shader compilation failed");
+      gl.attachShader(compiled, shader);
+    }
+    gl.bindAttribLocation(compiled, 0, "aPosition");
+    gl.linkProgram(compiled);
+    if (!gl.getProgramParameter(compiled, gl.LINK_STATUS)) throw new Error("Water shader linking failed");
+    return compiled;
+  };
 
-  gl.useProgram(program);
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const position = gl.getAttribLocation(program, "aPosition");
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+  const texture = () => {
+    const created = gl.createTexture();
+    if (!created) throw new Error("Water texture unavailable");
+    textures.push(created);
+    gl.bindTexture(gl.TEXTURE_2D, created);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return created;
+  };
 
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, maskTexture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
-  gl.uniform1i(gl.getUniformLocation(program, "uMask"), 0);
-  gl.disable(gl.DEPTH_TEST);
-  gl.disable(gl.BLEND);
-  gl.clearColor(0, 0, 0, 0);
+  try {
+    if (!buffer) throw new Error("Water buffer unavailable");
+    const update = program(updateSource);
+    const lighting = program(lightingSource);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+    gl.clearColor(0, 0, 0, 0);
 
-  const sizeUniform = gl.getUniformLocation(program, "uSize");
-  const texelUniform = gl.getUniformLocation(program, "uMaskTexel");
-  const countUniform = gl.getUniformLocation(program, "uCount");
-  const impulseUniform = gl.getUniformLocation(program, "uImpulses[0]");
-  const directionUniform = gl.getUniformLocation(program, "uDirections[0]");
-  const impulses = new Float32Array(capacity * 4);
-  const directions = new Float32Array(capacity * 2);
+    const mask = texture();
+    const targets = Array.from({ length: 2 }, () => {
+      const surface = texture();
+      const framebuffer = gl.createFramebuffer();
+      if (!framebuffer) throw new Error("Water framebuffer unavailable");
+      framebuffers.push(framebuffer);
+      return { texture: surface, framebuffer };
+    });
+    const uniform = (owner: WebGLProgram, name: string) => gl.getUniformLocation(owner, name);
+    const u = {
+      texel: uniform(update, "uTexel"),
+      size: uniform(update, "uSize"),
+      propagation: uniform(update, "uPropagation"),
+      shift: uniform(update, "uShift"),
+      advance: uniform(update, "uAdvance"),
+      count: uniform(update, "uCount"),
+      strokes: uniform(update, "uStrokes[0]"),
+      brushes: uniform(update, "uBrushes[0]"),
+    };
+    const light = {
+      texel: uniform(lighting, "uTexel"),
+      cell: uniform(lighting, "uCell"),
+      opacity: uniform(lighting, "uOpacity"),
+    };
+    gl.useProgram(update);
+    gl.uniform1i(uniform(update, "uWater"), 0);
+    gl.useProgram(lighting);
+    gl.uniform1i(uniform(lighting, "uMask"), 1);
 
-  return {
-    resize(width: number, height: number) {
-      canvas.width = Math.max(1, Math.round(width));
-      canvas.height = Math.max(1, Math.round(height));
-      gl.viewport(0, 0, canvas.width, canvas.height);
-    },
-    setMask(source: HTMLCanvasElement) {
-      gl.bindTexture(gl.TEXTURE_2D, maskTexture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-      gl.uniform2f(texelUniform, 1 / source.width, 1 / source.height);
-    },
-    render(timeSeconds: number, ripples: readonly WaterImpulse[], widthCss: number, heightCss: number) {
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      const count = Math.min(capacity, ripples.length);
-      if (!count) return;
+    let read = 0;
+    let simWidth = 1;
+    let simHeight = 1;
+    let cssWidth = 1;
+    let cssHeight = 1;
+    let accumulated = 0;
+    let allocated = false;
+    const strokesData = new Float32Array(strokeCapacity * 4);
+    const brushesData = new Float32Array(strokeCapacity * 2);
 
-      for (let index = 0; index < count; index++) {
-        const impulse = ripples[ripples.length - count + index];
-        const length = Math.hypot(impulse.dx, impulse.dy);
-        impulses[index * 4] = impulse.x;
-        impulses[index * 4 + 1] = impulse.y;
-        impulses[index * 4 + 2] = timeSeconds - impulse.born;
-        impulses[index * 4 + 3] = impulse.strength;
-        directions[index * 2] = length > 0.001 ? impulse.dx / length : 1;
-        directions[index * 2 + 1] = length > 0.001 ? impulse.dy / length : 0;
-      }
-      gl.uniform2f(sizeUniform, widthCss, heightCss);
-      gl.uniform1i(countUniform, count);
-      gl.uniform4fv(impulseUniform, impulses);
-      gl.uniform2fv(directionUniform, directions);
+    const pass = (advance: boolean, count = 0, dx = 0, dy = 0) => {
+      gl.useProgram(update);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, targets[read].texture);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, targets[1 - read].framebuffer);
+      gl.viewport(0, 0, simWidth, simHeight);
+      gl.uniform1i(u.advance, advance ? 1 : 0);
+      gl.uniform1i(u.count, count);
+      gl.uniform2f(u.shift, dx / cssWidth, -dy / cssHeight);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-    },
-    dispose,
-  };
+      read = 1 - read;
+    };
+
+    const reset = () => {
+      accumulated = 0;
+      if (!allocated || gl.isContextLost()) return;
+      for (const target of targets) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    };
+
+    return {
+      resize(width, height, widthCss, heightCss) {
+        if (canvas.width === width && canvas.height === height && cssWidth === widthCss && cssHeight === heightCss) return;
+        canvas.width = width;
+        canvas.height = height;
+        cssWidth = widthCss;
+        cssHeight = heightCss;
+        // Separate wave resolution from glyph resolution; at most 768 squared cells.
+        const scale = Math.min(1 / 3, 768 / Math.max(cssWidth, cssHeight));
+        simWidth = Math.max(2, Math.round(cssWidth * scale));
+        simHeight = Math.max(2, Math.round(cssHeight * scale));
+        gl.activeTexture(gl.TEXTURE0);
+        for (const target of targets) {
+          gl.bindTexture(gl.TEXTURE_2D, target.texture);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, simWidth, simHeight, 0, gl.RG, gl.HALF_FLOAT, null);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, target.texture, 0);
+          if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) throw new Error("Water surface unsupported");
+        }
+        const cellX = cssWidth / simWidth;
+        allocated = true;
+        const cellY = cssHeight / simHeight;
+        const speed = Math.min(38, (Math.min(cellX, cellY) / stepSeconds) * 0.6);
+        gl.useProgram(update);
+        gl.uniform2f(u.texel, 1 / simWidth, 1 / simHeight);
+        gl.uniform2f(u.size, cssWidth, cssHeight);
+        gl.uniform2f(u.propagation, ((speed * stepSeconds) / cellX) ** 2, ((speed * stepSeconds) / cellY) ** 2);
+        gl.useProgram(lighting);
+        gl.uniform2f(light.texel, 1 / simWidth, 1 / simHeight);
+        gl.uniform2f(light.cell, cellX, cellY);
+        reset();
+      },
+      setMask(source) {
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, mask);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      },
+      shift(dx, dy) {
+        pass(false, 0, dx, dy);
+      },
+      render(deltaSeconds, strokes, opacity) {
+        // Consume input once, independently of refresh rate or simulation steps.
+        for (let offset = 0; offset < strokes.length; offset += strokeCapacity) {
+          const batch = strokes.slice(offset, offset + strokeCapacity);
+          batch.forEach((stroke, index) => {
+            strokesData.set([stroke.fromX, stroke.fromY, stroke.x, stroke.y], index * 4);
+            brushesData.set([stroke.radius, stroke.strength], index * 2);
+          });
+          gl.useProgram(update);
+          gl.uniform4fv(u.strokes, strokesData);
+          gl.uniform2fv(u.brushes, brushesData);
+          pass(false, batch.length);
+        }
+        accumulated += Math.min(Math.max(deltaSeconds, 0), 0.05);
+        while (accumulated >= stepSeconds) {
+          pass(true);
+          accumulated -= stepSeconds;
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(lighting);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, targets[read].texture);
+        gl.uniform1f(light.opacity, opacity);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      },
+      reset,
+      dispose,
+    };
+  } catch {
+    dispose();
+    return null;
+  }
 }
