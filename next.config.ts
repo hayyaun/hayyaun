@@ -3,6 +3,14 @@ import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx", "mdx"],
+  turbopack: {
+    rules: {
+      "roboto.woff.mjs": {
+        loaders: ["./lib/loaders/perf-font.cjs"],
+        as: "*.js",
+      },
+    },
+  },
 };
 
 export default createMDX({
