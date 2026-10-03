@@ -126,7 +126,10 @@ export default function HeadingWater() {
 
     const draw = (milliseconds: number) => {
       frame = 0;
-      if (!renderer || !canvas || !preference.matches || document.hidden) { stop(); return; }
+      if (!renderer || !canvas || !preference.matches || document.hidden) {
+        stop();
+        return;
+      }
       if (dirty) rebuildMask();
       const time = milliseconds / 1000;
       impulses = impulses.filter((impulse) => time - impulse.born < lifetime);
@@ -137,14 +140,14 @@ export default function HeadingWater() {
         const dx = point.x - from.x;
         const dy = point.y - from.y;
         const distance = Math.hypot(dx, dy);
-        if (distance > 1 && time - lastImpulse > .055) {
+        if (distance > 1 && time - lastImpulse > 0.055) {
           const steps = Math.min(8, Math.max(1, Math.ceil(distance / 18)));
           for (let step = 1; step <= steps; step++) {
-            const x = from.x + dx * step / steps;
-            const y = from.y + dy * step / steps;
+            const x = from.x + (dx * step) / steps;
+            const y = from.y + (dy * step) / steps;
             if (!lines.some(({ rect }) => x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)) continue;
             const speed = distance / Math.max(16, point.time - from.time);
-            impulses.push({ x, y, born: time, dx: dx / distance, dy: dy / distance, strength: Math.min(.85, .38 + speed * .12) / Math.sqrt(steps) });
+            impulses.push({ x, y, born: time, dx: dx / distance, dy: dy / distance, strength: Math.min(0.85, 0.38 + speed * 0.12) / Math.sqrt(steps) });
             lastImpulse = time;
           }
           impulses = impulses.slice(-32);
@@ -173,7 +176,11 @@ export default function HeadingWater() {
         canvas.setAttribute("aria-hidden", "true");
         canvas.hidden = true;
         renderer = createWaterRenderer(canvas);
-        if (!renderer) { unavailable = true; canvas = null; return; }
+        if (!renderer) {
+          unavailable = true;
+          canvas = null;
+          return;
+        }
         canvas.addEventListener("webglcontextlost", contextLost);
         document.body.append(canvas);
         dirty = true;
@@ -207,8 +214,13 @@ export default function HeadingWater() {
       }
     };
 
-    const leave = () => { pending = previous = null; }; // Let the water settle after exit.
-    const invalidate = () => { dirty = true; stop(); };
+    const leave = () => {
+      pending = previous = null;
+    }; // Let the water settle after exit.
+    const invalidate = () => {
+      dirty = true;
+      stop();
+    };
     const observer = new MutationObserver((records) => {
       if (records.every((record) => record.target === canvas || (record.type === "childList" && [...record.addedNodes, ...record.removedNodes].every((node) => node === canvas)))) return;
       invalidate();

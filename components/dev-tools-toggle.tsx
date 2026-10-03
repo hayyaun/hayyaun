@@ -12,13 +12,7 @@ export default function DevToolsToggle() {
   }
 
   return (
-    <button
-      type="button"
-      className="dev-tools-toggle"
-      aria-label={active ? "Hide debug controls" : "Show debug controls"}
-      aria-pressed={active}
-      onClick={toggle}
-    >
+    <button type="button" className="dev-tools-toggle" aria-label={active ? "Hide debug controls" : "Show debug controls"} aria-pressed={active} onClick={toggle}>
       <span aria-hidden="true">⚙</span>
     </button>
   );

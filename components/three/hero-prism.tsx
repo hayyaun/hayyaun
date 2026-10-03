@@ -5,14 +5,16 @@ import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 
 const Scene = dynamic(() => import("@/app/lab/prism/scene"), { ssr: false });
 
-const DevControls = process.env.NODE_ENV === "development"
-  ? dynamic(() => import("@/app/lab/prism/lab-controls"), { ssr: false })
-  : null;
+const DevControls = process.env.NODE_ENV === "development" ? dynamic(() => import("@/app/lab/prism/lab-controls"), { ssr: false }) : null;
 
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
-  static getDerivedStateFromError() { return { failed: true }; }
-  render() { return this.state.failed ? null : this.props.children; }
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
 export default function HeroPrism() {
@@ -27,8 +29,19 @@ export default function HeroPrism() {
     motion.addEventListener("change", sync);
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
     if (host.current) observer.observe(host.current);
-    return () => { observer.disconnect(); motion.removeEventListener("change", sync); };
+    return () => {
+      observer.disconnect();
+      motion.removeEventListener("change", sync);
+    };
   }, []);
 
-  return <div ref={host} className="hero-canvas">{enabled && visible && <div className="hero-scene-frame"><SceneBoundary>{DevControls ? <DevControls landing /> : <Scene presentation />}</SceneBoundary></div>}</div>;
+  return (
+    <div ref={host} className="hero-canvas">
+      {enabled && visible && (
+        <div className="hero-scene-frame">
+          <SceneBoundary>{DevControls ? <DevControls landing /> : <Scene presentation />}</SceneBoundary>
+        </div>
+      )}
+    </div>
+  );
 }

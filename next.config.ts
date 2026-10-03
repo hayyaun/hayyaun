@@ -9,9 +9,6 @@ export default createMDX({
   options: {
     // Plugin names and serializable options also work with Turbopack.
     remarkPlugins: ["remark-gfm"],
-    rehypePlugins: [
-      "rehype-slug",
-      ["rehype-pretty-code", { theme: "github-dark", keepBackground: false, bypassInlineCode: true }],
-    ],
+    rehypePlugins: ["rehype-slug", ["rehype-pretty-code", { theme: "github-dark", keepBackground: false, bypassInlineCode: true }]],
   },
 })(nextConfig);

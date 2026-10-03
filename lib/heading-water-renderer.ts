@@ -141,10 +141,7 @@ export function createWaterRenderer(canvas: HTMLCanvasElement): WaterRenderer | 
   if (!gl) return null;
 
   // WebGL1 devices vary considerably in fragment-uniform capacity.
-  const capacity = Math.min(
-    32,
-    Math.floor((Number(gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)) - 8) / 2),
-  );
+  const capacity = Math.min(32, Math.floor((Number(gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS)) - 8) / 2));
   if (capacity < 1) return null;
 
   const compile = (type: number, source: string) => {

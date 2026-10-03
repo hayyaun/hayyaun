@@ -13,8 +13,7 @@ CSS Grid can use that minimum to determine how many columns fit:
 ```css
 .cards {
   display: grid;
-  grid-template-columns:
-    repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
   gap: 1.5rem;
 }
 ```
