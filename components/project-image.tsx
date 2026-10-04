@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ProjectImageRenderer } from "@/lib/project-image-renderer";
 import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 
@@ -19,7 +19,9 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
   const lowPerformance = useGraphicsPerformance(
     (state) => !performanceModeConfig[state.mode].projects || !state.projectsEnabled
   );
-  const host = useRef<HTMLDivElement>(null);
+  const host = useRef<HTMLButtonElement>(null);
+  const [touchPreview, setTouchPreview] = useState(false);
+  const tapped = useRef(false);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
   const surface = useRef<HTMLCanvasElement>(null);
@@ -31,18 +33,6 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     const canvas = surface.current;
     const card = element?.closest("article");
     if (!element || !coverImage || !previewImage || !canvas || !card) return;
-    if (lowPerformance) {
-      const loaded = () => {
-        if (previewImage.complete && previewImage.naturalWidth) element.dataset.previewReady = "true";
-      };
-      loaded();
-      previewImage.addEventListener("load", loaded);
-      return () => {
-        previewImage.removeEventListener("load", loaded);
-        delete element.dataset.previewReady;
-      };
-    }
-
     const motion = matchMedia("(prefers-reduced-motion: no-preference) and (forced-colors: none)");
     const hover = matchMedia("(hover: hover) and (pointer: fine)");
     let renderer: ProjectImageRenderer | null = null;
@@ -51,14 +41,15 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     let preparing = false;
     let visible = false;
     let hovered = hover.matches && card.matches(":hover");
-    let focused = card.matches(":focus-within");
+    let focused = !!document.activeElement?.matches(":focus-visible") && card.contains(document.activeElement) && !element.contains(document.activeElement);
     let frame = 0;
     let previousTime = 0;
     let progress = 0;
     let originX = 0.5;
     let originY = 0.5;
 
-    const target = () => (hovered || focused ? 1 : 0);
+    const target = () => (hovered || tapped.current || focused ? 1 : 0);
+    let contact: { id: number; x: number; y: number; time: number; inside: boolean } | null = null;
     const stop = () => {
       cancelAnimationFrame(frame);
       frame = 0;
@@ -111,7 +102,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       }
     };
     const prepare = async () => {
-      if (disposed || failed || preparing || renderer || !visible || !motion.matches || !hover.matches) return;
+      if (lowPerformance || disposed || failed || preparing || renderer || !visible || !motion.matches) return;
       if (!coverImage.complete || !coverImage.naturalWidth || !previewImage.complete || !previewImage.naturalWidth)
         return;
       preparing = true;
@@ -124,9 +115,10 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
           return;
         }
         size();
-        progress = target();
+        // Preserve the pre-tap state if the renderer loads during an interaction.
         renderer.render(progress, originX, originY);
         element.dataset.shaderReady = "true";
+        animate();
       } catch {
         disable();
       } finally {
@@ -153,14 +145,56 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       hovered = false;
       animate();
     };
-    const focus = () => {
-      focused = true;
+    const focus = (event: FocusEvent) => {
+      // The image button has its own toggle; focus on the website link still previews.
+      focused = event.target instanceof Element && event.target.matches(":focus-visible") && !element.contains(event.target);
       animate();
+      void prepare();
     };
     const blur = (event: FocusEvent) => {
       if (event.relatedTarget instanceof Node && card.contains(event.relatedTarget)) return;
       focused = false;
       animate();
+    };
+    const toggle = (clientX?: number, clientY?: number) => {
+      const rect = element.getBoundingClientRect();
+      if (!frame) {
+        originX = clientX === undefined ? 0.5 : Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+        originY = clientY === undefined ? 0.5 : Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      }
+      tapped.current = !tapped.current;
+      setTouchPreview(tapped.current);
+      animate();
+      void prepare();
+    };
+    const pointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      // A second contact cancels the gesture; do not capture or prevent scrolling.
+      if (!event.isPrimary || contact) { contact = null; return; }
+      const inside = event.target instanceof Node && element.contains(event.target);
+      if (!inside && !tapped.current) return;
+      contact = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, inside };
+    };
+    const pointerMove = (event: PointerEvent) => {
+      if (contact?.id === event.pointerId && Math.hypot(event.clientX - contact.x, event.clientY - contact.y) > 10) contact = null;
+    };
+    const pointerUp = (event: PointerEvent) => {
+      const start = contact;
+      contact = null;
+      if (event.pointerType !== "touch" || !start || start.id !== event.pointerId ||
+          event.timeStamp - start.time > 500 || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) return;
+      const inside = event.target instanceof Node && element.contains(event.target);
+      if (start.inside && inside) toggle(event.clientX, event.clientY);
+      else if (!start.inside && !inside && tapped.current) {
+        tapped.current = false;
+        setTouchPreview(false);
+        animate();
+      }
+    };
+    const cancelContact = () => { contact = null; };
+    const click = (event: MouseEvent) => {
+      // Keyboard/assistive activation only. Touch compatibility clicks must not toggle twice.
+      if (event.detail === 0) toggle();
     };
     const preferences = () => {
       hovered = hover.matches && card.matches(":hover");
@@ -197,6 +231,11 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     card.addEventListener("pointerleave", leave);
     card.addEventListener("focusin", focus);
     card.addEventListener("focusout", blur);
+    document.addEventListener("pointerdown", pointerDown, { passive: true });
+    document.addEventListener("pointermove", pointerMove, { passive: true });
+    document.addEventListener("pointerup", pointerUp, { passive: true });
+    document.addEventListener("pointercancel", cancelContact);
+    element.addEventListener("click", click);
     motion.addEventListener("change", preferences);
     hover.addEventListener("change", preferences);
     document.addEventListener("visibilitychange", visibility);
@@ -214,6 +253,11 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       card.removeEventListener("pointerleave", leave);
       card.removeEventListener("focusin", focus);
       card.removeEventListener("focusout", blur);
+      document.removeEventListener("pointerdown", pointerDown);
+      document.removeEventListener("pointermove", pointerMove);
+      document.removeEventListener("pointerup", pointerUp);
+      document.removeEventListener("pointercancel", cancelContact);
+      element.removeEventListener("click", click);
       motion.removeEventListener("change", preferences);
       hover.removeEventListener("change", preferences);
       document.removeEventListener("visibilitychange", visibility);
@@ -224,7 +268,14 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
   }, [src, previewSrc, coverPositionY, lowPerformance]);
 
   return (
-    <div className="project-visual" ref={host}>
+    <button
+      type="button"
+      className="project-visual"
+      ref={host}
+      aria-label={`Toggle website screenshot: ${alt}`}
+      aria-pressed={touchPreview}
+      data-tap-preview={touchPreview ? "true" : undefined}
+    >
       <Image
         ref={cover}
         src={src}
@@ -245,6 +296,6 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
         className="project-preview"
       />
       <canvas ref={surface} className="project-transition" aria-hidden="true" hidden />
-    </div>
+    </button>
   );
 }
