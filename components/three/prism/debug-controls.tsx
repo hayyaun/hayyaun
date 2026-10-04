@@ -28,9 +28,9 @@ export default function LabControls({ landing = false, active = true }: { landin
   const status = useGraphicsPerformance();
   const levaStore = useCreateStore();
   const [, setPerformance] = useControls("Performance", () => ({
-    warmupSeconds: { value: 5, min: 1, max: 60, step: 1, label: "Warmup seconds", onChange: (warmupSeconds: number) => useGraphicsPerformance.setState({ warmupSeconds }) },
-    fpsThreshold: { value: 30, min: 5, max: 120, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
-    lowSeconds: { value: 5, min: 1, max: 30, step: 1, label: "Seconds below FPS", onChange: (lowSeconds: number) => useGraphicsPerformance.setState({ lowSeconds }) },
+    warmupSeconds: { value: graphicsDefaults.warmupSeconds, min: 1, max: 60, step: 1, label: "Warmup seconds", onChange: (warmupSeconds: number) => useGraphicsPerformance.setState({ warmupSeconds }) },
+    fpsThreshold: { value: graphicsDefaults.fpsThreshold, min: 5, max: 120, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
+    lowSeconds: { value: graphicsDefaults.lowSeconds, min: 1, max: 30, step: 0.5, label: "Seconds below FPS", onChange: (lowSeconds: number) => useGraphicsPerformance.setState({ lowSeconds }) },
     showPerf: { value: false, label: "Floating FPS popup", onChange: (showPerf: boolean) => useGraphicsPerformance.setState({ showPerf }) },
   }), { collapsed: true, order: 1 }, { store: levaStore });
   const [, setEffects] = useControls("Effects", () => ({
@@ -65,7 +65,7 @@ export default function LabControls({ landing = false, active = true }: { landin
   const { x, y, z, color, autoRotate } = environment;
   const [, setStatus] = useControls("Status", () => ({
     fps: { value: "Warming up", editable: false, label: "Page FPS" },
-    warmup: { value: "Remaining: 5 seconds", editable: false, label: "Warmup remaining" },
+    warmup: { value: `Remaining: ${graphicsDefaults.warmupSeconds} seconds`, editable: false, label: "Warmup remaining" },
     below: { value: "Duration: 0 seconds", editable: false, label: "Below threshold" },
     reason: { value: "WebGL enabled", editable: false, label: "Mode" },
   }), { collapsed: false, order: 0 }, { store: levaStore });
@@ -82,10 +82,10 @@ export default function LabControls({ landing = false, active = true }: { landin
       setMessage("Could not copy settings. Check browser clipboard permissions.");
     }
   }), "Reset defaults": button(() => {
-    setPerformance({ warmupSeconds: 5, fpsThreshold: 30, lowSeconds: 5, showPerf: false });
+    setPerformance({ warmupSeconds: graphicsDefaults.warmupSeconds, fpsThreshold: graphicsDefaults.fpsThreshold, lowSeconds: graphicsDefaults.lowSeconds, showPerf: graphicsDefaults.showPerf });
     setEffects({ performanceMode: graphicsDefaults.mode, prismEnabled: true, waterEnabled: true, projectsEnabled: true });
     setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: landing });
-    useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, fps: null, warmupRemaining: 5, belowSeconds: 0, measurementId: state.measurementId + 1 }));
+    useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, fps: null, warmupRemaining: graphicsDefaults.warmupSeconds, belowSeconds: 0, measurementId: state.measurementId + 1 }));
   }) }), { store: levaStore }, [settings]);
   return (
     <>
