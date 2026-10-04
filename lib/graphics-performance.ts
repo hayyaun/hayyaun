@@ -12,37 +12,111 @@ export const performanceModeConfig = {
 } as const;
 export type PerformanceMode = keyof typeof performanceModeConfig;
 export const performanceModes = Object.keys(performanceModeConfig) as PerformanceMode[];
-export const graphicsDefaults = { fpsThreshold: 42, warmupSeconds: 1, lowSeconds: 2, showPerf: false, mode: performanceModes[0], prismEnabled: true, waterEnabled: true, projectsEnabled: true, quality: modeQuality(performanceModes[0]) };
+export type GraphicsQuality = (typeof performanceModeConfig)[PerformanceMode]["quality"];
+export const graphicsDefaults = {
+  fpsThreshold: 42,
+  warmupSeconds: 1,
+  lowSeconds: 2,
+  showPerf: false,
+  mode: performanceModes[0],
+  prismEnabled: true,
+  waterEnabled: true,
+  projectsEnabled: true,
+};
 
-export function modeQuality(mode: PerformanceMode): "high" | "medium" | "low" {
-  return performanceModeConfig[mode].quality;
-}
-
-export const useGraphicsPerformance = create<{
-  fpsThreshold: number;
-  warmupSeconds: number;
-  lowSeconds: number;
-  showPerf: boolean;
+type GraphicsSettings = typeof graphicsDefaults;
+export type GraphicsState = GraphicsSettings & {
   fps: number | null;
-  mode: PerformanceMode;
-  prismEnabled: boolean;
-  waterEnabled: boolean;
-  projectsEnabled: boolean;
-  quality: "low" | "medium" | "high";
   warmupRemaining: number;
   belowSeconds: number;
   measurementId: number;
   prismActive: boolean | null;
-  prismReadyQuality: "low" | "medium" | "high" | null;
+  prismReadyQuality: GraphicsQuality | null;
   prismFailed: boolean;
-}>(() => ({ ...graphicsDefaults, fps: null, warmupRemaining: graphicsDefaults.warmupSeconds, belowSeconds: 0, measurementId: 0, prismActive: null, prismReadyQuality: null, prismFailed: false }));
+};
+
+export function graphicsQuality(state: Pick<GraphicsState, "mode">): GraphicsQuality {
+  return performanceModeConfig[state.mode].quality;
+}
+
+export function isPrismReady(state: GraphicsState) {
+  return !state.prismFailed && state.prismReadyQuality === graphicsQuality(state);
+}
+
+export function isWaitingForPrism(state: GraphicsState) {
+  return (
+    performanceModeConfig[state.mode].prism &&
+    state.prismEnabled &&
+    !state.prismFailed &&
+    (state.prismActive === null || (state.prismActive && !isPrismReady(state)))
+  );
+}
+
+export const useGraphicsPerformance = create<GraphicsState>(() => ({
+  ...graphicsDefaults,
+  fps: null,
+  warmupRemaining: graphicsDefaults.warmupSeconds,
+  belowSeconds: 0,
+  measurementId: 0,
+  prismActive: null,
+  prismReadyQuality: null,
+  prismFailed: false,
+}));
+
+export function restartMeasurement() {
+  useGraphicsPerformance.setState((state) => ({
+    fps: null,
+    warmupRemaining: state.warmupSeconds,
+    belowSeconds: 0,
+    measurementId: state.measurementId + 1,
+  }));
+}
+
+export function updateGraphicsSettings(settings: Partial<Omit<GraphicsSettings, "mode">>) {
+  useGraphicsPerformance.setState(settings);
+  if (
+    settings.warmupSeconds !== undefined ||
+    settings.fpsThreshold !== undefined ||
+    settings.lowSeconds !== undefined
+  ) {
+    restartMeasurement();
+  }
+}
+
+export function resetGraphicsSettings() {
+  // Scene readiness belongs to the renderer, not the settings panel.
+  useGraphicsPerformance.setState(graphicsDefaults);
+  restartMeasurement();
+}
 
 export function setPerformanceMode(mode: PerformanceMode) {
-  const config = performanceModeConfig[mode];
-  useGraphicsPerformance.setState((state) => ({ mode, quality: config.quality, fps: config.monitor ? null : state.fps, warmupRemaining: config.monitor ? state.warmupSeconds : 0, belowSeconds: 0, measurementId: state.measurementId + 1 }));
+  useGraphicsPerformance.setState({ mode });
+  restartMeasurement();
 }
 
 export function degradePerformance() {
   const index = performanceModes.indexOf(useGraphicsPerformance.getState().mode);
   if (index < performanceModes.length - 1) setPerformanceMode(performanceModes[index + 1]);
+}
+
+export function setPrismActive(prismActive: boolean | null) {
+  useGraphicsPerformance.setState({ prismActive });
+}
+
+export function markPrismLoading() {
+  useGraphicsPerformance.setState({ prismReadyQuality: null, prismFailed: false });
+}
+
+export function markPrismReady(quality: GraphicsQuality) {
+  if (graphicsQuality(useGraphicsPerformance.getState()) === quality) {
+    useGraphicsPerformance.setState({ prismReadyQuality: quality, prismFailed: false });
+  }
+}
+
+export function markPrismFailed() {
+  useGraphicsPerformance.setState({ prismReadyQuality: null, prismFailed: true });
+}
+
+export function clearPrismReadiness() {
+  useGraphicsPerformance.setState({ prismReadyQuality: null });
 }

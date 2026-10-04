@@ -257,7 +257,6 @@ h1 {
 }
 .project-2 .project-image {
   aspect-ratio: 2.65;
-  object-position: center 35%;
 }
 .project-3 .project-image {
   aspect-ratio: 2.55;
@@ -748,7 +747,7 @@ h1 {
 .capability-art {
   transition: transform 450ms var(--interaction-ease);
 }
-button {
+.site-button {
   transition:
     transform 250ms var(--interaction-ease),
     background-color 250ms ease,
@@ -783,7 +782,7 @@ button {
   .capabilities article:hover .capability-art {
     transform: translateY(-4px);
   }
-  button:hover {
+  .site-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px #44324612;
   }
@@ -792,7 +791,7 @@ button {
   .work-action:active .arrow-circle {
     transform: scale(0.95);
   }
-  button:active {
+  .site-button:active {
     transform: scale(0.97);
   }
 }

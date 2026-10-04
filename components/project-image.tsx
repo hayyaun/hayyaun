@@ -16,7 +16,9 @@ type ProjectImageProps = {
 
 /** HTML images are the baseline; a short, on-demand shader enhances the swap. */
 export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5 }: ProjectImageProps) {
-  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].projects || !state.projectsEnabled);
+  const lowPerformance = useGraphicsPerformance(
+    (state) => !performanceModeConfig[state.mode].projects || !state.projectsEnabled
+  );
   const host = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
@@ -110,7 +112,8 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     };
     const prepare = async () => {
       if (disposed || failed || preparing || renderer || !visible || !motion.matches || !hover.matches) return;
-      if (!coverImage.complete || !coverImage.naturalWidth || !previewImage.complete || !previewImage.naturalWidth) return;
+      if (!coverImage.complete || !coverImage.naturalWidth || !previewImage.complete || !previewImage.naturalWidth)
+        return;
       preparing = true;
       try {
         const { createProjectImageRenderer } = await import("@/lib/project-image-renderer");
@@ -222,8 +225,25 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
 
   return (
     <div className="project-visual" ref={host}>
-      <Image ref={cover} src={src} alt={alt} width={width} height={height} sizes="(max-width: 700px) 90vw, 65vw" className="project-image" />
-      <Image ref={preview} src={previewSrc} alt="" aria-hidden="true" fill sizes="(max-width: 700px) 90vw, 65vw" className="project-preview" />
+      <Image
+        ref={cover}
+        src={src}
+        alt={alt}
+        width={width}
+        height={height}
+        sizes="(max-width: 700px) 90vw, 65vw"
+        className="project-image"
+        style={{ objectPosition: `center ${coverPositionY * 100}%` }}
+      />
+      <Image
+        ref={preview}
+        src={previewSrc}
+        alt=""
+        aria-hidden="true"
+        fill
+        sizes="(max-width: 700px) 90vw, 65vw"
+        className="project-preview"
+      />
       <canvas ref={surface} className="project-transition" aria-hidden="true" hidden />
     </div>
   );

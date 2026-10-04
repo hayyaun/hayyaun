@@ -1,3 +1,4 @@
+import { serializeJsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -16,8 +17,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: post.title,
     description: post.description,
     alternates: { canonical: `/blog/${post.slug}`, types: { "application/rss+xml": "/rss.xml" } },
-    openGraph: { type: "article", title: post.title, description: post.description, url: `/blog/${post.slug}`, publishedTime: post.date, authors: [site.name], images: ["/opengraph-image.png"] },
-    twitter: { card: "summary_large_image", title: post.title, description: post.description, images: ["/twitter-image.png"] },
+    openGraph: {
+      type: "article",
+      title: post.title,
+      description: post.description,
+      url: `/blog/${post.slug}`,
+      publishedTime: post.date,
+      authors: [site.name],
+      images: ["/opengraph-image.png"],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+      images: ["/twitter-image.png"],
+    },
   };
 }
 
@@ -43,7 +57,10 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         </header>
         <div className="article-prose">
           <noscript>
-            <p>The article is fully readable without JavaScript. Live experiment controls require JavaScript; expandable answers work without it.</p>
+            <p>
+              The article is fully readable without JavaScript. Live experiment controls require JavaScript; expandable
+              answers work without it.
+            </p>
           </noscript>
           <Content />
         </div>
@@ -57,7 +74,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             "@context": "https://schema.org",
             "@type": "BlogPosting",
             headline: post.title,
@@ -66,7 +83,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
             author: { "@type": "Person", name: site.name, url: site.url },
             mainEntityOfPage: `${site.url}/blog/${post.slug}`,
             image: `${site.url}/opengraph-image.png`,
-          }).replace(/</g, "\\u003c"),
+          }),
         }}
       />
     </main>

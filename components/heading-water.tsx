@@ -2,96 +2,23 @@
 
 import { useEffect } from "react";
 import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
+import { headingLines, strokeInLine, type Point, type TextLine } from "@/lib/heading-water-measurement";
 import type { WaterStroke, WaterRenderer } from "@/lib/heading-water-renderer";
 
 const selector = "#hero-title";
 const settleSeconds = 8;
-type Point = { x: number; y: number; time: number };
-type TextLine = { text: string; rect: DOMRect; style: CSSStyleDeclaration };
-
-/** Clip the swept mouse segment to a text line, including fast crossings. */
-function strokeInLine(from: Point, to: Point, rect: DOMRect): WaterStroke | null {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  let enter = 0;
-  let exit = 1;
-  for (const [start, delta, min, max] of [
-    [from.x, dx, rect.left, rect.right],
-    [from.y, dy, rect.top, rect.bottom],
-  ]) {
-    if (Math.abs(delta) < 0.001) {
-      if (start < min || start > max) return null;
-    } else {
-      const a = (min - start) / delta;
-      const b = (max - start) / delta;
-      enter = Math.max(enter, Math.min(a, b));
-      exit = Math.min(exit, Math.max(a, b));
-      if (exit <= enter) return null;
-    }
-  }
-  const speed = Math.hypot(dx, dy) / Math.max(8, to.time - from.time);
-  return {
-    fromX: from.x + dx * enter,
-    fromY: from.y + dy * enter,
-    x: from.x + dx * exit,
-    y: from.y + dy * exit,
-    radius: Math.max(12, Math.min(25, rect.height * 0.24)),
-    strength: 0.45 + Math.min(0.35, speed * 0.12),
-  };
-}
-
-/** Measure the actual DOM line breaks, including nested links and inline text. */
-function headingLines(element: HTMLElement): TextLine[] {
-  const lines: TextLine[] = [];
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  const range = document.createRange();
-  let node: Node | null;
-
-  while ((node = walker.nextNode())) {
-    const parent = node.parentElement;
-    if (!parent || parent.closest('[aria-hidden="true"]')) continue;
-    const style = getComputedStyle(parent);
-    if (style.visibility !== "visible" || style.display === "none") continue;
-    const value = node.textContent ?? "";
-    let start = 0;
-    let top = -Infinity;
-    let offset = 0;
-
-    const addLine = (end: number) => {
-      range.setStart(node!, start);
-      range.setEnd(node!, end);
-      const rect = range.getBoundingClientRect();
-      const text = value.slice(start, end).replace(/\s+/g, " ");
-      if (text.trim() && rect.width && rect.height) lines.push({ text, rect, style });
-    };
-
-    // Code points keep surrogate pairs intact. DOM ranges supply the wrapping.
-    for (const character of value) {
-      range.setStart(node, offset);
-      range.setEnd(node, offset + character.length);
-      const rect = range.getBoundingClientRect();
-      if (rect.width && rect.height) {
-        if (top !== -Infinity && Math.abs(rect.top - top) > 2) {
-          addLine(offset);
-          start = offset;
-        }
-        top = rect.top;
-      }
-      offset += character.length;
-    }
-    addLine(value.length);
-  }
-  return lines;
-}
-
 /** Optional lighting over real HTML text; the canvas never replaces a heading. */
 export default function HeadingWater() {
-  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].water || !state.waterEnabled);
+  const lowPerformance = useGraphicsPerformance(
+    (state) => !performanceModeConfig[state.mode].water || !state.waterEnabled
+  );
   useEffect(() => {
     if (lowPerformance) return;
     const heroHeading = document.querySelector<HTMLElement>(selector);
     if (!heroHeading) return;
-    const preference = matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none)");
+    const preference = matchMedia(
+      "(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (forced-colors: none)"
+    );
     let renderer: WaterRenderer | null = null;
     let canvas: HTMLCanvasElement | null = null;
     const mask = document.createElement("canvas");
@@ -147,7 +74,17 @@ export default function HeadingWater() {
       for (const heading of document.querySelectorAll<HTMLElement>(selector)) {
         const rect = heading.getBoundingClientRect();
         const style = getComputedStyle(heading);
-        if (rect.width < 3 || rect.height < 3 || rect.bottom < 0 || rect.top > height || rect.right < 0 || rect.left > width || style.opacity === "0" || style.clipPath !== "none") continue;
+        if (
+          rect.width < 3 ||
+          rect.height < 3 ||
+          rect.bottom < 0 ||
+          rect.top > height ||
+          rect.right < 0 ||
+          rect.left > width ||
+          style.opacity === "0" ||
+          style.clipPath !== "none"
+        )
+          continue;
         lines.push(...headingLines(heading));
       }
 
@@ -158,7 +95,12 @@ export default function HeadingWater() {
         context.fontKerning = "normal";
         context.direction = style.direction === "rtl" ? "rtl" : "ltr";
         context.textAlign = "left";
-        const content = style.textTransform === "uppercase" ? text.toUpperCase() : style.textTransform === "lowercase" ? text.toLowerCase() : text;
+        const content =
+          style.textTransform === "uppercase"
+            ? text.toUpperCase()
+            : style.textTransform === "lowercase"
+              ? text.toLowerCase()
+              : text;
         const metrics = context.measureText(content);
         const descent = metrics.fontBoundingBoxDescent;
         const ascent = metrics.fontBoundingBoxAscent;
@@ -233,7 +175,10 @@ export default function HeadingWater() {
       if (loading || renderer || unavailable || disposed) return;
       loading = true;
       try {
-        const [{ createWaterRenderer }] = await Promise.all([import("@/lib/heading-water-renderer"), document.fonts.ready]);
+        const [{ createWaterRenderer }] = await Promise.all([
+          import("@/lib/heading-water-renderer"),
+          document.fonts.ready,
+        ]);
         if (disposed || !visible || !preference.matches || document.hidden) return;
         canvas = document.createElement("canvas");
         canvas.className = "heading-water-canvas";
@@ -269,7 +214,12 @@ export default function HeadingWater() {
         // Defer the shader download and GPU context until the hero is approached.
         const nearHeading = Array.from(document.querySelectorAll(selector)).some((heading) => {
           const rect = heading.getBoundingClientRect();
-          return event.clientX >= rect.left - 80 && event.clientX <= rect.right + 80 && event.clientY >= rect.top - 80 && event.clientY <= rect.bottom + 80;
+          return (
+            event.clientX >= rect.left - 80 &&
+            event.clientX <= rect.right + 80 &&
+            event.clientY >= rect.top - 80 &&
+            event.clientY <= rect.bottom + 80
+          );
         });
         if (!previous) previous = pending;
         if (nearHeading) void initialize();

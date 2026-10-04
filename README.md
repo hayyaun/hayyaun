@@ -23,8 +23,11 @@ I start with useful, accessible interfaces and add the touches that make them me
 
 ## Let’s connect
 
-Have an idea worth building? [Start a conversation with me on GitHub](https://github.com/hayyaun).
+Have an idea worth building? [Start a conversation with me on GitHub](mailto:hayyaun@outlook.com).
 
 ---
 
 <sub>This repository also contains my portfolio, built with Next.js, TypeScript, Tailwind CSS, and React Three Fiber. To run it locally: `npm install`, then `npm run dev`. Check it with `npm run lint` and `npm run build`.</sub>
+
+
+Regression checks: `npm test` (Node.js 22.18 or newer). These cover graphics state transitions, debug synchronization, JSON-LD serialization, and pointer clipping. Run `npm run lint` and `npm run build` before shipping.

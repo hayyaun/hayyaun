@@ -3,7 +3,8 @@ import Link from "next/link";
 import { posts, postDate } from "@/lib/posts";
 
 const title = "Blog — Notes on building for the web";
-const description = "Practical notes on frontend architecture, accessible interfaces, CSS, motion, and interactive 3D, with small experiments you can try.";
+const description =
+  "Practical notes on frontend architecture, accessible interfaces, CSS, motion, and interactive 3D, with small experiments you can try.";
 export const metadata: Metadata = {
   title,
   description,
@@ -16,7 +17,7 @@ export default function Blog() {
   return (
     <main id="main" className="page-width blog-main">
       <div className="blog-intro">
-        <p className="blog-eyebrow">The notebook / 01—05</p>
+        <p className="blog-eyebrow">The notebook / 01—{String(posts.length).padStart(2, "0")}</p>
         <h1>
           Thoughts.
           <br />
@@ -35,7 +36,7 @@ export default function Blog() {
       <section aria-labelledby="articles-title">
         <div className="blog-list-heading">
           <h2 id="articles-title">All articles</h2>
-          <span>05 notes & experiments</span>
+          <span>{String(posts.length).padStart(2, "0")} notes & experiments</span>
         </div>
         {posts.map((post, index) => (
           <article className="blog-row" key={post.slug}>

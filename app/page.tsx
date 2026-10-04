@@ -1,3 +1,4 @@
+import { serializeJsonLd } from "@/lib/json-ld";
 import Image from "next/image";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -13,12 +14,31 @@ import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/", types: { "application/rss+xml": "/rss.xml" } },
-  openGraph: { title: site.title, description: site.description, url: site.url, siteName: site.name, locale: "en_US", type: "website" },
+  openGraph: {
+    title: site.title,
+    description: site.description,
+    url: site.url,
+    siteName: site.name,
+    locale: "en_US",
+    type: "website",
+  },
 };
 
 function Arrow({ diagonal = false }: { diagonal?: boolean }) {
   return (
-    <svg className="arrow-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+    <svg
+      className="arrow-icon"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
       <path d={diagonal ? "M6 18 18 6M6 6h12v12" : "M4 12h16m-6-6 6 6-6 6"} />
     </svg>
   );
@@ -30,17 +50,42 @@ export default function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: serializeJsonLd({
             "@context": "https://schema.org",
             "@graph": [
-              { "@type": "Person", "@id": `${site.url}/#person`, name: site.name, url: site.url, email: site.email, sameAs: site.profiles, knowsAbout: ["Frontend development", "Next.js", "WordPress", "Three.js", "Interactive 3D", "Web animation"] },
-              { "@type": "WebSite", "@id": `${site.url}/#website`, url: site.url, name: site.name, description: site.description, inLanguage: "en", author: { "@id": `${site.url}/#person` } },
+              {
+                "@type": "Person",
+                "@id": `${site.url}/#person`,
+                name: site.name,
+                url: site.url,
+                email: site.email,
+                sameAs: site.profiles,
+                knowsAbout: [
+                  "Frontend development",
+                  "Next.js",
+                  "WordPress",
+                  "Three.js",
+                  "Interactive 3D",
+                  "Web animation",
+                ],
+              },
+              {
+                "@type": "WebSite",
+                "@id": `${site.url}/#website`,
+                url: site.url,
+                name: site.name,
+                description: site.description,
+                inLanguage: "en",
+                author: { "@id": `${site.url}/#person` },
+              },
             ],
-          }).replace(/</g, "\u003c"),
+          }),
         }}
       />
 
-      <Suspense fallback={null}><HomeDebug /></Suspense>
+      <Suspense fallback={null}>
+        <HomeDebug />
+      </Suspense>
       <main id="main">
         <FrameRateMonitor />
         <section className="hero page-width" aria-labelledby="hero-title">
@@ -70,8 +115,17 @@ export default function Home() {
             </div>
           </div>
           <div className="hero-art">
-            <Image src="/images/prism-dark2-cool.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
-            <Suspense fallback={null}><HeroPrism /></Suspense>
+            <Image
+              src="/images/prism-dark2-cool.webp"
+              alt=""
+              fill
+              sizes="(max-width: 700px) 100vw, 60vw"
+              className="prism-fallback"
+              priority
+            />
+            <Suspense fallback={null}>
+              <HeroPrism />
+            </Suspense>
             <HeroSlogan />
           </div>
         </section>
@@ -90,13 +144,25 @@ export default function Home() {
                 0{index + 1}
               </span>
               <div>
-                <ProjectImage src={project.image} previewSrc={project.previewImage} alt={`${project.title} website preview`} width={project.width} height={project.height} coverPositionY={index === 1 ? 0.35 : 0.5} />
+                <ProjectImage
+                  src={project.image}
+                  previewSrc={project.previewImage}
+                  alt={`${project.title} website preview`}
+                  width={project.width}
+                  height={project.height}
+                  coverPositionY={project.coverPositionY}
+                />
                 <div className="project-caption">
                   <div>
                     <h3>{project.title}</h3>
                     <p>{project.category}</p>
                   </div>
-                  <a href={project.liveUrl} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${project.title} website (opens in a new tab)`}>
+                  <a
+                    href={project.liveUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Visit ${project.title} website (opens in a new tab)`}
+                  >
                     Explore project <Arrow diagonal />
                   </a>
                 </div>
@@ -158,12 +224,12 @@ export default function Home() {
               </span>
             </h2>
             <div className="contact-links">
-              <a href="mailto:hayyaun@outlook.com">
+              <a href={`mailto:${site.email}`}>
                 Email Hayyaun <Arrow diagonal />
               </a>
               <div className="contact-socials">
-                <a href="https://github.com/hayyaun">GitHub</a>
-                <a href="https://www.linkedin.com/in/hayyaun/">LinkedIn</a>
+                <a href={site.profiles[0]}>GitHub</a>
+                <a href={site.profiles[1]}>LinkedIn</a>
               </div>
             </div>
           </div>

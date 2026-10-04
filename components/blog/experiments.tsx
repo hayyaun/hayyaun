@@ -77,7 +77,7 @@ export function MotionExperiment() {
       <div className="motion-track" aria-hidden="true">
         <span style={{ left: moved ? "calc(100% - 40px)" : "0", transitionDuration: `${duration}ms`, transitionTimingFunction: easing }} />
       </div>
-      <button type="button" onClick={() => setMoved(!moved)}>
+      <button className="site-button" type="button" onClick={() => setMoved(!moved)}>
         Move to the {moved ? "start" : "end"}
       </button>
       <p role="status">Position: {moved ? "end" : "start"}. Your system’s reduced-motion preference removes the transition.</p>

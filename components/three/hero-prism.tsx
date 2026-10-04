@@ -2,12 +2,15 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
+import {
+  markPrismFailed,
+  performanceModeConfig,
+  setPrismActive,
+  useGraphicsPerformance,
+} from "@/lib/graphics-performance";
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 
 const Scene = dynamic(() => import("@/components/three/prism/scene"), { ssr: false });
-
-const DebugScene = dynamic(() => import("@/components/three/prism/debug-scene"), { ssr: false });
 
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -15,17 +18,25 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
     return { failed: true };
   }
   componentDidCatch() {
-    useGraphicsPerformance.setState({ prismFailed: true });
+    markPrismFailed();
   }
   render() {
-    return this.state.failed ? null : this.props.children;
+    return this.state.failed ? (
+      <p role="status" className="absolute right-6 bottom-6 left-6 bg-white/90 p-3 text-sm text-gray-700">
+        The 3D preview is unavailable. The static preview is shown instead.
+      </p>
+    ) : (
+      this.props.children
+    );
   }
 }
 
 export default function HeroPrism() {
   const params = useSearchParams();
   const debug = params.has("debug") && !["0", "false"].includes(params.get("debug") ?? "");
-  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
+  const lowPerformance = useGraphicsPerformance(
+    (state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled
+  );
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -33,7 +44,10 @@ export default function HeroPrism() {
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => { setEnabled(!motion.matches); setInitialized(true); };
+    const sync = () => {
+      setEnabled(!motion.matches);
+      setInitialized(true);
+    };
     sync();
     motion.addEventListener("change", sync);
     const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
@@ -46,17 +60,19 @@ export default function HeroPrism() {
 
   useEffect(() => {
     if (!initialized) return;
-    useGraphicsPerformance.setState({ prismActive: enabled && visible && !lowPerformance });
+    setPrismActive(enabled && visible && !lowPerformance);
+    return () => setPrismActive(null);
   }, [initialized, enabled, visible, lowPerformance]);
 
   return (
     <div ref={host} className="hero-canvas">
-      {(debug || (enabled && visible && !lowPerformance)) && (
+      {enabled && visible && !lowPerformance && (
         <div className="hero-scene-frame">
-          <SceneBoundary>{debug ? <DebugScene active={enabled && visible} /> : <Scene presentation />}</SceneBoundary>
+          <SceneBoundary>
+            <Scene debug={debug} />
+          </SceneBoundary>
         </div>
       )}
     </div>
   );
 }
-
