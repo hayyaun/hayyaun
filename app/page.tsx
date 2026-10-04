@@ -157,14 +157,12 @@ export default function Home() {
                     <h3>{project.title}</h3>
                     <p>{project.category}</p>
                   </div>
-                  <a
-                    href={project.liveUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={`Visit ${project.title} website (opens in a new tab)`}
+                  <Link
+                    href={`/projects/${project.slug}`}
+                    aria-label={`Read the ${project.title} case study`}
                   >
                     Explore project <Arrow diagonal />
-                  </a>
+                  </Link>
                 </div>
               </div>
             </article>

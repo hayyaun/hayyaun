@@ -1,6 +1,8 @@
 export const projects = [
   {
     slug: "milan",
+    description: "A portfolio that gives creative work room to speak.",
+    load: () => import("@/content/projects/milan.mdx"),
     title: "Milan",
     category: "Creative studio website",
     image: "/projects/og-milan.webp",
@@ -13,6 +15,8 @@ export const projects = [
   },
   {
     slug: "joseph-law",
+    description: "A clear route from legal information to contact.",
+    load: () => import("@/content/projects/joseph-law.mdx"),
     coverPositionY: 0.35,
     title: "Joseph Law",
     category: "Law firm website",
@@ -25,6 +29,8 @@ export const projects = [
   },
   {
     slug: "land-services-group",
+    description: "A consistent digital presentation for a service brand.",
+    load: () => import("@/content/projects/land-services-group.mdx"),
     coverPositionY: 0.5,
     title: "Land Services Group",
     category: "Brand website",

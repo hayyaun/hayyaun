@@ -1,5 +1,9 @@
-# Case-study drafts
+# Project case studies
 
-These documents are editorial drafts, not published pages. Names, categories, images, and live links come from `lib/projects.ts`. Role and implementation narratives are proposed wording to verify before publishing; they do not establish facts about those projects.
+These MDX articles are published at `/projects/[slug]` and linked from the homepage.
+Edit the corresponding `.mdx` file to update an article. The page supplies the title,
+cover image, live-site link, and metadata from `lib/projects.ts`; start article headings at `##`.
 
-Before adding a project route, confirm ownership, scope, technical choices, constraints, and outcomes with the project owner. Replace speculative passages with supported accounts. Only include measured results when the measurement and comparison are available. The current public homepage remains unchanged apart from the code-quality fixes.
+The existing narratives were published at the owner’s request and await their factual review.
+When enhancing them, confirm scope, technical decisions, constraints, and outcomes.
+Only add measured results when supporting measurements are available.
