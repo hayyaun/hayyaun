@@ -70,19 +70,19 @@
     }
   }
   @media (prefers-reduced-motion: no-preference) {
-    .capabilities article:hover .motion-art i {
+    .capabilities article[data-animating] .motion-art i {
       animation: petal-fold 1400ms cubic-bezier(0.45, 0, 0.2, 1);
     }
-    .capabilities article:hover .glass-ring {
+    .capabilities article[data-animating] .glass-ring {
       animation: ring-squeeze 1600ms cubic-bezier(0.45, 0, 0.2, 1);
     }
-    .capabilities article:hover .dimension-orb {
+    .capabilities article[data-animating] .dimension-orb {
       animation: orb-breathe 1600ms ease-in-out;
     }
-    .capabilities article:hover .phone-object {
+    .capabilities article[data-animating] .phone-object {
       animation: phone-to-tablet 2000ms ease-in-out;
     }
-    .capabilities article:hover .interface-orb:after {
+    .capabilities article[data-animating] .interface-orb:after {
       animation: interface-shape 2000ms ease-in-out;
     }
     .work-action:active .arrow-circle {
