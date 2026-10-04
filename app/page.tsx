@@ -147,7 +147,7 @@ export default function Home() {
                 <ProjectImage
                   src={project.image}
                   previewSrc={project.previewImage}
-                  alt={`${project.title} website preview`}
+                  alt={project.imageAlt}
                   width={project.width}
                   height={project.height}
                   coverPositionY={project.coverPositionY}
