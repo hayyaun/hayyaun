@@ -427,10 +427,11 @@ h1 {
   transform: skewY(20deg);
 }
 .phone-object {
+  --phone-width: 59px;
   position: absolute;
   right: 5%;
   bottom: 12px;
-  width: 59px;
+  width: var(--phone-width);
   height: 111px;
   background: #faf9f7;
   border: 2px solid #29252d;
@@ -477,6 +478,7 @@ h1 {
   height: 52px;
   border-radius: 50%;
   transform-origin: 90% 50%;
+  transform: rotate(var(--petal-angle));
   right: 22%;
   bottom: 50px;
   background: linear-gradient(160deg, #efebef, #b5a7bc);
@@ -674,7 +676,7 @@ h1 {
     height: 170px;
   }
   .phone-object {
-    width: 72px;
+    --phone-width: 72px;
     height: 140px;
     right: 4%;
     bottom: 25px;
@@ -759,9 +761,6 @@ h1 {
 .contact-links > a > svg {
   transition: transform 350ms var(--interaction-ease);
 }
-.capability-art {
-  transition: transform 450ms var(--interaction-ease);
-}
 .site-button {
   transition:
     transform 250ms var(--interaction-ease),
@@ -794,21 +793,54 @@ h1 {
   .contact-links > a:hover > svg {
     transform: translate(2px, -2px);
   }
-  .capabilities article:hover .capability-art {
-    transform: translateY(-4px);
-  }
   .site-button:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px #44324612;
   }
 }
 @media (prefers-reduced-motion: no-preference) {
+  .capabilities article:hover .motion-art i {
+    animation: petal-fold 1400ms cubic-bezier(0.45, 0, 0.2, 1);
+  }
+  .capabilities article:hover .glass-ring {
+    animation: ring-squeeze 1600ms cubic-bezier(0.45, 0, 0.2, 1);
+  }
+  .capabilities article:hover .dimension-orb {
+    animation: orb-breathe 1600ms ease-in-out;
+  }
+  .capabilities article:hover .phone-object {
+    animation: phone-to-tablet 2000ms ease-in-out;
+  }
+  .capabilities article:hover .interface-orb:after {
+    animation: interface-shape 2000ms ease-in-out;
+  }
   .work-action:active .arrow-circle {
     transform: scale(0.95);
   }
   .site-button:active {
     transform: scale(0.97);
   }
+}
+
+@keyframes petal-fold {
+  0%, 100% { transform: rotate(var(--petal-angle)) scale(1); }
+  42%, 52% { transform: rotate(calc(var(--petal-angle) * 0.4)) scale(0.97, 0.9); }
+}
+@keyframes ring-squeeze {
+  0%, 100% { transform: rotate(-18deg) scale(1); }
+  45%, 55% { transform: rotate(-18deg) scale(0.72, 1.06); }
+}
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.82); }
+}
+@keyframes phone-to-tablet {
+  0%, 100% { width: var(--phone-width); }
+  45%, 55% { width: calc(var(--phone-width) * 1.55); }
+}
+@keyframes interface-shape {
+  0%, 100% { transform: skewY(20deg) scale(1); }
+  45%, 55% { transform: skewY(6deg) scale(0.95, 1.03); }
 }
 
 .arrow-icon {

@@ -1,6 +1,6 @@
 import { serializeJsonLd } from "@/lib/json-ld";
 import Image from "next/image";
-import { Suspense } from "react";
+import { Suspense, type CSSProperties } from "react";
 import Link from "next/link";
 import HomeDebug from "@/components/home-debug";
 import HeroPrism from "@/components/three/hero-prism";
@@ -198,7 +198,7 @@ export default function Home() {
             <article>
               <div className="capability-art motion-art" aria-hidden="true">
                 {Array.from({ length: 7 }, (_, i) => (
-                  <i key={i} style={{ transform: `rotate(${i * 25 - 75}deg)` }} />
+                  <i key={i} style={{ "--petal-angle": `${i * 25 - 75}deg` } as CSSProperties} />
                 ))}
               </div>
               <h3>Motion</h3>
