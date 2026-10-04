@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { useGraphicsPerformance } from "@/lib/graphics-performance";
+import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 
 const Scene = dynamic(() => import("@/components/three/prism/scene"), { ssr: false });
@@ -22,7 +22,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 export default function HeroPrism() {
   const params = useSearchParams();
   const debug = params.has("debug") && !["0", "false"].includes(params.get("debug") ?? "");
-  const lowPerformance = useGraphicsPerformance((state) => state.mode === "PRISM_PREVIEW" || state.mode === "WEBGL_DISABLED" || !state.prismEnabled);
+  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [enabled, setEnabled] = useState(false);

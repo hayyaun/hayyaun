@@ -4,7 +4,7 @@ import { button, LevaPanel, useControls, useCreateStore } from "leva";
 import { Component, type ReactNode, useEffect, useState } from "react";
 import Scene from "./scene";
 import { createPortal } from "react-dom";
-import { graphicsDefaults, performanceModes, setPerformanceMode, useGraphicsPerformance, type PerformanceMode } from "@/lib/graphics-performance";
+import { graphicsDefaults, performanceModeConfig, performanceModes, setPerformanceMode, useGraphicsPerformance, type PerformanceMode } from "@/lib/graphics-performance";
 
 class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -24,7 +24,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
 }
 export default function LabControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
   useEffect(() => () => useGraphicsPerformance.setState({ showPerf: false }), []);
-  const lowPerformance = useGraphicsPerformance((state) => state.mode === "PRISM_PREVIEW" || state.mode === "WEBGL_DISABLED" || !state.prismEnabled);
+  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
   const status = useGraphicsPerformance();
   const levaStore = useCreateStore();
   const [, setPerformance] = useControls("Performance", () => ({
@@ -70,7 +70,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     reason: { value: "WebGL enabled", editable: false, label: "Mode" },
   }), { collapsed: false, order: 0 }, { store: levaStore });
   useEffect(() => {
-    setStatus({ fps: status.mode === "WEBGL_DISABLED" ? "Monitoring stopped" : status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.mode });
+    setStatus({ fps: !performanceModeConfig[status.mode].monitor ? "Monitoring stopped" : status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.mode });
   }, [status.fps, status.warmupRemaining, status.belowSeconds, status.mode, setStatus]);
   const [message, setMessage] = useState("");
   const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, autoRotate, performance: { mode: status.mode, fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
@@ -83,7 +83,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     }
   }), "Reset defaults": button(() => {
     setPerformance({ warmupSeconds: 5, fpsThreshold: 30, lowSeconds: 5, showPerf: false });
-    setEffects({ performanceMode: "HIGH_PERFORMANCE", prismEnabled: true, waterEnabled: true, projectsEnabled: true });
+    setEffects({ performanceMode: graphicsDefaults.mode, prismEnabled: true, waterEnabled: true, projectsEnabled: true });
     setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: landing });
     useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, fps: null, warmupRemaining: 5, belowSeconds: 0, measurementId: state.measurementId + 1 }));
   }) }), { store: levaStore }, [settings]);

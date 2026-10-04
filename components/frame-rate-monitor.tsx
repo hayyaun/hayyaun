@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { degradePerformance, useGraphicsPerformance } from "@/lib/graphics-performance";
+import { degradePerformance, performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 
 /** Observe browser frame cadence independently of the scene's 30 FPS render cap. */
 export default function FrameRateMonitor() {
@@ -11,7 +11,7 @@ export default function FrameRateMonitor() {
   const mode = useGraphicsPerformance((state) => state.mode);
   const measurementId = useGraphicsPerformance((state) => state.measurementId);
   useEffect(() => {
-    if (mode === "WEBGL_DISABLED") return;
+    if (!performanceModeConfig[mode].monitor) return;
     let frame = 0;
     let previous = 0;
     let elapsed = 0;
@@ -57,7 +57,7 @@ export default function FrameRateMonitor() {
   }, [mode, measurementId]);
   return showPerf ? createPortal(
     <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 10000, padding: "8px 12px", borderRadius: 8, background: "#201d29", color: "white", font: "12px monospace", pointerEvents: "none" }}>
-      Page FPS: {fps ?? "warming up"} · {mode}{mode === "WEBGL_DISABLED" ? " · Monitoring stopped" : ""}
+      Page FPS: {fps ?? "warming up"} · {mode}{!performanceModeConfig[mode].monitor ? " · Monitoring stopped" : ""}
     </div>, document.body,
   ) : null;
 }

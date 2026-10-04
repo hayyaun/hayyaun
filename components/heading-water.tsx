@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useGraphicsPerformance } from "@/lib/graphics-performance";
+import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 import type { WaterStroke, WaterRenderer } from "@/lib/heading-water-renderer";
 
 const selector = "#hero-title";
@@ -86,7 +86,7 @@ function headingLines(element: HTMLElement): TextLine[] {
 
 /** Optional lighting over real HTML text; the canvas never replaces a heading. */
 export default function HeadingWater() {
-  const lowPerformance = useGraphicsPerformance((state) => state.mode === "WEBGL_DISABLED" || !state.waterEnabled);
+  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].water || !state.waterEnabled);
   useEffect(() => {
     if (lowPerformance) return;
     const heroHeading = document.querySelector<HTMLElement>(selector);

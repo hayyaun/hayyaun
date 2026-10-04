@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import type { ProjectImageRenderer } from "@/lib/project-image-renderer";
-import { useGraphicsPerformance } from "@/lib/graphics-performance";
+import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 
 type ProjectImageProps = {
   src: string;
@@ -16,7 +16,7 @@ type ProjectImageProps = {
 
 /** HTML images are the baseline; a short, on-demand shader enhances the swap. */
 export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5 }: ProjectImageProps) {
-  const lowPerformance = useGraphicsPerformance((state) => state.mode === "WEBGL_DISABLED" || !state.projectsEnabled);
+  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].projects || !state.projectsEnabled);
   const host = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
