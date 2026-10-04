@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useThree, useLoader } from "@react-three/fiber";
+import { Canvas, useThree, useLoader, useFrame } from "@react-three/fiber";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
@@ -178,7 +178,36 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced
   }, [reduced, autoRotate, pointer, x, y, z, scene, invalidate, gl]);
   return null;
 }
-function Study({ solid, presentation, onReady, prismColor }: { solid: boolean; presentation: boolean; onReady: () => void; prismColor: string }) {
+/** Reveal only after the environment exists, shaders compile, and complete frames render. */
+function SceneReadiness({ onReady }: { onReady: () => void }) {
+  const { gl, scene, camera, invalidate } = useThree();
+  const progress = useRef({ compiling: false, compiled: false, frames: 0, disposed: false, reveal: 0 });
+  useEffect(() => {
+    const state = progress.current;
+    state.disposed = false;
+    return () => { state.disposed = true; cancelAnimationFrame(state.reveal); };
+  }, []);
+  useFrame(() => {
+    const state = progress.current;
+    if (state.disposed || state.frames >= 2) return;
+    if (!scene.environment) { invalidate(); return; }
+    if (!state.compiling) {
+      state.compiling = true;
+      void gl.compileAsync(scene, camera).then(() => {
+        if (state.disposed) return;
+        state.compiled = true;
+        invalidate();
+      }).catch(() => { /* Keep the static preview if shader compilation fails. */ });
+    }
+    if (!state.compiled) return;
+    state.frames++;
+    invalidate();
+    if (state.frames === 2) state.reveal = requestAnimationFrame(() => { if (!state.disposed) onReady(); });
+  });
+  return null;
+}
+
+function Study({ solid, presentation, prismColor }: { solid: boolean; presentation: boolean; prismColor: string }) {
   const quality = useGraphicsPerformance((state) => state.quality);
   const preset = qualityPresets[quality];
   const mesh = useRef<Mesh>(null);
@@ -206,9 +235,6 @@ function Study({ solid, presentation, onReady, prismColor }: { solid: boolean; p
     },
     [geometry]
   );
-  useEffect(() => {
-    onReady();
-  }, [onReady]);
   // Match the visible bounds of the 720 × 650 loading preview.
   const previewHeight = Math.min(viewport.height, (viewport.width * 650) / 720) / (presentation ? 1.12 : 1);
   const scale = presentation ? (previewHeight * (472 / 650)) / 2.8 : Math.min(0.95, viewport.width / 4.7, viewport.height / 5.5);
@@ -317,7 +343,7 @@ export default function Scene({
   return (
     <div
       ref={host}
-      style={{ height: "100%", width: "100%", opacity: presentation && !tuning && (!ready || lost) ? 0 : 1 }}
+      style={{ height: "100%", width: "100%", opacity: presentation && (!ready || lost) ? 0 : 1 }}
       role="region"
       aria-label={debug ? "Interactive carbon-metal prism. Drag to orbit or pan." : "Carbon-metal prism. Move the pointer to shift its environment reflections."}
     >
@@ -339,8 +365,9 @@ export default function Scene({
         {debug && <OrbitControls ref={controls} makeDefault enablePan enableZoom={false} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
-          <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} />
-          {presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
+          <Study solid={solid} presentation={presentation} prismColor={prismColor} />
+          <SceneReadiness onReady={sceneReady} />
+          {presentation && ready && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
         </Suspense>
       </Canvas>
       {debug && !presentation && (
