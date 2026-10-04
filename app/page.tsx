@@ -145,6 +145,7 @@ export default function Home() {
               </span>
               <div>
                 <ProjectImage
+                  href={`/projects/${project.slug}`}
                   src={project.image}
                   previewSrc={project.previewImage}
                   alt={project.imageAlt}
