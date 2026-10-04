@@ -319,7 +319,7 @@ export default function Scene({
       ref={host}
       style={{ height: "100%", width: "100%", opacity: presentation && !tuning && (!ready || lost) ? 0 : 1 }}
       role="region"
-      aria-label={debug ? "Interactive carbon-metal prism. Drag to orbit. Scroll or pinch to zoom." : "Carbon-metal prism. Move the pointer to shift its environment reflections."}
+      aria-label={debug ? "Interactive carbon-metal prism. Drag to orbit or pan." : "Carbon-metal prism. Move the pointer to shift its environment reflections."}
     >
       <Canvas
         flat
@@ -336,7 +336,7 @@ export default function Scene({
         fallback={presentation ? null : <p style={{ padding: 24, color: "#62586d" }}>WebGL is unavailable on this device.</p>}
       >
         <ContextLifecycle onLost={setLost} />
-        {debug && <OrbitControls ref={controls} makeDefault enablePan enableZoom enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
+        {debug && <OrbitControls ref={controls} makeDefault enablePan enableZoom={false} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} />
@@ -345,7 +345,7 @@ export default function Scene({
       </Canvas>
       {debug && !presentation && (
         <div style={{ position: "absolute", bottom: 24, left: 24, display: "flex", flexWrap: "wrap", right: 24, gap: 12, alignItems: "center", fontSize: 12, fontFamily: "var(--font-geist-sans),sans-serif", color: "#51475f" }}>
-          <span>v030 · Drag to orbit · Scroll to zoom</span>
+          <span>v030 · Drag to orbit or pan</span>
           <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={() => setSolid(!solid)}>
             {solid ? "Show carbon metal" : "Inspect solid shape"}
           </button>
