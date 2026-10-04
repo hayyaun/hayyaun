@@ -104,21 +104,6 @@ button:focus-visible {
   display: flex;
   align-items: center;
 }
-.dev-tools-toggle {
-  min-height: 44px;
-  min-width: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  color: var(--muted);
-  font-size: 16px;
-}
-.dev-tools-toggle[aria-pressed="true"] {
-  border-color: currentColor;
-  color: #695487;
-}
 .hero {
   position: relative;
   display: grid;

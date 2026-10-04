@@ -23,8 +23,8 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
   }
 }
 export default function LabControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
+  useEffect(() => () => useGraphicsPerformance.setState({ showPerf: false }), []);
   const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
-  const [debugOpen, setDebugOpen] = useState(false);
   const levaStore = useCreateStore();
   useControls("Performance", {
     warmupSeconds: { value: 5, min: 1, max: 60, step: 1, label: "Warmup seconds", onChange: (warmupSeconds: number) => useGraphicsPerformance.setState({ warmupSeconds }) },
@@ -44,13 +44,6 @@ export default function LabControls({ landing = false, active = true }: { landin
     },
     { store: levaStore }
   );
-  useEffect(() => {
-    function handleDebugTools(event: Event) {
-      setDebugOpen((event as CustomEvent<boolean>).detail);
-    }
-    window.addEventListener("hayyaun:debug-tools", handleDebugTools);
-    return () => window.removeEventListener("hayyaun:debug-tools", handleDebugTools);
-  }, []);
   const [message, setMessage] = useState("");
   const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color });
   useControls(() => ({ "Copy settings": button(async () => {
@@ -65,16 +58,16 @@ export default function LabControls({ landing = false, active = true }: { landin
     <>
       <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
         {active && !lowPerformance && <CanvasBoundary>
-          <Scene presentation tuning pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
+          <Scene presentation tuning debug pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
         </CanvasBoundary>}
       </div>
       {createPortal(
-        debugOpen ? (
+        (
           <>
-            <LevaPanel store={levaStore} titleBar={{ title: landing ? "Landing prism · Dev" : "Prism lab" }} collapsed={false} />
+            <LevaPanel store={levaStore} titleBar={{ title: landing ? "Landing prism · Debug" : "Prism lab" }} collapsed={false} />
             <p className="sr-only" role="status">{message}</p>
           </>
-        ) : null,
+        ),
         document.body
       )}
     </>

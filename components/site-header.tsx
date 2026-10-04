@@ -1,5 +1,4 @@
 import Link from "next/link";
-import DevToolsToggle from "./dev-tools-toggle";
 
 export default function SiteHeader() {
   return (
@@ -12,7 +11,6 @@ export default function SiteHeader() {
           Hayyaun
         </Link>
         <nav aria-label="Main navigation">
-          {process.env.NODE_ENV === "development" && <DevToolsToggle />}
           <Link href="/#work">Work</Link>
           <Link href="/#about">About</Link>
           <Link href="/blog">Blog</Link>

@@ -266,6 +266,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
 }
 
 export default function Scene({
+  debug = false,
   presentation = false,
   tuning = false,
   pointerMotion = !tuning,
@@ -273,6 +274,7 @@ export default function Scene({
   environmentRotation = [0, 0, 0],
   prismColor = "#8b82aa",
 }: {
+  debug?: boolean;
   presentation?: boolean;
   tuning?: boolean;
   pointerMotion?: boolean;
@@ -287,7 +289,6 @@ export default function Scene({
   const [ready, setReady] = useState(false);
   const controls = useRef<OrbitControlsImpl>(null);
 
-  const development = process.env.NODE_ENV === "development";
 
   const cameraSettings = useMemo(() => ({ position: (presentation ? [3.9, 1.6, 6.62] : [0, 0, 7]) as [number, number, number], fov: 38 }), [presentation]);
   const sceneReady = useCallback(() => {
@@ -306,7 +307,7 @@ export default function Scene({
       ref={host}
       style={{ height: "100%", width: "100%", opacity: presentation && !tuning && (!ready || lost) ? 0 : 1 }}
       role="region"
-      aria-label={presentation ? (development ? "Interactive carbon-metal prism. Drag to explore its reflections." : "Carbon-metal prism. Move the pointer to shift its environment reflections.") : "A rounded carbon-metal prism reflects a silver studio environment. Drag to orbit the prism. Scroll or pinch to zoom."}
+      aria-label={debug ? "Interactive carbon-metal prism. Drag to orbit. Scroll or pinch to zoom." : "Carbon-metal prism. Move the pointer to shift its environment reflections."}
     >
       <Canvas
         flat
@@ -323,16 +324,16 @@ export default function Scene({
         fallback={presentation ? null : <p style={{ padding: 24, color: "#62586d" }}>WebGL is unavailable on this device.</p>}
       >
         <ContextLifecycle onLost={setLost} />
-        {development && <OrbitControls ref={controls} makeDefault enablePan={false} enableZoom={!presentation} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
+        {debug && <OrbitControls ref={controls} makeDefault enablePan enableZoom enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />
           {presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
         </Suspense>
       </Canvas>
-      {!presentation && (
+      {debug && !presentation && (
         <div style={{ position: "absolute", bottom: 24, left: 24, display: "flex", flexWrap: "wrap", right: 24, gap: 12, alignItems: "center", fontSize: 12, fontFamily: "var(--font-geist-sans),sans-serif", color: "#51475f" }}>
-          <span>{development ? "v030 · Drag to orbit · Scroll to zoom" : "v030 · Carbon-metal prism study"}</span>
+          <span>v030 · Drag to orbit · Scroll to zoom</span>
           <button className="rounded-full border border-gray-300 bg-white px-4 py-3 focus-visible:outline-2 focus-visible:outline-violet-600" aria-pressed={solid} onClick={() => setSolid(!solid)}>
             {solid ? "Show carbon metal" : "Inspect solid shape"}
           </button>

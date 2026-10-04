@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Suspense } from "react";
 import Link from "next/link";
 import HeroPrism from "@/components/three/hero-prism";
 import HeroSlogan from "@/components/hero-slogan";
@@ -68,7 +69,7 @@ export default function Home() {
           </div>
           <div className="hero-art">
             <Image src="/images/prism-dark2-cool.webp" alt="" fill sizes="(max-width: 700px) 100vw, 60vw" className="prism-fallback" priority />
-            <HeroPrism />
+            <Suspense fallback={null}><HeroPrism /></Suspense>
             <HeroSlogan />
           </div>
         </section>
