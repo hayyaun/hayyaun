@@ -7,7 +7,7 @@ import { Component, useEffect, useRef, useState, type ReactNode } from "react";
 
 const Scene = dynamic(() => import("@/components/three/prism/scene"), { ssr: false });
 
-const DebugControls = dynamic(() => import("@/components/three/prism/debug-controls"), { ssr: false });
+const DebugScene = dynamic(() => import("@/components/three/prism/debug-scene"), { ssr: false });
 
 class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -53,7 +53,7 @@ export default function HeroPrism() {
     <div ref={host} className="hero-canvas">
       {(debug || (enabled && visible && !lowPerformance)) && (
         <div className="hero-scene-frame">
-          <SceneBoundary>{debug ? <DebugControls landing active={enabled && visible} /> : <Scene presentation />}</SceneBoundary>
+          <SceneBoundary>{debug ? <DebugScene active={enabled && visible} /> : <Scene presentation />}</SceneBoundary>
         </div>
       )}
     </div>

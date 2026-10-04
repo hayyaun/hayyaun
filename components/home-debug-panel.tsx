@@ -1,70 +1,17 @@
 "use client";
 
 import { button, LevaPanel, useControls, useCreateStore } from "leva";
-import { Component, type ReactNode, useEffect, useState } from "react";
-import Scene, { type EnvironmentRotationControl } from "./scene";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
+import { usePrismDebug } from "@/lib/prism-debug";
 import { graphicsDefaults, performanceModeConfig, performanceModes, setPerformanceMode, useGraphicsPerformance, type PerformanceMode } from "@/lib/graphics-performance";
 
-class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  componentDidCatch() {
-    useGraphicsPerformance.setState({ prismFailed: true });
-  }
-  render() {
-    return this.state.failed ? (
-      <div role="alert" className="p-8 text-gray-700">
-        <p>The browser blocked WebGL after a graphics context loss. Your controls are still available.</p>
-        <p>Copy your settings, then close this tab and reopen the lab. If it remains blocked, restart the browser.</p>
-      </div>
-    ) : (
-      this.props.children
-    );
-  }
-}
-export default function DebugControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
+export default function HomeDebugPanel() {
   useEffect(() => () => useGraphicsPerformance.setState({ showPerf: false }), []);
-  const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
   const status = useGraphicsPerformance();
   const waitingForScene = performanceModeConfig[status.mode].prism && status.prismEnabled && !status.prismFailed &&
     (status.prismActive === null || (status.prismActive && status.prismReadyQuality !== status.quality));
   const levaStore = useCreateStore();
-  const [environmentRotationControl] = useState<{ current: EnvironmentRotationControl }>(() => {
-    const degrees: [number, number, number] = [0, 0, 0];
-    let actual: [number, number, number] = [0, 0, 0];
-    let display: ((degrees: [number, number, number]) => void) | undefined;
-    let lastDisplay = -Infinity;
-    let apply: (() => void) | undefined;
-    return { current: {
-      getDegrees: () => [...degrees],
-      setAxis: (axis, value) => {
-        // A slider represents the current angle, including automatic/pointer motion.
-        degrees[axis] += value - actual[axis];
-        actual[axis] = value;
-        lastDisplay = -Infinity;
-        apply?.();
-      },
-      subscribe: (listener) => {
-        apply = listener;
-        return () => { if (apply === listener) apply = undefined; };
-      },
-      reportRotation: (rotation) => {
-        actual = rotation;
-        const now = performance.now();
-        if (now - lastDisplay < 100) return;
-        lastDisplay = now;
-        display?.(rotation);
-      },
-      subscribeDisplay: (listener) => {
-        display = listener;
-        listener(actual);
-        return () => { if (display === listener) display = undefined; };
-      },
-    } };
-  });
+  const environmentRotationControl = usePrismDebug((state) => state.environmentRotationControl);
   const updateRotation = (axis: 0 | 1 | 2, value: number, context: { fromPanel: boolean }) => {
     // Leva's set() also invokes onChange: ignore animation feedback.
     if (!context.fromPanel) return;
@@ -93,19 +40,19 @@ export default function DebugControls({ landing = false, active = true }: { land
   useEffect(() => {
     setEffects({ performanceMode: status.mode });
   }, [status.mode, setEffects]);
-  const [environment, setEnvironment, getEnvironment] = useControls(
+  const [, setEnvironment, getEnvironment] = useControls(
     "Prism environment",
     () => ({
-      autoRotate: { value: landing, label: "Auto rotate" },
+      autoRotate: { value: usePrismDebug.getState().autoRotate, label: "Auto rotate", onChange: (autoRotate: boolean) => usePrismDebug.setState({ autoRotate }) },
       x: { value: 0, min: -180, max: 180, step: 0.1, label: "X rotation (°)", onChange: (value: number, _path: string, context: { fromPanel: boolean }) => updateRotation(0, value, context) },
       y: { value: 0, min: -180, max: 180, step: 0.1, label: "Y rotation (°)", onChange: (value: number, _path: string, context: { fromPanel: boolean }) => updateRotation(1, value, context) },
       z: { value: 0, min: -180, max: 180, step: 0.1, label: "Z rotation (°)", onChange: (value: number, _path: string, context: { fromPanel: boolean }) => updateRotation(2, value, context) },
-      color: { value: "#8b82aa", label: "Prism color" },
+      color: { value: usePrismDebug.getState().color, label: "Prism color", onChange: (color: string) => usePrismDebug.setState({ color }) },
     }),
     { collapsed: true, order: 3 },
     { store: levaStore }
   );
-  const { color, autoRotate } = environment;
+  const { color, autoRotate } = usePrismDebug();
   useEffect(() => environmentRotationControl.current.subscribeDisplay(([x, y, z]) => {
     setEnvironment({ x, y, z });
   }), [environmentRotationControl, setEnvironment]);
@@ -133,26 +80,13 @@ export default function DebugControls({ landing = false, active = true }: { land
     environmentRotationControl.current.setAxis(0, 0);
     environmentRotationControl.current.setAxis(1, 0);
     environmentRotationControl.current.setAxis(2, 0);
-    setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: landing });
+    setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: true });
     useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, fps: null, warmupRemaining: graphicsDefaults.warmupSeconds, belowSeconds: 0, measurementId: state.measurementId + 1 }));
   }) }), { store: levaStore }, [settings]);
   return (
     <>
-      <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
-        {active && !lowPerformance && <CanvasBoundary>
-          <Scene presentation tuning debug pointerMotion={landing} autoRotate={autoRotate} environmentRotationControl={environmentRotationControl} prismColor={color} />
-        </CanvasBoundary>}
-      </div>
-      {createPortal(
-        (
-          <>
-            <LevaPanel store={levaStore} titleBar={{ title: landing ? "Landing prism · Debug" : "Prism lab" }} collapsed={false} />
-            <p className="sr-only" role="status">{message}</p>
-          </>
-        ),
-        document.body
-      )}
+      <LevaPanel store={levaStore} titleBar={{ title: "Home · Debug" }} collapsed={false} />
+      <p className="sr-only" role="status">{message}</p>
     </>
   );
 }
-

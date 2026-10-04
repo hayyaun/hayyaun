@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import Link from "next/link";
+import HomeDebug from "@/components/home-debug";
 import HeroPrism from "@/components/three/hero-prism";
 import HeroSlogan from "@/components/hero-slogan";
 import HeadingWater from "@/components/heading-water";
@@ -39,6 +40,7 @@ export default function Home() {
         }}
       />
 
+      <Suspense fallback={null}><HomeDebug /></Suspense>
       <main id="main">
         <FrameRateMonitor />
         <section className="hero page-width" aria-labelledby="hero-title">
