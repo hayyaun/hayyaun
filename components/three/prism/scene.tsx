@@ -213,7 +213,10 @@ function SceneReadiness({ onReady }: { onReady: () => void }) {
         if (state.disposed) return;
         state.compiled = true;
         invalidate();
-      }).catch(() => { /* Keep the static preview if shader compilation fails. */ });
+      }).catch(() => {
+        // Keep the static preview, but let the other effects be monitored.
+        if (!state.disposed) useGraphicsPerformance.setState({ prismFailed: true });
+      });
     }
     if (!state.compiled) return;
     state.frames++;
@@ -318,6 +321,13 @@ function Study({ solid, presentation, prismColor }: { solid: boolean; presentati
   );
 }
 
+function SceneUnavailable() {
+  useEffect(() => {
+    useGraphicsPerformance.setState({ prismFailed: true });
+  }, []);
+  return null;
+}
+
 export default function Scene({
   debug = false,
   presentation = false,
@@ -350,7 +360,14 @@ export default function Scene({
   const sceneReady = useCallback(() => {
     controls.current?.update();
     setReady(true);
-  }, []);
+    if (useGraphicsPerformance.getState().quality === quality) {
+      useGraphicsPerformance.setState({ prismReadyQuality: quality, prismFailed: false });
+    }
+  }, [quality]);
+  useEffect(() => {
+    useGraphicsPerformance.setState({ prismReadyQuality: null, prismFailed: false });
+    return () => { useGraphicsPerformance.setState({ prismReadyQuality: null }); };
+  }, [quality]);
   useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const syncMotion = () => setReduced(query.matches);
@@ -377,14 +394,14 @@ export default function Scene({
           camera.lookAt(0, 0, 0);
           gl.setClearColor("white", 1);
         }}
-        fallback={presentation ? null : <p style={{ padding: 24, color: "#62586d" }}>WebGL is unavailable on this device.</p>}
+        fallback={<><SceneUnavailable />{!presentation && <p style={{ padding: 24, color: "#62586d" }}>WebGL is unavailable on this device.</p>}</>}
       >
         <ContextLifecycle onLost={setLost} />
         {debug && <OrbitControls ref={controls} makeDefault enablePan enableZoom={false} enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} prismColor={prismColor} />
-          <SceneReadiness onReady={sceneReady} />
+          <SceneReadiness key={quality} onReady={sceneReady} />
           {presentation && ready && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} rotationControl={environmentRotationControl} pointer={pointerMotion} />}
         </Suspense>
       </Canvas>

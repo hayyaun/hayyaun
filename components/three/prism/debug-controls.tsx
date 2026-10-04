@@ -11,6 +11,9 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
   static getDerivedStateFromError() {
     return { failed: true };
   }
+  componentDidCatch() {
+    useGraphicsPerformance.setState({ prismFailed: true });
+  }
   render() {
     return this.state.failed ? (
       <div role="alert" className="p-8 text-gray-700">
@@ -26,6 +29,8 @@ export default function LabControls({ landing = false, active = true }: { landin
   useEffect(() => () => useGraphicsPerformance.setState({ showPerf: false }), []);
   const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
   const status = useGraphicsPerformance();
+  const waitingForScene = performanceModeConfig[status.mode].prism && status.prismEnabled && !status.prismFailed &&
+    (status.prismActive === null || (status.prismActive && status.prismReadyQuality !== status.quality));
   const levaStore = useCreateStore();
   const [environmentRotationControl] = useState<{ current: EnvironmentRotationControl }>(() => {
     const degrees: [number, number, number] = [0, 0, 0];
@@ -111,8 +116,8 @@ export default function LabControls({ landing = false, active = true }: { landin
     reason: { value: "WebGL enabled", editable: false, label: "Mode" },
   }), { collapsed: false, order: 0 }, { store: levaStore });
   useEffect(() => {
-    setStatus({ fps: !performanceModeConfig[status.mode].monitor ? "Monitoring stopped" : status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.mode });
-  }, [status.fps, status.warmupRemaining, status.belowSeconds, status.mode, setStatus]);
+    setStatus({ fps: !performanceModeConfig[status.mode].monitor ? "Monitoring stopped" : waitingForScene ? "Waiting for scene" : status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.mode });
+  }, [status.fps, status.warmupRemaining, status.belowSeconds, status.mode, waitingForScene, setStatus]);
   const [message, setMessage] = useState("");
   const settings = JSON.stringify({ prismColor: color, autoRotate, performance: { mode: status.mode, fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
   useControls(() => ({ "Copy settings": button(async () => {

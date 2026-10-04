@@ -10,8 +10,17 @@ export default function FrameRateMonitor() {
   const fps = useGraphicsPerformance((state) => state.fps);
   const mode = useGraphicsPerformance((state) => state.mode);
   const measurementId = useGraphicsPerformance((state) => state.measurementId);
+  const waitingForScene = useGraphicsPerformance((state) =>
+    performanceModeConfig[state.mode].prism && state.prismEnabled && !state.prismFailed &&
+    (state.prismActive === null || (state.prismActive && state.prismReadyQuality !== state.quality)),
+  );
   useEffect(() => {
     if (!performanceModeConfig[mode].monitor) return;
+    // Loading and shader compilation must not consume warmup or low-FPS time.
+    if (waitingForScene) {
+      useGraphicsPerformance.setState({ fps: null, warmupRemaining: useGraphicsPerformance.getState().warmupSeconds, belowSeconds: 0 });
+      return;
+    }
     let frame = 0;
     let previous = 0;
     let elapsed = 0;
@@ -54,10 +63,10 @@ export default function FrameRateMonitor() {
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", reset);
     };
-  }, [mode, measurementId]);
+  }, [mode, measurementId, waitingForScene]);
   return showPerf ? createPortal(
     <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 10000, padding: "8px 12px", borderRadius: 8, background: "#201d29", color: "white", font: "12px monospace", pointerEvents: "none" }}>
-      Page FPS: {fps ?? "warming up"} · {mode}{!performanceModeConfig[mode].monitor ? " · Monitoring stopped" : ""}
+      Page FPS: {waitingForScene ? "waiting for scene" : fps ?? "warming up"} · {mode}{!performanceModeConfig[mode].monitor ? " · Monitoring stopped" : ""}
     </div>, document.body,
   ) : null;
 }
