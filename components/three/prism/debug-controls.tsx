@@ -4,7 +4,7 @@ import { button, LevaPanel, useControls, useCreateStore } from "leva";
 import { Component, type ReactNode, useEffect, useState } from "react";
 import Scene from "./scene";
 import { createPortal } from "react-dom";
-import { graphicsDefaults, useGraphicsPerformance } from "@/lib/graphics-performance";
+import { graphicsDefaults, performanceModes, setPerformanceMode, useGraphicsPerformance, type PerformanceMode } from "@/lib/graphics-performance";
 
 class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -24,7 +24,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
 }
 export default function LabControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
   useEffect(() => () => useGraphicsPerformance.setState({ showPerf: false }), []);
-  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance || state.forcePreview || !state.prismEnabled);
+  const lowPerformance = useGraphicsPerformance((state) => state.mode === "PRISM_PREVIEW" || state.mode === "WEBGL_DISABLED" || !state.prismEnabled);
   const status = useGraphicsPerformance();
   const levaStore = useCreateStore();
   const [, setPerformance] = useControls("Performance", () => ({
@@ -34,23 +34,22 @@ export default function LabControls({ landing = false, active = true }: { landin
     showPerf: { value: false, label: "Floating FPS popup", onChange: (showPerf: boolean) => useGraphicsPerformance.setState({ showPerf }) },
   }), { collapsed: true, order: 1 }, { store: levaStore });
   const [, setEffects] = useControls("Effects", () => ({
-    previewMode: {
-      value: useGraphicsPerformance.getState().forcePreview || useGraphicsPerformance.getState().lowPerformance,
-      label: "Preview mode",
-      onChange: (enabled: boolean, _path: string, context: { fromPanel: boolean }) => {
+    performanceMode: {
+      value: useGraphicsPerformance.getState().mode,
+      options: [...performanceModes],
+      label: "Performance mode",
+      onChange: (mode: PerformanceMode, _path: string, context: { fromPanel: boolean }) => {
         if (!context.fromPanel) return;
-        if (enabled) useGraphicsPerformance.setState({ forcePreview: true });
-        else useGraphicsPerformance.setState((state) => ({ forcePreview: false, lowPerformance: false, fps: null, warmupRemaining: state.warmupSeconds, belowSeconds: 0, measurementId: state.measurementId + 1 }));
+        setPerformanceMode(mode);
       },
     },
     prismEnabled: { value: true, label: "Prism", onChange: (prismEnabled: boolean) => useGraphicsPerformance.setState({ prismEnabled }) },
     waterEnabled: { value: true, label: "Water splash", onChange: (waterEnabled: boolean) => useGraphicsPerformance.setState({ waterEnabled }) },
     projectsEnabled: { value: true, label: "Project transitions", onChange: (projectsEnabled: boolean) => useGraphicsPerformance.setState({ projectsEnabled }) },
-    quality: { value: "high", options: ["low", "medium", "high"], label: "Render quality", onChange: (quality: "low" | "medium" | "high") => useGraphicsPerformance.setState({ quality }) },
   }), { collapsed: true, order: 2 }, { store: levaStore });
   useEffect(() => {
-    setEffects({ previewMode: status.forcePreview || status.lowPerformance });
-  }, [status.forcePreview, status.lowPerformance, setEffects]);
+    setEffects({ performanceMode: status.mode });
+  }, [status.mode, setEffects]);
   const [environment, setEnvironment] = useControls(
     "Prism environment",
     () => ({
@@ -71,10 +70,10 @@ export default function LabControls({ landing = false, active = true }: { landin
     reason: { value: "WebGL enabled", editable: false, label: "Mode" },
   }), { collapsed: false, order: 0 }, { store: levaStore });
   useEffect(() => {
-    setStatus({ fps: status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.forcePreview ? "Manually enabled" : status.lowPerformance ? "Low FPS" : "WebGL enabled" });
-  }, [status.fps, status.warmupRemaining, status.belowSeconds, status.forcePreview, status.lowPerformance, setStatus]);
+    setStatus({ fps: status.mode === "WEBGL_DISABLED" ? "Monitoring stopped" : status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.mode });
+  }, [status.fps, status.warmupRemaining, status.belowSeconds, status.mode, setStatus]);
   const [message, setMessage] = useState("");
-  const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, autoRotate, performance: { fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { forcePreview: status.forcePreview, prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
+  const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, autoRotate, performance: { mode: status.mode, fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
   useControls(() => ({ "Copy settings": button(async () => {
     try {
       await navigator.clipboard.writeText(settings);
@@ -84,9 +83,9 @@ export default function LabControls({ landing = false, active = true }: { landin
     }
   }), "Reset defaults": button(() => {
     setPerformance({ warmupSeconds: 5, fpsThreshold: 30, lowSeconds: 5, showPerf: false });
-    setEffects({ previewMode: false, prismEnabled: true, waterEnabled: true, projectsEnabled: true, quality: "high" });
+    setEffects({ performanceMode: "HIGH_PERFORMANCE", prismEnabled: true, waterEnabled: true, projectsEnabled: true });
     setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: landing });
-    useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, lowPerformance: false, fps: null, warmupRemaining: 5, belowSeconds: 0, measurementId: state.measurementId + 1 }));
+    useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, fps: null, warmupRemaining: 5, belowSeconds: 0, measurementId: state.measurementId + 1 }));
   }) }), { store: levaStore }, [settings]);
   return (
     <>

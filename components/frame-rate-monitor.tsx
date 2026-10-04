@@ -2,17 +2,16 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useGraphicsPerformance } from "@/lib/graphics-performance";
+import { degradePerformance, useGraphicsPerformance } from "@/lib/graphics-performance";
 
 /** Observe browser frame cadence independently of the scene's 30 FPS render cap. */
 export default function FrameRateMonitor() {
   const showPerf = useGraphicsPerformance((state) => state.showPerf);
   const fps = useGraphicsPerformance((state) => state.fps);
-  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
-  const forcePreview = useGraphicsPerformance((state) => state.forcePreview);
+  const mode = useGraphicsPerformance((state) => state.mode);
   const measurementId = useGraphicsPerformance((state) => state.measurementId);
   useEffect(() => {
-    if (lowPerformance && !showPerf) return;
+    if (mode === "WEBGL_DISABLED") return;
     let frame = 0;
     let previous = 0;
     let elapsed = 0;
@@ -41,7 +40,12 @@ export default function FrameRateMonitor() {
       const measured = frames * 1000 / elapsed;
       const { fpsThreshold, lowSeconds } = useGraphicsPerformance.getState();
       low = measured < fpsThreshold ? low + elapsed : 0;
-      useGraphicsPerformance.setState({ fps: Math.round(measured), warmupRemaining: 0, belowSeconds: Math.round(low / 100) / 10, ...(low >= lowSeconds * 1000 ? { lowPerformance: true } : {}) });
+      useGraphicsPerformance.setState({ fps: Math.round(measured), warmupRemaining: 0, belowSeconds: Math.round(low / 100) / 10 });
+      if (low >= lowSeconds * 1000) {
+        cancelAnimationFrame(frame);
+        degradePerformance();
+        return;
+      }
       elapsed = frames = 0;
     };
     frame = requestAnimationFrame(tick);
@@ -50,10 +54,10 @@ export default function FrameRateMonitor() {
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", reset);
     };
-  }, [lowPerformance, showPerf, measurementId]);
+  }, [mode, measurementId]);
   return showPerf ? createPortal(
     <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 10000, padding: "8px 12px", borderRadius: 8, background: "#201d29", color: "white", font: "12px monospace", pointerEvents: "none" }}>
-      Page FPS: {fps ?? "warming up"}{forcePreview ? " · Preview mode (manual)" : lowPerformance ? " · Preview mode (low FPS)" : ""}
+      Page FPS: {fps ?? "warming up"} · {mode}{mode === "WEBGL_DISABLED" ? " · Monitoring stopped" : ""}
     </div>, document.body,
   ) : null;
 }
