@@ -22,7 +22,7 @@ class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean
 export default function HeroPrism() {
   const params = useSearchParams();
   const debug = params.has("debug") && !["0", "false"].includes(params.get("debug") ?? "");
-  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
+  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance || state.forcePreview || !state.prismEnabled);
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [enabled, setEnabled] = useState(false);

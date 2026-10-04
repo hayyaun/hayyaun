@@ -9,6 +9,8 @@ export default function FrameRateMonitor() {
   const showPerf = useGraphicsPerformance((state) => state.showPerf);
   const fps = useGraphicsPerformance((state) => state.fps);
   const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
+  const forcePreview = useGraphicsPerformance((state) => state.forcePreview);
+  const measurementId = useGraphicsPerformance((state) => state.measurementId);
   useEffect(() => {
     if (lowPerformance && !showPerf) return;
     let frame = 0;
@@ -19,7 +21,7 @@ export default function FrameRateMonitor() {
     let low = 0;
     const reset = () => {
       previous = elapsed = frames = warmup = low = 0;
-      useGraphicsPerformance.setState({ fps: null });
+      useGraphicsPerformance.setState({ fps: null, warmupRemaining: useGraphicsPerformance.getState().warmupSeconds, belowSeconds: 0 });
     };
     const tick = (now: number) => {
       frame = requestAnimationFrame(tick);
@@ -28,14 +30,18 @@ export default function FrameRateMonitor() {
       const delta = now - previous;
       previous = now;
       warmup += delta;
-      if (warmup < useGraphicsPerformance.getState().warmupSeconds * 1000) return;
+      const remaining = Math.max(0, Math.ceil(useGraphicsPerformance.getState().warmupSeconds - warmup / 1000));
+      if (remaining) {
+        if (remaining !== useGraphicsPerformance.getState().warmupRemaining) useGraphicsPerformance.setState({ warmupRemaining: remaining });
+        return;
+      }
       elapsed += delta;
       frames++;
       if (elapsed < 1000) return;
       const measured = frames * 1000 / elapsed;
       const { fpsThreshold, lowSeconds } = useGraphicsPerformance.getState();
       low = measured < fpsThreshold ? low + elapsed : 0;
-      useGraphicsPerformance.setState({ fps: Math.round(measured), ...(low >= lowSeconds * 1000 ? { lowPerformance: true } : {}) });
+      useGraphicsPerformance.setState({ fps: Math.round(measured), warmupRemaining: 0, belowSeconds: Math.round(low / 100) / 10, ...(low >= lowSeconds * 1000 ? { lowPerformance: true } : {}) });
       elapsed = frames = 0;
     };
     frame = requestAnimationFrame(tick);
@@ -44,10 +50,10 @@ export default function FrameRateMonitor() {
       cancelAnimationFrame(frame);
       document.removeEventListener("visibilitychange", reset);
     };
-  }, [lowPerformance, showPerf]);
+  }, [lowPerformance, showPerf, measurementId]);
   return showPerf ? createPortal(
     <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 10000, padding: "8px 12px", borderRadius: 8, background: "#201d29", color: "white", font: "12px monospace", pointerEvents: "none" }}>
-      Page FPS: {fps ?? "warming up"}{lowPerformance ? " · Preview mode" : ""}
+      Page FPS: {fps ?? "warming up"}{forcePreview ? " · Forced preview" : lowPerformance ? " · Low FPS fallback" : ""}
     </div>, document.body,
   ) : null;
 }

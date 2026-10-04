@@ -9,6 +9,13 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
+import { useGraphicsPerformance } from "@/lib/graphics-performance";
+
+const qualityPresets = {
+  low: { dpr: 1, reflectionWidth: 480, reflectionHeight: 434, multisample: 0, shadow: 512, environment: 128 },
+  medium: { dpr: 1.5, reflectionWidth: 720, reflectionHeight: 650, multisample: 0, shadow: 1024, environment: 256 },
+  high: { dpr: 2, reflectionWidth: 1440, reflectionHeight: 1300, multisample: 4, shadow: 1024, environment: 512 },
+};
 
 
 const vertex = /* glsl */ `varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
@@ -62,14 +69,16 @@ function ContextLifecycle({ onLost }: { onLost: (lost: boolean) => void }) {
   }, [gl, invalidate, onLost]);
   return null;
 }
-function ReflectiveFloor({ tuning }: { tuning: boolean }) {
+function ReflectiveFloor() {
+  const quality = useGraphicsPerformance((state) => state.quality);
+  const preset = qualityPresets[quality];
   const floor = useMemo(() => {
     const reflector = new Reflector(new PlaneGeometry(200, 200), {
       color: 0xeef2fa,
       clipBias: 0.003,
-      textureWidth: tuning ? 720 : 1440,
-      textureHeight: tuning ? 650 : 1300,
-      multisample: tuning ? 0 : 4,
+      textureWidth: preset.reflectionWidth,
+      textureHeight: preset.reflectionHeight,
+      multisample: preset.multisample,
     });
     // Fade Three.js's floor reflection toward the white ground.
     if (!(reflector.material instanceof ShaderMaterial)) throw new Error("The reflector shader is unavailable.");
@@ -77,7 +86,7 @@ function ReflectiveFloor({ tuning }: { tuning: boolean }) {
     reflector.rotation.x = -Math.PI / 2;
     reflector.position.y = -1.405;
     return reflector;
-  }, [tuning]);
+  }, [preset]);
   useEffect(
     () => () => {
       floor.geometry.dispose();
@@ -169,7 +178,9 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced
   }, [reduced, autoRotate, pointer, x, y, z, scene, invalidate, gl]);
   return null;
 }
-function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: boolean; presentation: boolean; onReady: () => void; prismColor: string; tuning: boolean }) {
+function Study({ solid, presentation, onReady, prismColor }: { solid: boolean; presentation: boolean; onReady: () => void; prismColor: string }) {
+  const quality = useGraphicsPerformance((state) => state.quality);
+  const preset = qualityPresets[quality];
   const mesh = useRef<Mesh>(null);
   const { viewport } = useThree();
   const gltf = useLoader(GLTFLoader, "/lab/prism/v030.glb");
@@ -210,7 +221,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
         intensity={0.5}
         color="#ffffff"
         castShadow={presentation}
-        shadow-mapSize={[1024, 1024]}
+        shadow-mapSize={[preset.shadow, preset.shadow]}
         shadow-radius={12}
         shadow-blurSamples={16}
         shadow-camera-left={-6}
@@ -222,7 +233,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
         shadow-bias={-0.0001}
         shadow-normalBias={0.02}
       />
-      <Environment background={false} frames={1} resolution={512}>
+      <Environment key={quality} background={false} frames={1} resolution={preset.environment}>
         {presentation ? (
           <>
             <Lightformer form="rect" intensity={4} color="#ffffff" position={[-4, 3, 4]} scale={[3, 6, 1]} target={[0, 0, 0]} />
@@ -245,7 +256,7 @@ function Study({ solid, presentation, onReady, prismColor, tuning }: { solid: bo
       <group scale={scale} position={presentation ? [-previewHeight * 0.008, -previewHeight * 0.025, 0] : [0, 0, 0]}>
         {presentation ? (
           <>
-            <ReflectiveFloor tuning={tuning} />
+            <ReflectiveFloor />
             <mesh receiveShadow position={[0, -1.4, 0]} rotation={[-Math.PI / 2, 0, 0]}>
               <planeGeometry args={[200, 200]} />
               <shadowMaterial color="#76628f" opacity={0.045} transparent depthWrite={false} />
@@ -282,6 +293,7 @@ export default function Scene({
   environmentRotation?: readonly [number, number, number];
   prismColor?: string;
 }) {
+  const quality = useGraphicsPerformance((state) => state.quality);
   const host = useRef<HTMLDivElement>(null);
   const [reduced, setReduced] = useState(true);
   const [lost, setLost] = useState(false);
@@ -314,7 +326,7 @@ export default function Scene({
         style={{ visibility: lost ? "hidden" : "visible" }}
         shadows={presentation ? "variance" : false}
         frameloop="demand"
-        dpr={tuning ? [1, 1.5] : [1, 2]}
+        dpr={[1, qualityPresets[quality].dpr]}
         camera={cameraSettings}
         gl={{ antialias: true, alpha: false, powerPreference: "low-power" }}
         onCreated={({ gl, camera }) => {
@@ -327,7 +339,7 @@ export default function Scene({
         {debug && <OrbitControls ref={controls} makeDefault enablePan enableZoom enableDamping={!reduced} minDistance={3.5} maxDistance={12} dampingFactor={0.08} />}
 
         <Suspense fallback={null}>
-          <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} tuning={tuning} />
+          <Study solid={solid} presentation={presentation} onReady={sceneReady} prismColor={prismColor} />
           {presentation && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
         </Suspense>
       </Canvas>

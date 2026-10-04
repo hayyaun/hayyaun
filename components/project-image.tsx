@@ -16,7 +16,7 @@ type ProjectImageProps = {
 
 /** HTML images are the baseline; a short, on-demand shader enhances the swap. */
 export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5 }: ProjectImageProps) {
-  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
+  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance || state.forcePreview || !state.projectsEnabled);
   const host = useRef<HTMLDivElement>(null);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);

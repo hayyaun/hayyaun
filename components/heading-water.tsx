@@ -86,7 +86,7 @@ function headingLines(element: HTMLElement): TextLine[] {
 
 /** Optional lighting over real HTML text; the canvas never replaces a heading. */
 export default function HeadingWater() {
-  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance);
+  const lowPerformance = useGraphicsPerformance((state) => state.lowPerformance || state.forcePreview || !state.waterEnabled);
   useEffect(() => {
     if (lowPerformance) return;
     const heroHeading = document.querySelector<HTMLElement>(selector);
