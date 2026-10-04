@@ -12,7 +12,7 @@ export const performanceModeConfig = {
 } as const;
 export type PerformanceMode = keyof typeof performanceModeConfig;
 export const performanceModes = Object.keys(performanceModeConfig) as PerformanceMode[];
-export const graphicsDefaults = { fpsThreshold: 50, warmupSeconds: 1, lowSeconds: 2, showPerf: false, mode: performanceModes[0], prismEnabled: true, waterEnabled: true, projectsEnabled: true, quality: modeQuality(performanceModes[0]) };
+export const graphicsDefaults = { fpsThreshold: 42, warmupSeconds: 1, lowSeconds: 2, showPerf: false, mode: performanceModes[0], prismEnabled: true, waterEnabled: true, projectsEnabled: true, quality: modeQuality(performanceModes[0]) };
 
 export function modeQuality(mode: PerformanceMode): "high" | "medium" | "low" {
   return performanceModeConfig[mode].quality;
