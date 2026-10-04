@@ -2,7 +2,7 @@
 
 import { button, LevaPanel, useControls, useCreateStore } from "leva";
 import { Component, type ReactNode, useEffect, useState } from "react";
-import Scene from "./scene";
+import Scene, { type EnvironmentRotationControl } from "./scene";
 import { createPortal } from "react-dom";
 import { graphicsDefaults, performanceModeConfig, performanceModes, setPerformanceMode, useGraphicsPerformance, type PerformanceMode } from "@/lib/graphics-performance";
 
@@ -27,6 +27,44 @@ export default function LabControls({ landing = false, active = true }: { landin
   const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
   const status = useGraphicsPerformance();
   const levaStore = useCreateStore();
+  const [environmentRotationControl] = useState<{ current: EnvironmentRotationControl }>(() => {
+    const degrees: [number, number, number] = [0, 0, 0];
+    let actual: [number, number, number] = [0, 0, 0];
+    let display: ((degrees: [number, number, number]) => void) | undefined;
+    let lastDisplay = -Infinity;
+    let apply: (() => void) | undefined;
+    return { current: {
+      getDegrees: () => [...degrees],
+      setAxis: (axis, value) => {
+        // A slider represents the current angle, including automatic/pointer motion.
+        degrees[axis] += value - actual[axis];
+        actual[axis] = value;
+        lastDisplay = -Infinity;
+        apply?.();
+      },
+      subscribe: (listener) => {
+        apply = listener;
+        return () => { if (apply === listener) apply = undefined; };
+      },
+      reportRotation: (rotation) => {
+        actual = rotation;
+        const now = performance.now();
+        if (now - lastDisplay < 100) return;
+        lastDisplay = now;
+        display?.(rotation);
+      },
+      subscribeDisplay: (listener) => {
+        display = listener;
+        listener(actual);
+        return () => { if (display === listener) display = undefined; };
+      },
+    } };
+  });
+  const updateRotation = (axis: 0 | 1 | 2, value: number, context: { fromPanel: boolean }) => {
+    // Leva's set() also invokes onChange: ignore animation feedback.
+    if (!context.fromPanel) return;
+    environmentRotationControl.current.setAxis(axis, value);
+  };
   const [, setPerformance] = useControls("Performance", () => ({
     warmupSeconds: { value: graphicsDefaults.warmupSeconds, min: 1, max: 60, step: 1, label: "Warmup seconds", onChange: (warmupSeconds: number) => useGraphicsPerformance.setState({ warmupSeconds }) },
     fpsThreshold: { value: graphicsDefaults.fpsThreshold, min: 5, max: 120, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
@@ -50,19 +88,22 @@ export default function LabControls({ landing = false, active = true }: { landin
   useEffect(() => {
     setEffects({ performanceMode: status.mode });
   }, [status.mode, setEffects]);
-  const [environment, setEnvironment] = useControls(
+  const [environment, setEnvironment, getEnvironment] = useControls(
     "Prism environment",
     () => ({
       autoRotate: { value: landing, label: "Auto rotate" },
-      x: { value: 0, min: -180, max: 180, step: 0.1, label: "X rotation (°)" },
-      y: { value: 0, min: -180, max: 180, step: 0.1, label: "Y rotation (°)" },
-      z: { value: 0, min: -180, max: 180, step: 0.1, label: "Z rotation (°)" },
+      x: { value: 0, min: -180, max: 180, step: 0.1, label: "X rotation (°)", onChange: (value: number, _path: string, context: { fromPanel: boolean }) => updateRotation(0, value, context) },
+      y: { value: 0, min: -180, max: 180, step: 0.1, label: "Y rotation (°)", onChange: (value: number, _path: string, context: { fromPanel: boolean }) => updateRotation(1, value, context) },
+      z: { value: 0, min: -180, max: 180, step: 0.1, label: "Z rotation (°)", onChange: (value: number, _path: string, context: { fromPanel: boolean }) => updateRotation(2, value, context) },
       color: { value: "#8b82aa", label: "Prism color" },
     }),
     { collapsed: true, order: 3 },
     { store: levaStore }
   );
-  const { x, y, z, color, autoRotate } = environment;
+  const { color, autoRotate } = environment;
+  useEffect(() => environmentRotationControl.current.subscribeDisplay(([x, y, z]) => {
+    setEnvironment({ x, y, z });
+  }), [environmentRotationControl, setEnvironment]);
   const [, setStatus] = useControls("Status", () => ({
     fps: { value: "Warming up", editable: false, label: "Page FPS" },
     warmup: { value: `Remaining: ${graphicsDefaults.warmupSeconds} seconds`, editable: false, label: "Warmup remaining" },
@@ -73,10 +114,10 @@ export default function LabControls({ landing = false, active = true }: { landin
     setStatus({ fps: !performanceModeConfig[status.mode].monitor ? "Monitoring stopped" : status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.mode });
   }, [status.fps, status.warmupRemaining, status.belowSeconds, status.mode, setStatus]);
   const [message, setMessage] = useState("");
-  const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, autoRotate, performance: { mode: status.mode, fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
+  const settings = JSON.stringify({ prismColor: color, autoRotate, performance: { mode: status.mode, fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
   useControls(() => ({ "Copy settings": button(async () => {
     try {
-      await navigator.clipboard.writeText(settings);
+      await navigator.clipboard.writeText(JSON.stringify({ ...JSON.parse(settings), environmentRotationDegrees: [getEnvironment("x"), getEnvironment("y"), getEnvironment("z")] }));
       setMessage("Copied — paste these values into the chat.");
     } catch {
       setMessage("Could not copy settings. Check browser clipboard permissions.");
@@ -84,6 +125,9 @@ export default function LabControls({ landing = false, active = true }: { landin
   }), "Reset defaults": button(() => {
     setPerformance({ warmupSeconds: graphicsDefaults.warmupSeconds, fpsThreshold: graphicsDefaults.fpsThreshold, lowSeconds: graphicsDefaults.lowSeconds, showPerf: graphicsDefaults.showPerf });
     setEffects({ performanceMode: graphicsDefaults.mode, prismEnabled: true, waterEnabled: true, projectsEnabled: true });
+    environmentRotationControl.current.setAxis(0, 0);
+    environmentRotationControl.current.setAxis(1, 0);
+    environmentRotationControl.current.setAxis(2, 0);
     setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: landing });
     useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, fps: null, warmupRemaining: graphicsDefaults.warmupSeconds, belowSeconds: 0, measurementId: state.measurementId + 1 }));
   }) }), { store: levaStore }, [settings]);
@@ -91,7 +135,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     <>
       <div style={{ width: landing ? "100%" : "min(100%, 960px)", height: landing ? "100%" : "min(100%, 867px)", margin: "auto" }}>
         {active && !lowPerformance && <CanvasBoundary>
-          <Scene presentation tuning debug pointerMotion={landing} autoRotate={autoRotate} environmentRotation={[x, y, z]} prismColor={color} />
+          <Scene presentation tuning debug pointerMotion={landing} autoRotate={autoRotate} environmentRotationControl={environmentRotationControl} prismColor={color} />
         </CanvasBoundary>}
       </div>
       {createPortal(

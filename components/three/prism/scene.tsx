@@ -5,7 +5,7 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
 import { Environment } from "@react-three/drei/core/Environment";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
@@ -97,12 +97,20 @@ function ReflectiveFloor() {
   return <primitive object={floor} />;
 }
 
-function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced: boolean; autoRotate: boolean; rotation: readonly [number, number, number]; pointer: boolean }) {
+export type EnvironmentRotationControl = {
+  getDegrees: () => [number, number, number];
+  setAxis: (axis: 0 | 1 | 2, value: number) => void;
+  subscribe: (apply: () => void) => () => void;
+  reportRotation: (degrees: [number, number, number]) => void;
+  subscribeDisplay: (listener: (degrees: [number, number, number]) => void) => () => void;
+};
+
+function EnvironmentMotion({ reduced, autoRotate, rotation, rotationControl, pointer }: { reduced: boolean; autoRotate: boolean; rotation: readonly [number, number, number]; rotationControl?: RefObject<EnvironmentRotationControl>; pointer: boolean }) {
   const { scene, invalidate, gl } = useThree();
   const [x, y, z] = rotation;
+  const automaticAngle = useRef(0);
   useEffect(() => {
-    const base = [x, y, z].map((value) => (value * Math.PI) / 180);
-    let angle = 0;
+    let angle = automaticAngle.current;
     let targetX = 0,
       targetY = 0,
       currentX = 0,
@@ -113,9 +121,15 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced
     let visible = true;
     let contextLost = false;
     const apply = () => {
+      const base = (rotationControl?.current.getDegrees() ?? [x, y, z]).map((value) => (value * Math.PI) / 180);
       scene.environmentRotation.set(base[0] + currentY * 0.2, base[1] + angle + currentX * 0.3, base[2]);
+      rotationControl?.current.reportRotation(
+        [scene.environmentRotation.x, scene.environmentRotation.y, scene.environmentRotation.z]
+          .map((value) => ((value * 180 / Math.PI + 180) % 360 + 360) % 360 - 180) as [number, number, number],
+      );
       invalidate();
     };
+    const unsubscribeRotation = rotationControl?.current.subscribe(apply);
     const tick = () => {
       timer = undefined;
       if (document.hidden || !visible || contextLost || reduced) return;
@@ -127,6 +141,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced
       const delta = Math.min((now - last) / 1000, 0.1);
       last = now;
       if (autoRotate) angle = (angle + (delta * Math.PI * 2) / 180) % (Math.PI * 2);
+      automaticAngle.current = angle;
       const blend = 1 - Math.exp(-delta * 2);
       currentX += (targetX - currentX) * blend;
       currentY += (targetY - currentY) * blend;
@@ -168,6 +183,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced
     apply();
     resume();
     return () => {
+      unsubscribeRotation?.();
       clearTimeout(timer);
       observer.disconnect();
       document.removeEventListener("visibilitychange", resume);
@@ -175,7 +191,7 @@ function EnvironmentMotion({ reduced, autoRotate, rotation, pointer }: { reduced
       gl.domElement.removeEventListener("webglcontextlost", lost);
       gl.domElement.removeEventListener("webglcontextrestored", restored);
     };
-  }, [reduced, autoRotate, pointer, x, y, z, scene, invalidate, gl]);
+  }, [reduced, autoRotate, pointer, x, y, z, rotationControl, scene, invalidate, gl]);
   return null;
 }
 /** Reveal only after the environment exists, shaders compile, and complete frames render. */
@@ -309,6 +325,7 @@ export default function Scene({
   pointerMotion = !tuning,
   autoRotate = true,
   environmentRotation = [0, 0, 0],
+  environmentRotationControl,
   prismColor = "#8b82aa",
 }: {
   debug?: boolean;
@@ -317,6 +334,7 @@ export default function Scene({
   pointerMotion?: boolean;
   autoRotate?: boolean;
   environmentRotation?: readonly [number, number, number];
+  environmentRotationControl?: RefObject<EnvironmentRotationControl>;
   prismColor?: string;
 }) {
   const quality = useGraphicsPerformance((state) => state.quality);
@@ -367,7 +385,7 @@ export default function Scene({
         <Suspense fallback={null}>
           <Study solid={solid} presentation={presentation} prismColor={prismColor} />
           <SceneReadiness onReady={sceneReady} />
-          {presentation && ready && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} pointer={pointerMotion} />}
+          {presentation && ready && <EnvironmentMotion reduced={reduced} autoRotate={autoRotate} rotation={environmentRotation} rotationControl={environmentRotationControl} pointer={pointerMotion} />}
         </Suspense>
       </Canvas>
       {debug && !presentation && (
