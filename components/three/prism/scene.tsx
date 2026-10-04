@@ -26,6 +26,7 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
   const failed = useGraphicsPerformance((state) => state.prismFailed);
   const { color, autoRotate, environmentRotationControl } = usePrismDebug();
   const [lost, setLost] = useState(false);
+  const [presented, setPresented] = useState(false);
   const [contextVersion, setContextVersion] = useState(0);
 
   // A quality change starts a fresh loading cycle.
@@ -34,11 +35,16 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
     return clearPrismReadiness;
   }, [quality]);
   const sceneReady = useCallback(() => {
+    if (graphicsQuality(useGraphicsPerformance.getState()) !== quality) return;
     markPrismReady(quality);
+    setPresented(true);
   }, [quality]);
   const contextChanged = useCallback((contextLost: boolean) => {
     setLost(contextLost);
-    if (contextLost) markPrismFailed();
+    if (contextLost) {
+      setPresented(false);
+      markPrismFailed();
+    }
     else {
       markPrismLoading();
       setContextVersion((version) => version + 1);
@@ -57,10 +63,13 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
     >
       <Canvas
         flat
+        // Scrolling changes position, not dimensions. ResizeObserver still tracks size.
+        resize={{ scroll: false }}
         frameloop={active ? "demand" : "never"}
         dpr={[1, qualityPresets[quality].dpr]}
         camera={cameraSettings}
-        style={{ opacity: ready && !lost ? 1 : 0 }}
+        // Readiness gates measurements; a quality refresh must not flash the preview.
+        style={{ opacity: presented && !lost && !failed ? 1 : 0 }}
         gl={{ antialias: true, alpha: false, powerPreference: "low-power" }}
         onCreated={({ gl, camera }) => {
           camera.lookAt(0, 0, 0);
