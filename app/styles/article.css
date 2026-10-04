@@ -1,0 +1,136 @@
+/* Generated MDX content shares one prose treatment across notes and case studies. */
+@layer components {
+  .article-prose {
+    max-width: 700px;
+    margin-inline: auto;
+    font-size: 17px;
+    line-height: 1.85;
+    overflow-wrap: break-word;
+  }
+  .article-prose p {
+    margin-block: 20px;
+  }
+  .article-prose h2 {
+    font-size: 29px;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 1.25;
+    margin-block: 44px 16px;
+  }
+  .article-prose h3 {
+    font-size: 21px;
+    margin-top: 28px;
+  }
+  .article-prose a {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    color: #584079;
+  }
+  .article-prose ul,
+  .article-prose ol {
+    padding-left: 24px;
+    margin-block: 20px;
+  }
+  .article-prose ul {
+    list-style: disc;
+  }
+  .article-prose ol {
+    list-style: decimal;
+  }
+  .article-prose li {
+    margin-block: 8px;
+  }
+  .article-prose .heading-permalink {
+    color: inherit;
+    text-decoration: none;
+  }
+  .article-prose .heading-permalink:hover {
+    text-decoration: underline;
+  }
+  .heading-hash {
+    color: var(--color-subtle);
+    font-weight: 400;
+    font-size: 0.7em;
+  }
+  .article-prose :is(h2, h3, h4, h5, h6)[id] {
+    scroll-margin-top: 32px;
+  }
+  .mdx-table-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    margin-block: 24px;
+  }
+  .mdx-table-scroll:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 4px;
+  }
+  .article-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+  }
+  .article-prose th,
+  .article-prose td {
+    border: 1px solid var(--color-surface-border);
+    padding: 12px 16px;
+    min-width: 120px;
+  }
+  .article-prose th {
+    background: #f2eef7;
+    font-weight: 600;
+    text-align: left;
+  }
+  .article-prose .contains-task-list {
+    list-style: none;
+    padding-left: 0;
+  }
+  .article-prose .task-list-item input {
+    margin-right: 8px;
+    accent-color: var(--color-accent);
+  }
+  .article-prose [data-rehype-pretty-code-figure] {
+    margin-block: 24px;
+    min-width: 0;
+  }
+  .article-prose [data-rehype-pretty-code-figure] code {
+    display: grid;
+    min-width: 100%;
+    width: max-content;
+  }
+  .article-prose [data-line] {
+    min-height: 1.75em;
+  }
+  .article-prose pre {
+    padding: 24px;
+    background: #19171f;
+    color: #f1ebfb;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.75;
+  }
+  .article-prose code {
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 0.85em;
+  }
+  .article-prose :not(pre) > code {
+    background: #f2eef7;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  .article-prose details {
+    margin-block: 24px;
+    padding: 20px;
+    border: 1px solid #d8d0e3;
+    border-radius: 8px;
+  }
+  .article-prose summary {
+    cursor: pointer;
+    font-weight: 500;
+    min-height: 44px;
+  }
+  .article-prose summary:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 4px;
+  }
+}

@@ -1,0 +1,8 @@
+/* A responsive container utility, also usable with Tailwind variants. */
+@utility page-width {
+  width: min(var(--container-page), calc(100% - 40px));
+  margin-inline: auto;
+  @variant tablet {
+    width: min(var(--container-page), calc(100% - 80px));
+  }
+}

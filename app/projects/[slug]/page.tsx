@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { ArticleHeader, ArticleLayout, RelatedLink } from "@/components/article-layout";
 import { notFound } from "next/navigation";
 import { projects } from "@/lib/projects";
-import "../../blog/blog.css";
 
 export const dynamicParams = false;
 
@@ -34,19 +33,17 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
   const project = getProject((await params).slug);
   const { default: Content } = await project.load();
   return (
-    <main id="main" className="page-width article-main">
-      <Link href="/#work" className="back-link">
-        ← Selected work
-      </Link>
+    <ArticleLayout backHref="/#work" backLabel="← Selected work">
       <article>
-        <header className="article-header">
-          <p className="blog-eyebrow">{project.category} / Case study</p>
-          <h1>{project.title}</h1>
-          <p className="article-deck">{project.description}</p>
-          <a href={project.liveUrl} className="back-link">
+        <ArticleHeader
+          eyebrow={`${project.category} / Case study`}
+          title={project.title}
+          description={project.description}
+        >
+          <a href={project.liveUrl} className="text-link">
             Visit {project.title} website ↗
           </a>
-        </header>
+        </ArticleHeader>
         <Image
           src={project.image}
           alt={project.imageAlt}
@@ -59,16 +56,16 @@ export default async function ProjectPage({ params }: { params: Promise<{ slug: 
           <Content />
         </div>
       </article>
-      <nav className="article-next" aria-label="More case studies">
-        <p className="blog-eyebrow">More selected work</p>
+      <nav className="mt-16 border-t border-line pt-8" aria-label="More case studies">
+        <p className="eyebrow">More selected work</p>
         {projects
           .filter(({ slug }) => slug !== project.slug)
           .map((other) => (
-            <Link key={other.slug} href={`/projects/${other.slug}`}>
-              {other.title} <span aria-hidden="true">↗</span>
-            </Link>
+            <RelatedLink key={other.slug} href={`/projects/${other.slug}`}>
+              {other.title}
+            </RelatedLink>
           ))}
       </nav>
-    </main>
+    </ArticleLayout>
   );
 }

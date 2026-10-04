@@ -1,0 +1,44 @@
+@layer components {
+  .display-heading {
+    @apply text-display;
+    @variant tablet {
+      font-size: clamp(68px, 9.8vw, 128px);
+    }
+    @variant desktop {
+      font-size: clamp(100px, 9vw, 128px);
+    }
+  }
+  .wordmark {
+    @apply relative text-[20px] font-medium tracking-[-0.06em];
+  }
+  .eyebrow {
+    @apply font-mono text-caption leading-[1.6] tracking-[0.1em] text-subtle uppercase;
+  }
+  .folio-label {
+    @apply font-mono text-tiny leading-[1.6] tracking-[0.08em] text-muted uppercase;
+  }
+  .section-label {
+    @apply text-label leading-normal text-muted;
+  }
+  .section-intro {
+    @apply mt-2.5 text-lead leading-normal tracking-tight text-muted;
+  }
+  .text-link {
+    @apply inline-block py-3 text-ui underline underline-offset-5;
+  }
+  .work-action {
+    @apply flex items-center gap-3;
+  }
+  .muted-link {
+    @apply relative py-3.5 text-muted;
+  }
+  .arrow-circle {
+    @apply inline-flex size-12 items-center justify-center rounded-full bg-foreground text-[26px] font-normal tracking-normal text-white;
+  }
+  .arrow-icon {
+    @apply inline-block shrink-0 align-middle;
+  }
+  .arrow-circle .arrow-icon {
+    @apply block size-6.5;
+  }
+}

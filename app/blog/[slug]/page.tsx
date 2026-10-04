@@ -1,6 +1,6 @@
 import { serializeJsonLd } from "@/lib/json-ld";
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ArticleHeader, ArticleLayout, RelatedLink } from "@/components/article-layout";
 import { notFound } from "next/navigation";
 import { getPost, posts, postDate } from "@/lib/posts";
 import { site } from "@/lib/site";
@@ -41,20 +41,14 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
   const { default: Content } = await post.load();
   const next = posts[(posts.indexOf(post) + 1) % posts.length];
   return (
-    <main id="main" className="page-width article-main">
-      <Link href="/blog" className="back-link">
-        ← All articles
-      </Link>
+    <ArticleLayout backHref="/blog" backLabel="← All articles">
       <article>
-        <header className="article-header">
-          <p className="blog-eyebrow">{post.category} / A field note</p>
-          <h1>{post.title}</h1>
-          <p className="article-deck">{post.description}</p>
-          <div className="article-byline">
+        <ArticleHeader eyebrow={`${post.category} / A field note`} title={post.title} description={post.description}>
+          <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-small text-subtle">
             <span>By {site.name}</span>
             <time dateTime={post.date}>{postDate(post.date)}</time>
           </div>
-        </header>
+        </ArticleHeader>
         <div className="article-prose">
           <noscript>
             <p>
@@ -65,11 +59,9 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
           <Content />
         </div>
       </article>
-      <aside className="article-next" aria-label="Next article">
-        <p className="blog-eyebrow">Keep reading</p>
-        <Link href={`/blog/${next.slug}`}>
-          {next.title} <span aria-hidden="true">↗</span>
-        </Link>
+      <aside className="mt-16 border-t border-line pt-8" aria-label="Next article">
+        <p className="eyebrow">Keep reading</p>
+        <RelatedLink href={`/blog/${next.slug}`}>{next.title}</RelatedLink>
       </aside>
       <script
         type="application/ld+json"
@@ -86,6 +78,6 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
           }),
         }}
       />
-    </main>
+    </ArticleLayout>
   );
 }

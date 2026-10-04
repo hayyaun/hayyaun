@@ -1,0 +1,72 @@
+/* Keep the established 701px / 800px / 1000px layout transitions. */
+@theme {
+  --breakpoint-*: initial;
+  --breakpoint-tablet: 701px;
+  --breakpoint-split: 800px;
+  --breakpoint-desktop: 1000px;
+  --color-background: #fff;
+  --color-foreground: #101011;
+  --color-muted: #77738b;
+  --color-subtle: #655c78;
+  --color-lavender: #eee8f6;
+  --color-line: #e9e7ec;
+  --color-focus: #7352ac;
+  --color-accent: #70529b;
+  --color-accent-soft: #dfd0fc;
+  --color-link-hover: #695487;
+  --color-surface: #f6f3f9;
+  --color-surface-border: #ded5e9;
+  --container-page: 1200px;
+  --container-article: 900px;
+  --container-prose: 700px;
+  --ease-interaction: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Small UI sizes deliberately inherit their context's line height. */
+  --text-tiny: 10px;
+  --text-caption: 11px;
+  --text-meta: 12px;
+  --text-small: 13px;
+  --text-ui: 14px;
+  --text-label: 15px;
+  --text-body: 17px;
+  --text-lead: 18px;
+
+  --text-display: clamp(58px, 12vw, 100px);
+  --text-display--line-height: 0.95;
+  --text-display--letter-spacing: -0.07em;
+  --text-display--font-weight: 600;
+  --text-section: clamp(52px, 9vw, 88px);
+  --text-section--line-height: 0.95;
+  --text-section--letter-spacing: -0.065em;
+  --text-section--font-weight: 500;
+  --text-heading: clamp(32px, 5.6vw, 56px);
+  --text-heading--line-height: 1.15;
+  --text-heading--letter-spacing: -0.055em;
+  --text-heading--font-weight: 400;
+  --text-experience: clamp(30px, 4.8vw, 48px);
+  --text-experience--line-height: 1.2;
+  --text-experience--letter-spacing: -0.05em;
+  --text-experience--font-weight: 400;
+  --text-contact: clamp(46px, 7.7vw, 80px);
+  --text-contact--line-height: 0.96;
+  --text-contact--letter-spacing: -0.06em;
+  --text-contact--font-weight: 500;
+  --text-article: clamp(42px, 6.5vw, 76px);
+  --text-article--line-height: 1.03;
+  --text-article--letter-spacing: -0.055em;
+  --text-article--font-weight: 600;
+  --text-deck: clamp(18px, 2.5vw, 23px);
+  --text-deck--line-height: 1.6;
+  --text-note: clamp(26px, 3.3vw, 40px);
+  --text-note--line-height: 1.15;
+  --text-note--letter-spacing: -0.045em;
+  --text-note--font-weight: 500;
+  --text-related: clamp(24px, 4vw, 36px);
+  --text-related--letter-spacing: -0.04em;
+}
+
+/* next/font supplies these variables on the document. */
+@theme inline {
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+}

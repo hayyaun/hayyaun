@@ -1,3 +1,6 @@
+import "./styles/home.css";
+import Arrow from "@/components/ui/arrow";
+import CapabilityCard from "@/components/ui/capability-card";
 import { serializeJsonLd } from "@/lib/json-ld";
 import Image from "next/image";
 import { Suspense, type CSSProperties } from "react";
@@ -24,25 +27,11 @@ export const metadata: Metadata = {
   },
 };
 
-function Arrow({ diagonal = false }: { diagonal?: boolean }) {
-  return (
-    <svg
-      className="arrow-icon"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path d={diagonal ? "M6 18 18 6M6 6h12v12" : "M4 12h16m-6-6 6 6-6 6"} />
-    </svg>
-  );
-}
+const projectLayouts = [
+  "tablet:col-start-6 tablet:col-end-13 tablet:pt-11.25",
+  "tablet:col-start-2 tablet:col-end-10 tablet:-ml-4",
+  "tablet:col-start-5 tablet:col-end-13",
+];
 
 export default function Home() {
   return (
@@ -88,9 +77,12 @@ export default function Home() {
       </Suspense>
       <main id="main">
         <FrameRateMonitor />
-        <section className="hero page-width" aria-labelledby="hero-title">
-          <div className="hero-copy">
-            <h1 id="hero-title">
+        <section
+          className="relative page-width grid border-b border-line pt-7.5 pb-12 tablet:min-h-[clamp(390px,48vw,630px)] tablet:items-center tablet:pb-11.25 desktop:min-h-[clamp(500px,48vw,630px)]"
+          aria-labelledby="hero-title"
+        >
+          <div className="hero-copy pointer-events-none relative z-2 tablet:w-[58%] [&_a]:pointer-events-auto">
+            <h1 id="hero-title" className="display-heading">
               Clarity.
               <br />
               Depth.
@@ -98,11 +90,11 @@ export default function Home() {
               Character.
             </h1>
             <HeadingWater />
-            <p>
+            <p className="mt-5.5 text-lead leading-[1.3] tracking-tight text-muted tablet:text-[clamp(18px,2.3vw,24px)]">
               I’m Hayyaun. Frontend development,
-              <br className="desktop-break" /> motion, and interactive 3D.
+              <br /> motion, and interactive 3D.
             </p>
-            <div className="hero-actions">
+            <div className="mt-6.5 flex items-center gap-7.5 text-ui">
               <a className="work-action" href="#work">
                 <span className="arrow-circle">
                   <Arrow />
@@ -114,13 +106,13 @@ export default function Home() {
               </a>
             </div>
           </div>
-          <div className="hero-art">
+          <div className="relative isolate mt-1.25 h-85 tablet:absolute tablet:top-0 tablet:-right-5 tablet:m-0 tablet:h-full tablet:w-[64%] desktop:w-[62%]">
             <Image
               src="/images/prism-dark2-cool.webp"
               alt=""
               fill
               sizes="(max-width: 700px) 100vw, 60vw"
-              className="prism-fallback"
+              className="prism-fallback object-contain"
               priority
             />
             <Suspense fallback={null}>
@@ -129,18 +121,28 @@ export default function Home() {
             <HeroSlogan />
           </div>
         </section>
-        <section id="work" className="work-section page-width" aria-labelledby="work-title">
-          <div className="work-heading">
-            <h2 id="work-title">
+        <section
+          id="work"
+          className="page-width grid gap-9.5 border-b border-line py-12 tablet:relative tablet:grid-cols-12 tablet:gap-x-0 tablet:gap-y-10 tablet:pt-16.25 tablet:pb-13.75 desktop:gap-y-12.5"
+          aria-labelledby="work-title"
+        >
+          <div className="tablet:absolute tablet:top-15 tablet:left-0">
+            <h2 id="work-title" className="text-section desktop:text-[100px]">
               Selected
               <br />
               work.
             </h2>
-            <span className="section-label">01 — 03</span>
+            <span className="section-label mt-4 block">01 — 03</span>
           </div>
           {projects.map((project, index) => (
-            <article className={`project project-${index + 1}`} key={project.slug}>
-              <span className="project-number" aria-hidden="true">
+            <article
+              className={`project project-${index + 1} relative pl-6.5 tablet:pl-0 ${projectLayouts[index]}`}
+              key={project.slug}
+            >
+              <span
+                className={`absolute top-1 left-0 text-small text-muted tablet:-left-9.5 ${index === 0 ? "tablet:top-12.25" : ""}`}
+                aria-hidden="true"
+              >
                 0{index + 1}
               </span>
               <div>
@@ -155,12 +157,20 @@ export default function Home() {
                   height={project.height}
                   coverPositionY={project.coverPositionY}
                 />
-                <div className="project-caption">
+                <div className="project-caption mt-2.5 flex justify-between gap-3">
                   <div>
-                    <h3>{project.title}</h3>
-                    <p>{project.category}</p>
+                    <h3 className="text-ui leading-[1.35] font-normal tracking-[-0.04em] tablet:text-body">
+                      {project.title}
+                    </h3>
+                    <p className="mt-1 font-mono text-[9px] tracking-[0.1em] text-muted uppercase tablet:text-tiny">
+                      {project.category}
+                    </p>
                   </div>
-                  <Link href={`/projects/${project.slug}`} aria-label={`Read the ${project.title} case study`}>
+                  <Link
+                    className="flex min-h-11 items-start gap-2.5 text-meta whitespace-nowrap tablet:text-ui"
+                    href={`/projects/${project.slug}`}
+                    aria-label={`Read the ${project.title} case study`}
+                  >
                     Explore project <Arrow diagonal />
                   </Link>
                 </div>
@@ -168,13 +178,18 @@ export default function Home() {
             </article>
           ))}
         </section>
-        <section id="about" className="about-section page-width" aria-labelledby="about-title">
+        <section id="about" className="page-width pt-16.25 tablet:pt-21.25" aria-labelledby="about-title">
           <p className="section-label">About</p>
-          <h2 id="about-title">Behind the work.</h2>
+          <h2 id="about-title" className="mt-3 text-heading">
+            Behind the work.
+          </h2>
           <p className="section-intro">Frontend development, motion, and interactive 3D.</p>
-          <div className="capabilities" aria-label="Technical capabilities">
-            <article>
-              <div className="capability-art interface-art" aria-hidden="true">
+          <div
+            className="capabilities mt-9.5 grid gap-8 tablet:grid-cols-3 tablet:gap-8.75"
+            aria-label="Technical capabilities"
+          >
+            <CapabilityCard title="Interfaces" description="Next.js · WordPress">
+              <div className="capability-art" aria-hidden="true">
                 <div className="browser-object">
                   <i />
                   <div className="interface-orb" />
@@ -184,58 +199,61 @@ export default function Home() {
                   <div />
                 </div>
               </div>
-              <h3>Interfaces</h3>
-              <p>Next.js · WordPress</p>
-            </article>
-            <article>
-              <div className="capability-art dimension-art" aria-hidden="true">
+            </CapabilityCard>
+            <CapabilityCard title="Light & dimension" description="Three.js · R3F · GLSL">
+              <div className="capability-art" aria-hidden="true">
                 <div className="glass-ring" />
                 <div className="dimension-orb" />
               </div>
-              <h3>Light &amp; dimension</h3>
-              <p>Three.js · R3F · GLSL</p>
-            </article>
-            <article>
+            </CapabilityCard>
+            <CapabilityCard title="Motion" description="GSAP · interaction">
               <div className="capability-art motion-art" aria-hidden="true">
                 {Array.from({ length: 7 }, (_, i) => (
                   <i key={i} style={{ "--petal-angle": `${i * 25 - 75}deg` } as CSSProperties} />
                 ))}
               </div>
-              <h3>Motion</h3>
-              <p>GSAP · interaction</p>
-            </article>
+            </CapabilityCard>
           </div>
         </section>
-        <section className="experience-section page-width" aria-labelledby="experience-title">
+        <section
+          className="page-width border-b border-line pt-27.5 pb-23.75 desktop:pt-38.75 desktop:pb-30"
+          aria-labelledby="experience-title"
+        >
           <p className="section-label">Experience</p>
-          <h2 id="experience-title">Two years as a senior frontend developer.</h2>
+          <h2 id="experience-title" className="mt-3 text-experience">
+            Two years as a senior frontend developer.
+          </h2>
           <p className="section-intro">Architecture · Performance · Code review · Mentoring</p>
         </section>
-        <section id="contact" className="contact-section" aria-labelledby="contact-title">
-          <div className="page-width contact-inner">
-            <h2 id="contact-title">
+        <section id="contact" className="bg-background pt-13.75 tablet:pt-17.5" aria-labelledby="contact-title">
+          <div className="page-width flex flex-col gap-8.75 tablet:flex-row tablet:items-center tablet:justify-between">
+            <h2 id="contact-title" className="text-contact">
               Have something
               <br />
               in mind?{" "}
-              <span className="arrow-circle">
+              <span className="arrow-circle ml-2.5 size-14 bg-accent-soft align-middle text-foreground">
                 <Arrow />
               </span>
             </h2>
-            <div className="contact-links">
-              <a href={`mailto:${site.email}`}>
+            <div className="contact-links self-start text-base tablet:self-center">
+              <a className="inline-flex gap-4.5 py-3 underline underline-offset-5" href={`mailto:${site.email}`}>
                 Email Hayyaun <Arrow diagonal />
               </a>
-              <div className="contact-socials">
-                <a href={site.profiles[0]}>GitHub</a>
-                <a href={site.profiles[1]}>LinkedIn</a>
+              <div className="flex gap-6.25 text-small text-subtle">
+                <a className="py-3 underline underline-offset-3" href={site.profiles[0]}>
+                  GitHub
+                </a>
+                <a className="py-3 underline underline-offset-3" href={site.profiles[1]}>
+                  LinkedIn
+                </a>
               </div>
             </div>
           </div>
-          <footer className="page-width site-footer">
+          <footer className="page-width flex items-center justify-between gap-5 pt-15 pb-7.5 tablet:pt-22.5 tablet:pb-11.25">
             <Link href="/" className="wordmark">
               Hayyaun
             </Link>
-            <p>Frontend development &amp; interactive 3D</p>
+            <p className="text-right text-caption text-subtle">Frontend development &amp; interactive 3D</p>
           </footer>
         </section>
       </main>
