@@ -15,7 +15,7 @@ import {
 import { prismDefaults, usePrismDebug } from "@/lib/prism-debug";
 import EnvironmentMotion from "./environment-motion";
 import PrismModel from "./prism-model";
-import { ContextLifecycle, SceneReadiness, SceneUnavailable } from "./scene-lifecycle";
+import { ContextLifecycle, SceneReadiness } from "./scene-lifecycle";
 import { qualityPresets } from "./quality-presets";
 
 const cameraSettings = { position: [3.9, 1.6, 6.62] as [number, number, number], fov: 38 };
@@ -28,7 +28,7 @@ export default function Scene({ debug = false }: { debug?: boolean }) {
   const [lost, setLost] = useState(false);
   const [contextVersion, setContextVersion] = useState(0);
 
-  // Reset before passive child effects report a missing WebGL context.
+  // A quality change starts a fresh loading cycle.
   useLayoutEffect(() => {
     markPrismLoading();
     return clearPrismReadiness;
@@ -66,7 +66,7 @@ export default function Scene({ debug = false }: { debug?: boolean }) {
           camera.lookAt(0, 0, 0);
           gl.setClearColor("white", 1);
         }}
-        fallback={<SceneUnavailable />}
+        fallback="Your browser does not support canvas. The static preview is shown instead."
       >
         <ContextLifecycle onLost={contextChanged} />
         {debug && (

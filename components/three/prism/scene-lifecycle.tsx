@@ -69,10 +69,3 @@ export function SceneReadiness({ onReady }: { onReady: () => void }) {
   });
   return null;
 }
-
-export function SceneUnavailable() {
-  useEffect(() => {
-    markPrismFailed();
-  }, []);
-  return null;
-}
