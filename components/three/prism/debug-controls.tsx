@@ -25,7 +25,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { failed: boolea
     );
   }
 }
-export default function LabControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
+export default function DebugControls({ landing = false, active = true }: { landing?: boolean; active?: boolean }) {
   useEffect(() => () => useGraphicsPerformance.setState({ showPerf: false }), []);
   const lowPerformance = useGraphicsPerformance((state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled);
   const status = useGraphicsPerformance();
