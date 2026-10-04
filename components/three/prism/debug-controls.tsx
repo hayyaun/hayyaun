@@ -32,15 +32,25 @@ export default function LabControls({ landing = false, active = true }: { landin
     fpsThreshold: { value: 30, min: 5, max: 120, step: 1, label: "Minimum FPS", onChange: (fpsThreshold: number) => useGraphicsPerformance.setState({ fpsThreshold }) },
     lowSeconds: { value: 5, min: 1, max: 30, step: 1, label: "Seconds below FPS", onChange: (lowSeconds: number) => useGraphicsPerformance.setState({ lowSeconds }) },
     showPerf: { value: false, label: "Floating FPS popup", onChange: (showPerf: boolean) => useGraphicsPerformance.setState({ showPerf }) },
-    "Retry WebGL": button(() => useGraphicsPerformance.setState((state) => ({ lowPerformance: false, fps: null, warmupRemaining: state.warmupSeconds, belowSeconds: 0, measurementId: state.measurementId + 1 }))),
   }), { collapsed: true, order: 1 }, { store: levaStore });
   const [, setEffects] = useControls("Effects", () => ({
-    forcePreview: { value: false, label: "Force preview", onChange: (forcePreview: boolean) => useGraphicsPerformance.setState({ forcePreview }) },
+    previewMode: {
+      value: useGraphicsPerformance.getState().forcePreview || useGraphicsPerformance.getState().lowPerformance,
+      label: "Preview mode",
+      onChange: (enabled: boolean, _path: string, context: { fromPanel: boolean }) => {
+        if (!context.fromPanel) return;
+        if (enabled) useGraphicsPerformance.setState({ forcePreview: true });
+        else useGraphicsPerformance.setState((state) => ({ forcePreview: false, lowPerformance: false, fps: null, warmupRemaining: state.warmupSeconds, belowSeconds: 0, measurementId: state.measurementId + 1 }));
+      },
+    },
     prismEnabled: { value: true, label: "Prism", onChange: (prismEnabled: boolean) => useGraphicsPerformance.setState({ prismEnabled }) },
     waterEnabled: { value: true, label: "Water splash", onChange: (waterEnabled: boolean) => useGraphicsPerformance.setState({ waterEnabled }) },
     projectsEnabled: { value: true, label: "Project transitions", onChange: (projectsEnabled: boolean) => useGraphicsPerformance.setState({ projectsEnabled }) },
     quality: { value: "high", options: ["low", "medium", "high"], label: "Render quality", onChange: (quality: "low" | "medium" | "high") => useGraphicsPerformance.setState({ quality }) },
   }), { collapsed: true, order: 2 }, { store: levaStore });
+  useEffect(() => {
+    setEffects({ previewMode: status.forcePreview || status.lowPerformance });
+  }, [status.forcePreview, status.lowPerformance, setEffects]);
   const [environment, setEnvironment] = useControls(
     "Prism environment",
     () => ({
@@ -61,7 +71,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     reason: { value: "WebGL enabled", editable: false, label: "Mode" },
   }), { collapsed: false, order: 0 }, { store: levaStore });
   useEffect(() => {
-    setStatus({ fps: status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.forcePreview ? "Forced preview" : status.lowPerformance ? "Low FPS fallback" : "WebGL enabled" });
+    setStatus({ fps: status.fps === null ? "Warming up" : String(status.fps), warmup: `Remaining: ${status.warmupRemaining} seconds`, below: `Duration: ${status.belowSeconds} seconds`, reason: status.forcePreview ? "Manually enabled" : status.lowPerformance ? "Low FPS" : "WebGL enabled" });
   }, [status.fps, status.warmupRemaining, status.belowSeconds, status.forcePreview, status.lowPerformance, setStatus]);
   const [message, setMessage] = useState("");
   const settings = JSON.stringify({ environmentRotationDegrees: [x, y, z], prismColor: color, autoRotate, performance: { fpsThreshold: status.fpsThreshold, warmupSeconds: status.warmupSeconds, lowSeconds: status.lowSeconds, showPerf: status.showPerf }, effects: { forcePreview: status.forcePreview, prismEnabled: status.prismEnabled, waterEnabled: status.waterEnabled, projectsEnabled: status.projectsEnabled, quality: status.quality } });
@@ -74,7 +84,7 @@ export default function LabControls({ landing = false, active = true }: { landin
     }
   }), "Reset defaults": button(() => {
     setPerformance({ warmupSeconds: 5, fpsThreshold: 30, lowSeconds: 5, showPerf: false });
-    setEffects({ forcePreview: false, prismEnabled: true, waterEnabled: true, projectsEnabled: true, quality: "high" });
+    setEffects({ previewMode: false, prismEnabled: true, waterEnabled: true, projectsEnabled: true, quality: "high" });
     setEnvironment({ x: 0, y: 0, z: 0, color: "#8b82aa", autoRotate: landing });
     useGraphicsPerformance.setState((state) => ({ ...graphicsDefaults, lowPerformance: false, fps: null, warmupRemaining: 5, belowSeconds: 0, measurementId: state.measurementId + 1 }));
   }) }), { store: levaStore }, [settings]);

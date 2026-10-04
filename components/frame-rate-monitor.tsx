@@ -53,7 +53,7 @@ export default function FrameRateMonitor() {
   }, [lowPerformance, showPerf, measurementId]);
   return showPerf ? createPortal(
     <div style={{ position: "fixed", bottom: 16, left: 16, zIndex: 10000, padding: "8px 12px", borderRadius: 8, background: "#201d29", color: "white", font: "12px monospace", pointerEvents: "none" }}>
-      Page FPS: {fps ?? "warming up"}{forcePreview ? " · Forced preview" : lowPerformance ? " · Low FPS fallback" : ""}
+      Page FPS: {fps ?? "warming up"}{forcePreview ? " · Preview mode (manual)" : lowPerformance ? " · Preview mode (low FPS)" : ""}
     </div>, document.body,
   ) : null;
 }
