@@ -39,6 +39,7 @@ export default function ProjectImage({
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
   const surface = useRef<HTMLCanvasElement>(null);
+  const touchClick = useRef<((event: React.MouseEvent<HTMLAnchorElement>) => void) | null>(null);
 
   useEffect(() => {
     const element = host.current;
@@ -61,8 +62,12 @@ export default function ProjectImage({
     let progress = 0;
     let originX = 0.5;
     let originY = 0.5;
+    let tapped = false;
+    let touchActivation = false;
+    let validTap = false;
+    let contact: { id: number; x: number; y: number; time: number; inside: boolean } | null = null;
 
-    const target = () => (hovered || focused ? 1 : 0);
+    const target = () => (hovered || focused || tapped ? 1 : 0);
     const stop = () => {
       cancelAnimationFrame(frame);
       frame = 0;
@@ -170,6 +175,49 @@ export default function ProjectImage({
       focused = false;
       animate();
     };
+    const pointerDown = (event: PointerEvent) => {
+      const inside = event.target instanceof Node && element.contains(event.target);
+      if (inside) touchActivation = event.pointerType === "touch";
+      validTap = false;
+      if (event.pointerType !== "touch") return;
+      if (!event.isPrimary || contact) { contact = null; return; }
+      if (!inside && !tapped) return;
+      contact = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, inside };
+    };
+    const pointerMove = (event: PointerEvent) => {
+      if (contact?.id === event.pointerId && Math.hypot(event.clientX - contact.x, event.clientY - contact.y) > 10) contact = null;
+    };
+    const pointerUp = (event: PointerEvent) => {
+      const start = contact;
+      contact = null;
+      if (!start || start.id !== event.pointerId || event.timeStamp - start.time > 500 ||
+          Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) return;
+      const inside = event.target instanceof Node && element.contains(event.target);
+      validTap = start.inside && inside;
+      if (!start.inside && !inside && tapped) {
+        tapped = false;
+        delete element.dataset.tapPreview;
+        animate();
+      }
+    };
+    const cancelContact = () => { contact = null; validTap = false; };
+    // React's handler cancels navigation before Next Link handles the click.
+    touchClick.current = (event) => {
+      if (event.detail === 0 || !touchActivation) return;
+      touchActivation = false;
+      if (!validTap) { event.preventDefault(); return; }
+      validTap = false;
+      if (tapped && (!renderer || (!frame && progress === 1))) return;
+      event.preventDefault();
+      if (tapped) return;
+      const rect = element.getBoundingClientRect();
+      originX = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      originY = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+      tapped = true;
+      element.dataset.tapPreview = "true";
+      animate();
+      void prepare();
+    };
     const preferences = () => {
       hovered = hover.matches && card.matches(":hover");
       stop();
@@ -205,6 +253,10 @@ export default function ProjectImage({
     card.addEventListener("pointerleave", leave);
     card.addEventListener("focusin", focus);
     card.addEventListener("focusout", blur);
+    document.addEventListener("pointerdown", pointerDown, { passive: true });
+    document.addEventListener("pointermove", pointerMove, { passive: true });
+    document.addEventListener("pointerup", pointerUp, { passive: true });
+    document.addEventListener("pointercancel", cancelContact);
     motion.addEventListener("change", preferences);
     hover.addEventListener("change", preferences);
     document.addEventListener("visibilitychange", visibility);
@@ -222,6 +274,12 @@ export default function ProjectImage({
       card.removeEventListener("pointerleave", leave);
       card.removeEventListener("focusin", focus);
       card.removeEventListener("focusout", blur);
+      document.removeEventListener("pointerdown", pointerDown);
+      document.removeEventListener("pointermove", pointerMove);
+      document.removeEventListener("pointerup", pointerUp);
+      document.removeEventListener("pointercancel", cancelContact);
+      touchClick.current = null;
+      delete element.dataset.tapPreview;
       motion.removeEventListener("change", preferences);
       hover.removeEventListener("change", preferences);
       document.removeEventListener("visibilitychange", visibility);
@@ -238,6 +296,7 @@ export default function ProjectImage({
       ref={host}
       aria-label={`Read the ${title} case study`}
       aria-describedby={descriptionId}
+      onClick={(event) => touchClick.current?.(event)}
     >
       <span id={descriptionId} className="sr-only">
         {showingPreview ? previewAlt : alt}

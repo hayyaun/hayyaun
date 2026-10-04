@@ -100,6 +100,7 @@
     outline: 2px solid var(--color-foreground);
     outline-offset: 4px;
   }
+  .project-visual[data-tap-preview][data-preview-ready] .project-preview,
   .project:has(:focus-visible) .project-visual[data-preview-ready] .project-preview {
     opacity: 1;
   }
