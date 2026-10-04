@@ -148,6 +148,8 @@ export default function Home() {
                   src={project.image}
                   previewSrc={project.previewImage}
                   alt={project.imageAlt}
+                  title={project.title}
+                  previewAlt={project.previewAlt}
                   width={project.width}
                   height={project.height}
                   coverPositionY={project.coverPositionY}
@@ -157,10 +159,7 @@ export default function Home() {
                     <h3>{project.title}</h3>
                     <p>{project.category}</p>
                   </div>
-                  <Link
-                    href={`/projects/${project.slug}`}
-                    aria-label={`Read the ${project.title} case study`}
-                  >
+                  <Link href={`/projects/${project.slug}`} aria-label={`Read the ${project.title} case study`}>
                     Explore project <Arrow diagonal />
                   </Link>
                 </div>

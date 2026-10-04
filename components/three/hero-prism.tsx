@@ -39,6 +39,7 @@ export default function HeroPrism() {
   );
   const host = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+  const [visited, setVisited] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
@@ -50,7 +51,10 @@ export default function HeroPrism() {
     };
     sync();
     motion.addEventListener("change", sync);
-    const observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting));
+    const observer = new IntersectionObserver(([entry]) => {
+      setVisible(entry.isIntersecting);
+      if (entry.isIntersecting) setVisited(true);
+    });
     if (host.current) observer.observe(host.current);
     return () => {
       observer.disconnect();
@@ -66,10 +70,10 @@ export default function HeroPrism() {
 
   return (
     <div ref={host} className="hero-canvas">
-      {enabled && visible && !lowPerformance && (
+      {enabled && visited && !lowPerformance && (
         <div className="hero-scene-frame">
           <SceneBoundary>
-            <Scene debug={debug} />
+            <Scene debug={debug} active={visible} />
           </SceneBoundary>
         </div>
       )}

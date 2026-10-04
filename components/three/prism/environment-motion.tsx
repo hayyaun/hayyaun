@@ -5,15 +5,18 @@ import { useEffect, useRef, type RefObject } from "react";
 import type { EnvironmentRotationControl } from "@/lib/prism-debug";
 
 export default function EnvironmentMotion({
+  active,
   autoRotate,
   rotationControl,
 }: {
+  active: boolean;
   autoRotate: boolean;
   rotationControl?: RefObject<EnvironmentRotationControl>;
 }) {
   const { scene, invalidate, gl } = useThree();
   const automaticAngle = useRef(0);
   useEffect(() => {
+    if (!active) return;
     let angle = automaticAngle.current;
     let targetX = 0,
       targetY = 0,
@@ -93,6 +96,6 @@ export default function EnvironmentMotion({
       gl.domElement.removeEventListener("webglcontextlost", lost);
       gl.domElement.removeEventListener("webglcontextrestored", restored);
     };
-  }, [autoRotate, rotationControl, scene, invalidate, gl]);
+  }, [active, autoRotate, rotationControl, scene, invalidate, gl]);
   return null;
 }

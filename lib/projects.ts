@@ -8,6 +8,8 @@ export const projects = [
     image: "/projects/og-milan.webp",
     imageAlt: "Milan: ‘Bespoke websites that WOW!’ above a reflective silver 3D form on a black background.",
     previewImage: "/projects/screenshot-milanco-v2.webp",
+    previewAlt:
+      "Milan homepage: oversized white ‘WOW!’ lettering beside an iridescent 3D form, with navigation and award logos on black.",
     coverPositionY: 0.5,
     width: 952,
     height: 600,
@@ -23,6 +25,8 @@ export const projects = [
     image: "/projects/og-josephlaw.webp",
     imageAlt: "Joseph Law: ‘For the times’ beneath a metallic monogram and glowing cube on a dark perspective grid.",
     previewImage: "/projects/screenshot-forthetimes-v3.webp",
+    previewAlt:
+      "Joseph Law homepage: ‘For the times’ and an Explore button over a dark 3D monogram and tiled floor, framed by navigation and social links.",
     width: 1200,
     height: 630,
     liveUrl: "https://forthetimes.law",
@@ -38,6 +42,8 @@ export const projects = [
     imageAlt:
       "Land Services Group: a floating golden crystal above a dark green landscape, with white and gold lettering.",
     previewImage: "/projects/screenshot-lsg-v2.webp",
+    previewAlt:
+      "Land Services Group homepage: a golden crystal above a moody landscape, with ‘Real Estate Investment Management’, gold navigation, and slide indicators.",
     width: 1200,
     height: 630,
     liveUrl: "https://landservicesgroup.ca",

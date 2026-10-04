@@ -20,7 +20,7 @@ import { qualityPresets } from "./quality-presets";
 
 const cameraSettings = { position: [3.9, 1.6, 6.62] as [number, number, number], fov: 38 };
 
-export default function Scene({ debug = false }: { debug?: boolean }) {
+export default function Scene({ debug = false, active = true }: { debug?: boolean; active?: boolean }) {
   const quality = useGraphicsPerformance(graphicsQuality);
   const ready = useGraphicsPerformance(isPrismReady);
   const failed = useGraphicsPerformance((state) => state.prismFailed);
@@ -57,7 +57,7 @@ export default function Scene({ debug = false }: { debug?: boolean }) {
     >
       <Canvas
         flat
-        frameloop="demand"
+        frameloop={active ? "demand" : "never"}
         dpr={[1, qualityPresets[quality].dpr]}
         camera={cameraSettings}
         style={{ opacity: ready && !lost ? 1 : 0 }}
@@ -71,6 +71,7 @@ export default function Scene({ debug = false }: { debug?: boolean }) {
         <ContextLifecycle onLost={contextChanged} />
         {debug && (
           <OrbitControls
+            enabled={active}
             makeDefault
             enablePan
             enableZoom={false}
@@ -85,6 +86,7 @@ export default function Scene({ debug = false }: { debug?: boolean }) {
           {!lost && <SceneReadiness key={`${quality}-${contextVersion}`} onReady={sceneReady} />}
           {ready && (
             <EnvironmentMotion
+              active={active}
               autoRotate={debug ? autoRotate : prismDefaults.autoRotate}
               rotationControl={debug ? environmentRotationControl : undefined}
             />

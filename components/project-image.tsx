@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ProjectImageRenderer } from "@/lib/project-image-renderer";
 import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 
@@ -9,13 +9,26 @@ type ProjectImageProps = {
   src: string;
   previewSrc: string;
   alt: string;
+  title: string;
+  previewAlt: string;
   width: number;
   height: number;
   coverPositionY?: number;
 };
 
 /** HTML images are the baseline; a short, on-demand shader enhances the swap. */
-export default function ProjectImage({ src, previewSrc, alt, width, height, coverPositionY = 0.5 }: ProjectImageProps) {
+export default function ProjectImage({
+  src,
+  previewSrc,
+  alt,
+  title,
+  previewAlt,
+  width,
+  height,
+  coverPositionY = 0.5,
+}: ProjectImageProps) {
+  const descriptionId = useId();
+  const [showingPreview, setShowingPreview] = useState(false);
   const lowPerformance = useGraphicsPerformance(
     (state) => !performanceModeConfig[state.mode].projects || !state.projectsEnabled
   );
@@ -41,7 +54,10 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     let preparing = false;
     let visible = false;
     let hovered = hover.matches && card.matches(":hover");
-    let focused = !!document.activeElement?.matches(":focus-visible") && card.contains(document.activeElement) && !element.contains(document.activeElement);
+    let focused =
+      !!document.activeElement?.matches(":focus-visible") &&
+      card.contains(document.activeElement) &&
+      !element.contains(document.activeElement);
     let frame = 0;
     let previousTime = 0;
     let progress = 0;
@@ -88,6 +104,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       else stop();
     };
     const animate = () => {
+      setShowingPreview(!!target() && previewImage.complete && previewImage.naturalWidth > 0);
       if (!renderer || !motion.matches || !visible || document.hidden) return;
       if (!frame && progress !== target()) {
         try {
@@ -127,6 +144,7 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     };
     const loaded = () => {
       if (previewImage.complete && previewImage.naturalWidth) element.dataset.previewReady = "true";
+      animate();
       void prepare();
     };
     const enter = (event: PointerEvent) => {
@@ -147,7 +165,8 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     };
     const focus = (event: FocusEvent) => {
       // The image button has its own toggle; focus on the website link still previews.
-      focused = event.target instanceof Element && event.target.matches(":focus-visible") && !element.contains(event.target);
+      focused =
+        event.target instanceof Element && event.target.matches(":focus-visible") && !element.contains(event.target);
       animate();
       void prepare();
     };
@@ -170,31 +189,42 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
     const pointerDown = (event: PointerEvent) => {
       if (event.pointerType !== "touch") return;
       // A second contact cancels the gesture; do not capture or prevent scrolling.
-      if (!event.isPrimary || contact) { contact = null; return; }
+      if (!event.isPrimary || contact) {
+        contact = null;
+        return;
+      }
       const inside = event.target instanceof Node && element.contains(event.target);
       if (!inside && !tapped.current) return;
       contact = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, inside };
     };
     const pointerMove = (event: PointerEvent) => {
-      if (contact?.id === event.pointerId && Math.hypot(event.clientX - contact.x, event.clientY - contact.y) > 10) contact = null;
+      if (contact?.id === event.pointerId && Math.hypot(event.clientX - contact.x, event.clientY - contact.y) > 10)
+        contact = null;
     };
     const pointerUp = (event: PointerEvent) => {
       const start = contact;
       contact = null;
-      if (event.pointerType !== "touch" || !start || start.id !== event.pointerId ||
-          event.timeStamp - start.time > 500 || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) return;
+      if (
+        event.pointerType !== "touch" ||
+        !start ||
+        start.id !== event.pointerId ||
+        event.timeStamp - start.time > 500 ||
+        Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10
+      )
+        return;
       const inside = event.target instanceof Node && element.contains(event.target);
-      if (start.inside && inside) toggle(event.clientX, event.clientY);
-      else if (!start.inside && !inside && tapped.current) {
+      if (!start.inside && !inside && tapped.current) {
         tapped.current = false;
         setTouchPreview(false);
         animate();
       }
     };
-    const cancelContact = () => { contact = null; };
+    const cancelContact = () => {
+      contact = null;
+    };
     const click = (event: MouseEvent) => {
-      // Keyboard/assistive activation only. Touch compatibility clicks must not toggle twice.
-      if (event.detail === 0) toggle();
+      // Native button clicks cover mouse, pen, touch, and keyboard activation once.
+      toggle(event.detail === 0 ? undefined : event.clientX, event.detail === 0 ? undefined : event.clientY);
     };
     const preferences = () => {
       hovered = hover.matches && card.matches(":hover");
@@ -272,14 +302,19 @@ export default function ProjectImage({ src, previewSrc, alt, width, height, cove
       type="button"
       className="project-visual"
       ref={host}
-      aria-label={`Toggle website screenshot: ${alt}`}
+      aria-label={`${title} website screenshot`}
+      aria-describedby={descriptionId}
       aria-pressed={touchPreview}
       data-tap-preview={touchPreview ? "true" : undefined}
     >
+      <span id={descriptionId} className="sr-only">
+        {showingPreview ? previewAlt : alt}
+      </span>
       <Image
         ref={cover}
         src={src}
         alt={alt}
+        aria-hidden="true"
         width={width}
         height={height}
         sizes="(max-width: 700px) 90vw, 65vw"
