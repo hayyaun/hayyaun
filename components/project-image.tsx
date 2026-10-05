@@ -57,6 +57,8 @@ export default function ProjectImage({
     let disposed = false;
     let failed = false;
     let preparing = false;
+    let pendingReveal = false;
+    let resumeQueued = false;
     let visible = false;
     let hovered = hover.matches && card.matches(":hover");
     let focused = !!document.activeElement?.matches(":focus-visible") && card.contains(document.activeElement);
@@ -71,11 +73,20 @@ export default function ProjectImage({
     let contact: { id: number; x: number; y: number; time: number; inside: boolean } | null = null;
 
     const target = () => (hovered || focused || tapped ? 1 : 0);
-    const stop = () => {
+    const syncPreview = () => {
+      if (pendingReveal) element.dataset.shaderPending = "true";
+      else delete element.dataset.shaderPending;
+      setShowingPreview(!pendingReveal && !!target() && previewImage.complete && previewImage.naturalWidth > 0);
+    };
+    const stop = (settle = true) => {
       cancelAnimationFrame(frame);
       frame = 0;
       previousTime = 0;
-      progress = target();
+      if (settle) {
+        pendingReveal = false;
+        progress = target();
+        if (!disposed) syncPreview();
+      }
       canvas.hidden = true;
     };
     const disable = () => {
@@ -113,7 +124,36 @@ export default function ProjectImage({
       else stop();
     };
     const animate = () => {
-      setShowingPreview(!!target() && previewImage.complete && previewImage.naturalWidth > 0);
+      // Reserve a first reveal before CSS swaps the image. GPU preparation still
+      // waits for scroll idle, but the interaction stays pending instead of
+      // jumping straight to the screenshot before the shader is available.
+      if (
+        target() &&
+        progress === 0 &&
+        !frame &&
+        !lowPerformance &&
+        !failed &&
+        motion.matches &&
+        !document.hidden &&
+        (!renderer || scrollIdle.isScrolling())
+      ) {
+        pendingReveal = true;
+        syncPreview();
+        if (renderer && !resumeQueued) {
+          resumeQueued = true;
+          void scrollIdle
+            .run(() => {
+              resumeQueued = false;
+              if (!disposed && visible && !document.hidden) animate();
+            }, lifetime.signal)
+            .catch(() => {
+              resumeQueued = false;
+            });
+        }
+        return;
+      }
+      pendingReveal = false;
+      syncPreview();
       if (!renderer || !motion.matches || !visible || document.hidden) return;
       if (scrollIdle.isScrolling()) {
         // A stationary mouse can enter a card as the page moves underneath it.
@@ -143,7 +183,7 @@ export default function ProjectImage({
       let prepared: ProjectImageRenderer | null = null;
       const run = <T,>(task: () => T) =>
         scrollIdle.run(() => {
-            if (disposed || failed || !visible || !motion.matches)
+          if (disposed || failed || !visible || !motion.matches)
             throw new DOMException("Project preparation cancelled", "AbortError");
           return task();
         }, lifetime.signal);
@@ -157,17 +197,18 @@ export default function ProjectImage({
           coverPositionY
         );
         if (!prepared) {
-          failed = true;
+          disable();
           return;
         }
         await run(() => {
           renderer = prepared;
           size();
-          // Cold interactions already use the HTML swap. Do not replay them
-          // from the cover when asynchronous GPU preparation finishes.
-          progress = target();
+          // A reserved first interaction still shows the cover. Preserve its
+          // starting progress and play it now that all GPU resources are ready.
+          if (!pendingReveal) progress = target();
           renderer?.render(progress, originX, originY);
           element.dataset.shaderReady = "true";
+          animate();
         });
         prepared = null;
       } catch (error) {
@@ -256,7 +297,7 @@ export default function ProjectImage({
         return;
       }
       validTap = false;
-      if (tapped && (!renderer || (!frame && progress === 1))) return;
+      if (tapped && !pendingReveal && (!renderer || (!frame && progress === 1))) return;
       event.preventDefault();
       if (tapped) return;
       const rect = element.getBoundingClientRect();
@@ -290,7 +331,9 @@ export default function ProjectImage({
       { rootMargin: "120px" }
     );
     const resize = new ResizeObserver(() => {
-      stop();
+      // The observer fires once on registration, including while a first
+      // interaction is waiting. Only settle a transition already on screen.
+      stop(!pendingReveal);
       size();
     });
     intersection.observe(element);
@@ -336,6 +379,7 @@ export default function ProjectImage({
       document.removeEventListener("visibilitychange", visibility);
       renderer?.dispose();
       delete element.dataset.shaderReady;
+      delete element.dataset.shaderPending;
       delete element.dataset.previewReady;
     };
   }, [src, previewSrc, coverPositionY, lowPerformance]);
