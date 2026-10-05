@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { ProjectImageRenderer } from "@/lib/project-image-renderer";
 import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
+import { acquireScrollIdle } from "@/lib/scroll-idle";
 
 type ProjectImageProps = {
   href: string;
@@ -50,6 +51,8 @@ export default function ProjectImage({
     if (!element || !coverImage || !previewImage || !canvas || !card) return;
     const motion = matchMedia("(prefers-reduced-motion: no-preference) and (forced-colors: none)");
     const hover = matchMedia("(hover: hover) and (pointer: fine)");
+    const scrollIdle = acquireScrollIdle();
+    const lifetime = new AbortController();
     let renderer: ProjectImageRenderer | null = null;
     let disposed = false;
     let failed = false;
@@ -92,6 +95,10 @@ export default function ProjectImage({
         stop();
         return;
       }
+      if (scrollIdle.isScrolling()) {
+        stop();
+        return;
+      }
       const delta = previousTime ? Math.min(time - previousTime, 50) : 16;
       previousTime = time;
       const destination = target();
@@ -108,6 +115,14 @@ export default function ProjectImage({
     const animate = () => {
       setShowingPreview(!!target() && previewImage.complete && previewImage.naturalWidth > 0);
       if (!renderer || !motion.matches || !visible || document.hidden) return;
+      if (scrollIdle.isScrolling()) {
+        // A stationary mouse can enter a card as the page moves underneath it.
+        // Keep the HTML swap available without starting a shader during momentum.
+        // Finish at the HTML endpoint so settling cannot replay from an older
+        // canvas frame and briefly flash the cover over an already shown preview.
+        stop();
+        return;
+      }
       if (!frame && progress !== target()) {
         try {
           size();
@@ -125,23 +140,42 @@ export default function ProjectImage({
       if (!coverImage.complete || !coverImage.naturalWidth || !previewImage.complete || !previewImage.naturalWidth)
         return;
       preparing = true;
+      let prepared: ProjectImageRenderer | null = null;
+      const run = <T,>(task: () => T) =>
+        scrollIdle.run(() => {
+            if (disposed || failed || !visible || !motion.matches)
+            throw new DOMException("Project preparation cancelled", "AbortError");
+          return task();
+        }, lifetime.signal);
       try {
-        const { createProjectImageRenderer } = await import("@/lib/project-image-renderer");
-        if (disposed || !visible || !motion.matches) return;
-        renderer = createProjectImageRenderer(canvas, coverImage, previewImage, coverPositionY);
-        if (!renderer) {
+        const { createProjectImageRenderer } = await run(() => import("@/lib/project-image-renderer"));
+        prepared = await createProjectImageRenderer(
+          canvas,
+          coverImage,
+          previewImage,
+          { run, signal: lifetime.signal },
+          coverPositionY
+        );
+        if (!prepared) {
           failed = true;
           return;
         }
-        size();
-        // Preserve the current state if the renderer loads during an interaction.
-        renderer.render(progress, originX, originY);
-        element.dataset.shaderReady = "true";
-        animate();
-      } catch {
-        disable();
+        await run(() => {
+          renderer = prepared;
+          size();
+          // Cold interactions already use the HTML swap. Do not replay them
+          // from the cover when asynchronous GPU preparation finishes.
+          progress = target();
+          renderer?.render(progress, originX, originY);
+          element.dataset.shaderReady = "true";
+        });
+        prepared = null;
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) disable();
       } finally {
+        prepared?.dispose();
         preparing = false;
+        if (!disposed && !failed && visible && motion.matches && !renderer) void prepare();
       }
     };
     const loaded = () => {
@@ -180,18 +214,27 @@ export default function ProjectImage({
       if (inside) touchActivation = event.pointerType === "touch";
       validTap = false;
       if (event.pointerType !== "touch") return;
-      if (!event.isPrimary || contact) { contact = null; return; }
+      if (!event.isPrimary || contact) {
+        contact = null;
+        return;
+      }
       if (!inside && !tapped) return;
       contact = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp, inside };
     };
     const pointerMove = (event: PointerEvent) => {
-      if (contact?.id === event.pointerId && Math.hypot(event.clientX - contact.x, event.clientY - contact.y) > 10) contact = null;
+      if (contact?.id === event.pointerId && Math.hypot(event.clientX - contact.x, event.clientY - contact.y) > 10)
+        contact = null;
     };
     const pointerUp = (event: PointerEvent) => {
       const start = contact;
       contact = null;
-      if (!start || start.id !== event.pointerId || event.timeStamp - start.time > 500 ||
-          Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) return;
+      if (
+        !start ||
+        start.id !== event.pointerId ||
+        event.timeStamp - start.time > 500 ||
+        Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10
+      )
+        return;
       const inside = event.target instanceof Node && element.contains(event.target);
       validTap = start.inside && inside;
       if (!start.inside && !inside && tapped) {
@@ -200,12 +243,18 @@ export default function ProjectImage({
         animate();
       }
     };
-    const cancelContact = () => { contact = null; validTap = false; };
+    const cancelContact = () => {
+      contact = null;
+      validTap = false;
+    };
     // React's handler cancels navigation before Next Link handles the click.
     touchClick.current = (event) => {
       if (event.detail === 0 || !touchActivation) return;
       touchActivation = false;
-      if (!validTap) { event.preventDefault(); return; }
+      if (!validTap) {
+        event.preventDefault();
+        return;
+      }
       validTap = false;
       if (tapped && (!renderer || (!frame && progress === 1))) return;
       event.preventDefault();
@@ -264,6 +313,8 @@ export default function ProjectImage({
 
     return () => {
       disposed = true;
+      lifetime.abort();
+      scrollIdle.release();
       stop();
       intersection.disconnect();
       resize.disconnect();

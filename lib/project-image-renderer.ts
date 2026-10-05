@@ -82,17 +82,25 @@ const fragmentSource = `
 `;
 
 /** A single-pass image transition. Animation scheduling belongs to the component. */
-export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTMLImageElement, preview: HTMLImageElement, coverPositionY = 0.5): ProjectImageRenderer | null {
+export async function createProjectImageRenderer(
+  canvas: HTMLCanvasElement,
+  cover: HTMLImageElement,
+  preview: HTMLImageElement,
+  preparation: { run<T>(task: () => T): Promise<T>; signal: AbortSignal },
+  coverPositionY = 0.5
+): Promise<ProjectImageRenderer | null> {
   if (!cover.naturalWidth || !cover.naturalHeight || !preview.naturalWidth || !preview.naturalHeight) return null;
 
-  const gl = canvas.getContext("webgl", {
-    alpha: true,
-    antialias: false,
-    depth: false,
-    stencil: false,
-    premultipliedAlpha: false,
-    powerPreference: "low-power",
-  });
+  const gl = await preparation.run(() =>
+    canvas.getContext("webgl", {
+      alpha: true,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      premultipliedAlpha: false,
+      powerPreference: "low-power",
+    })
+  );
   if (!gl) return null;
 
   const shaders: WebGLShader[] = [];
@@ -114,63 +122,86 @@ export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTM
 
   try {
     if (!program || !buffer) throw new Error("Project image renderer unavailable");
-    for (const [type, source] of [
-      [gl.VERTEX_SHADER, vertexSource],
-      [gl.FRAGMENT_SHADER, fragmentSource],
-    ] as const) {
-      const shader = gl.createShader(type);
-      if (!shader) throw new Error("Project image shader unavailable");
-      shaders.push(shader);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error("Project image shader compilation failed");
-      gl.attachShader(program, shader);
-    }
-    gl.bindAttribLocation(program, 0, "aPosition");
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error("Project image shader linking failed");
-
-    gl.useProgram(program);
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-    gl.enableVertexAttribArray(0);
-    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-    gl.disable(gl.DEPTH_TEST);
-    gl.disable(gl.BLEND);
-    // vUv already has its Y axis flipped; flipping the upload would invert images.
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-
-    const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
-    for (const [unit, image] of [cover, preview].entries()) {
-      if (image.naturalWidth > maxTextureSize || image.naturalHeight > maxTextureSize) {
-        throw new Error("Project image exceeds device texture limits");
+    const parallel = await preparation.run(() => {
+      for (const [type, source] of [
+        [gl.VERTEX_SHADER, vertexSource],
+        [gl.FRAGMENT_SHADER, fragmentSource],
+      ] as const) {
+        const shader = gl.createShader(type);
+        if (!shader) throw new Error("Project image shader unavailable");
+        shaders.push(shader);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        gl.attachShader(program, shader);
       }
-      const texture = gl.createTexture();
-      if (!texture) throw new Error("Project image texture unavailable");
-      textures.push(texture);
-      gl.activeTexture(gl.TEXTURE0 + unit);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      // Linear filtering and clamping support non-power-of-two responsive images.
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.bindAttribLocation(program, 0, "aPosition");
+      gl.linkProgram(program);
+      return gl.getExtension("KHR_parallel_shader_compile");
+    });
+    // Query completion without forcing the driver to finish compilation on the
+    // scrolling thread. Browsers without the extension link in a quiet slot.
+    if (parallel) {
+      while (!(await preparation.run(() => gl.getProgramParameter(program, parallel.COMPLETION_STATUS_KHR)))) {
+        if (gl.isContextLost()) throw new Error("Project image context lost");
+      }
     }
-    if (gl.getError() !== gl.NO_ERROR) throw new Error("Project image texture upload failed");
+    const maxTextureSize = await preparation.run(() => {
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error("Project image shader linking failed");
 
-    const uniforms = {
-      coverCrop: gl.getUniformLocation(program, "uCoverCrop"),
-      previewCrop: gl.getUniformLocation(program, "uPreviewCrop"),
-      origin: gl.getUniformLocation(program, "uOrigin"),
-      progress: gl.getUniformLocation(program, "uProgress"),
-      aspect: gl.getUniformLocation(program, "uAspect"),
-    };
-    gl.uniform1i(gl.getUniformLocation(program, "uCover"), 0);
-    gl.uniform1i(gl.getUniformLocation(program, "uPreview"), 1);
+      gl.useProgram(program);
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      gl.enableVertexAttribArray(0);
+      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.BLEND);
+      // vUv already has its Y axis flipped; flipping the upload would invert images.
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
 
-    const setCrop = (location: WebGLUniformLocation | null, image: HTMLImageElement, aspect: number, positionY: number) => {
+      return gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
+    });
+    for (const [unit, image] of [cover, preview].entries()) {
+      // Upload one image per quiet slot; two full-size uploads in an observer
+      // callback can block the first pass through the work section.
+      await preparation.run(() => {
+        if (image.naturalWidth > maxTextureSize || image.naturalHeight > maxTextureSize) {
+          throw new Error("Project image exceeds device texture limits");
+        }
+        const texture = gl.createTexture();
+        if (!texture) throw new Error("Project image texture unavailable");
+        textures.push(texture);
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // Linear filtering and clamping support non-power-of-two responsive images.
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      });
+    }
+    const uniforms = await preparation.run(() => {
+      if (gl.getError() !== gl.NO_ERROR) throw new Error("Project image texture upload failed");
+
+      const locations = {
+        coverCrop: gl.getUniformLocation(program, "uCoverCrop"),
+        previewCrop: gl.getUniformLocation(program, "uPreviewCrop"),
+        origin: gl.getUniformLocation(program, "uOrigin"),
+        progress: gl.getUniformLocation(program, "uProgress"),
+        aspect: gl.getUniformLocation(program, "uAspect"),
+      };
+      gl.uniform1i(gl.getUniformLocation(program, "uCover"), 0);
+      gl.uniform1i(gl.getUniformLocation(program, "uPreview"), 1);
+      return locations;
+    });
+
+    const setCrop = (
+      location: WebGLUniformLocation | null,
+      image: HTMLImageElement,
+      aspect: number,
+      positionY: number
+    ) => {
       const imageAspect = image.naturalWidth / image.naturalHeight;
       const x = Math.min(1, aspect / imageAspect);
       const y = Math.min(1, imageAspect / aspect);
@@ -201,8 +232,12 @@ export function createProjectImageRenderer(canvas: HTMLCanvasElement, cover: HTM
       },
       dispose,
     };
-  } catch {
+  } catch (error) {
     dispose();
+    // Cancellation is a normal outcome when sources/settings change or the
+    // component unmounts. It must not disable a later preparation attempt.
+    if (preparation.signal.aborted) preparation.signal.throwIfAborted();
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
     return null;
   }
 }

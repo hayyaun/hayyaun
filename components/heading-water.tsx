@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { performanceModeConfig, useGraphicsPerformance } from "@/lib/graphics-performance";
 import { headingLines, strokeInLine, type Point, type TextLine } from "@/lib/heading-water-measurement";
 import type { WaterStroke, WaterRenderer } from "@/lib/heading-water-renderer";
+import { acquireScrollIdle } from "@/lib/scroll-idle";
 
 const selector = "#hero-title";
 const settleSeconds = 8;
@@ -25,10 +26,13 @@ export default function HeadingWater() {
     const context = mask.getContext("2d");
     // Accurate glyph spacing is required. Older browsers keep the HTML fallback.
     if (!context || !("letterSpacing" in context)) return;
+    const scrollIdle = acquireScrollIdle();
+    const lifetime = new AbortController();
 
     let disposed = false;
     let unavailable = false;
     let loading = false;
+    let resumePending = false;
     let visible = false;
     let dirty = true;
     let frame = 0;
@@ -50,6 +54,13 @@ export default function HeadingWater() {
       pending = previous = null;
       renderer?.reset();
       if (canvas) canvas.hidden = true;
+    };
+    const releaseRenderer = () => {
+      canvas?.removeEventListener("webglcontextlost", contextLost);
+      renderer?.dispose();
+      canvas?.remove();
+      renderer = null;
+      canvas = null;
     };
 
     const rebuildMask = () => {
@@ -120,15 +131,16 @@ export default function HeadingWater() {
         stop();
         return;
       }
+      if (scrollIdle.isScrolling()) {
+        pauseForScroll();
+        return;
+      }
       try {
         if (dirty) rebuildMask();
       } catch {
         stop();
         unavailable = true;
-        renderer.dispose();
-        renderer = null;
-        canvas.remove();
-        canvas = null;
+        releaseRenderer();
         return;
       }
       if (scrollX !== window.scrollX || scrollY !== window.scrollY) {
@@ -171,32 +183,52 @@ export default function HeadingWater() {
       }
     };
 
+    const pauseForScroll = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      if (canvas) canvas.hidden = true;
+      if (!renderer || !lastFrame || resumePending) return;
+      resumePending = true;
+      void scrollIdle
+        .run(() => {
+          resumePending = false;
+          if (renderer && lastFrame && !frame) frame = requestAnimationFrame(draw);
+        }, lifetime.signal)
+        .catch(() => {
+          resumePending = false;
+        });
+    };
+
     const initialize = async () => {
       if (loading || renderer || unavailable || disposed) return;
       loading = true;
       try {
         const [{ createWaterRenderer }] = await Promise.all([
-          import("@/lib/heading-water-renderer"),
+          scrollIdle.run(() => import("@/lib/heading-water-renderer"), lifetime.signal),
           document.fonts.ready,
         ]);
-        if (disposed || !visible || !preference.matches || document.hidden) return;
-        canvas = document.createElement("canvas");
-        canvas.className = "heading-water-canvas";
-        canvas.setAttribute("aria-hidden", "true");
-        canvas.hidden = true;
-        renderer = createWaterRenderer(canvas);
-        if (!renderer) {
-          unavailable = true;
-          canvas = null;
-          return;
-        }
-        canvas.addEventListener("webglcontextlost", contextLost);
-        document.body.append(canvas);
-        dirty = true;
-        frame = requestAnimationFrame(draw);
-      } catch {
-        unavailable = true;
+        await scrollIdle.run(() => {
+          if (disposed || !visible || !preference.matches || document.hidden) return;
+          canvas = document.createElement("canvas");
+          canvas.className = "heading-water-canvas";
+          canvas.setAttribute("aria-hidden", "true");
+          canvas.hidden = true;
+          renderer = createWaterRenderer(canvas);
+          if (!renderer) {
+            unavailable = true;
+            canvas = null;
+            return;
+          }
+          canvas.addEventListener("webglcontextlost", contextLost);
+          document.body.append(canvas);
+          dirty = true;
+          rebuildMask();
+          frame = requestAnimationFrame(draw);
+        }, lifetime.signal);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) unavailable = true;
         stop();
+        releaseRenderer();
       } finally {
         loading = false;
       }
@@ -209,6 +241,10 @@ export default function HeadingWater() {
 
     const move = (event: PointerEvent) => {
       if (event.pointerType !== "mouse" || !visible || !preference.matches || document.hidden || unavailable) return;
+      if (scrollIdle.isScrolling()) {
+        pending = previous = null;
+        return;
+      }
       pending = { x: event.clientX, y: event.clientY, time: event.timeStamp };
       if (!renderer) {
         // Defer the shader download and GPU context until the hero is approached.
@@ -239,8 +275,9 @@ export default function HeadingWater() {
       dirty = true;
       pending = previous = null;
       if (event.target !== document) stop();
-      // Main-page scroll translates the existing water with its text mask.
-      if (renderer && lastFrame && !frame) frame = requestAnimationFrame(draw);
+      else pauseForScroll();
+      // Rebuild/translate the text mask once after momentum settles, rather than
+      // measuring glyphs and uploading a viewport texture on every scroll frame.
     };
     const intersection = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
@@ -264,13 +301,13 @@ export default function HeadingWater() {
 
     return () => {
       disposed = true;
+      lifetime.abort();
+      scrollIdle.release();
       stop();
       observer.disconnect();
       intersection.disconnect();
       resize.disconnect();
-      canvas?.removeEventListener("webglcontextlost", contextLost);
-      renderer?.dispose();
-      canvas?.remove();
+      releaseRenderer();
       document.fonts.removeEventListener("loadingdone", invalidate);
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerleave", leave);
