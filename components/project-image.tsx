@@ -11,6 +11,7 @@ type ProjectImageProps = {
   href: string;
   src: string;
   previewSrc: string;
+  previewVideoSrc?: string;
   alt: string;
   title: string;
   previewAlt: string;
@@ -24,6 +25,7 @@ export default function ProjectImage({
   href,
   src,
   previewSrc,
+  previewVideoSrc,
   alt,
   title,
   previewAlt,
@@ -39,6 +41,7 @@ export default function ProjectImage({
   const host = useRef<HTMLAnchorElement>(null);
   const cover = useRef<HTMLImageElement>(null);
   const preview = useRef<HTMLImageElement>(null);
+  const videoPreview = useRef<HTMLVideoElement>(null);
   const surface = useRef<HTMLCanvasElement>(null);
   const touchClick = useRef<((event: React.MouseEvent<HTMLAnchorElement>) => void) | null>(null);
 
@@ -47,6 +50,7 @@ export default function ProjectImage({
     const coverImage = cover.current;
     const previewImage = preview.current;
     const canvas = surface.current;
+    const video = videoPreview.current;
     const card = element?.closest("article");
     if (!element || !coverImage || !previewImage || !canvas || !card) return;
     const motion = matchMedia("(prefers-reduced-motion: no-preference) and (forced-colors: none)");
@@ -71,12 +75,56 @@ export default function ProjectImage({
     let touchActivation = false;
     let validTap = false;
     let contact: { id: number; x: number; y: number; time: number; inside: boolean } | null = null;
+    let playPending = false;
+    let videoFailed = false;
 
     const target = () => (hovered || focused || tapped ? 1 : 0);
+    const shouldPlayVideo = () =>
+      !!target() && !pendingReveal && visible && !document.hidden && motion.matches && !lowPerformance && !disposed;
+    const syncVideo = () => {
+      if (!video || !previewVideoSrc) return;
+      if (!shouldPlayVideo() || videoFailed) {
+        video.pause();
+        return;
+      }
+      // Do not download the recording until the visitor actually reveals it.
+      if (!video.getAttribute("src")) video.src = previewVideoSrc;
+      if (!video.paused || playPending) return;
+      playPending = true;
+      void video
+        .play()
+        .then(() => {
+          if (!disposed && !shouldPlayVideo()) video.pause();
+        })
+        .catch((error: unknown) => {
+          if (disposed) return;
+          // Autoplay policies or unsupported codecs keep the poster available.
+          if (!(error instanceof DOMException && error.name === "AbortError")) videoFailed = true;
+          delete video.dataset.frameReady;
+        })
+        .finally(() => {
+          playPending = false;
+          if (shouldPlayVideo() && video.paused && !videoFailed) syncVideo();
+        });
+    };
+    const videoFrame = () => (video?.dataset.frameReady && video.readyState >= 2 ? video : undefined);
+    const playing = () => {
+      if (!video) return;
+      if (shouldPlayVideo()) video.dataset.frameReady = "true";
+      else video.pause();
+    };
+    const videoError = () => {
+      videoFailed = true;
+      if (video) {
+        video.pause();
+        delete video.dataset.frameReady;
+      }
+    };
     const syncPreview = () => {
       if (pendingReveal) element.dataset.shaderPending = "true";
       else delete element.dataset.shaderPending;
       setShowingPreview(!pendingReveal && !!target() && previewImage.complete && previewImage.naturalWidth > 0);
+      syncVideo();
     };
     const stop = (settle = true) => {
       cancelAnimationFrame(frame);
@@ -88,6 +136,11 @@ export default function ProjectImage({
         if (!disposed) syncPreview();
       }
       canvas.hidden = true;
+      if (video && progress === 0 && !target()) {
+        video.pause();
+        delete video.dataset.frameReady;
+        if (video.readyState >= 1) video.currentTime = 0;
+      }
     };
     const disable = () => {
       stop();
@@ -115,7 +168,7 @@ export default function ProjectImage({
       const destination = target();
       progress = destination ? Math.min(1, progress + delta / 850) : Math.max(0, progress - delta / 700);
       try {
-        renderer.render(progress * progress * (3 - 2 * progress), originX, originY);
+        renderer.render(progress * progress * (3 - 2 * progress), originX, originY, videoFrame());
       } catch {
         disable();
         return;
@@ -167,7 +220,7 @@ export default function ProjectImage({
         try {
           size();
           // Paint the existing state before showing the canvas to avoid a flash.
-          renderer.render(progress * progress * (3 - 2 * progress), originX, originY);
+          renderer.render(progress * progress * (3 - 2 * progress), originX, originY, videoFrame());
           canvas.hidden = false;
           frame = requestAnimationFrame(draw);
         } catch {
@@ -315,6 +368,7 @@ export default function ProjectImage({
     };
     const visibility = () => {
       if (document.hidden) stop();
+      else syncVideo();
     };
     const contextLost = () => {
       stop();
@@ -327,8 +381,9 @@ export default function ProjectImage({
         visible = entry.isIntersecting;
         if (visible) void prepare();
         else stop();
+        syncVideo();
       },
-      { rootMargin: "120px" }
+      { rootMargin: previewVideoSrc ? "0px" : "120px" }
     );
     const resize = new ResizeObserver(() => {
       // The observer fires once on registration, including while a first
@@ -340,6 +395,8 @@ export default function ProjectImage({
     resize.observe(element);
     coverImage.addEventListener("load", loaded);
     previewImage.addEventListener("load", loaded);
+    video?.addEventListener("playing", playing);
+    video?.addEventListener("error", videoError);
     canvas.addEventListener("webglcontextlost", contextLost);
     card.addEventListener("pointerenter", enter);
     card.addEventListener("pointerleave", leave);
@@ -359,6 +416,14 @@ export default function ProjectImage({
       lifetime.abort();
       scrollIdle.release();
       stop();
+      if (video) {
+        video.pause();
+        video.removeEventListener("playing", playing);
+        video.removeEventListener("error", videoError);
+        video.removeAttribute("src");
+        video.load();
+        delete video.dataset.frameReady;
+      }
       intersection.disconnect();
       resize.disconnect();
       coverImage.removeEventListener("load", loaded);
@@ -382,7 +447,7 @@ export default function ProjectImage({
       delete element.dataset.shaderPending;
       delete element.dataset.previewReady;
     };
-  }, [src, previewSrc, coverPositionY, lowPerformance]);
+  }, [src, previewSrc, previewVideoSrc, coverPositionY, lowPerformance]);
 
   return (
     <Link
@@ -416,6 +481,17 @@ export default function ProjectImage({
         sizes="(max-width: 700px) 90vw, 65vw"
         className="project-preview"
       />
+      {previewVideoSrc && (
+        <video
+          ref={videoPreview}
+          className="project-preview project-video"
+          muted
+          loop
+          playsInline
+          preload="none"
+          aria-hidden="true"
+        />
+      )}
       <canvas ref={surface} className="project-transition" aria-hidden="true" hidden />
     </Link>
   );

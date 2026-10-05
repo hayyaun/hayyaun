@@ -17,7 +17,10 @@ const component = ts.transpileModule(
 ).outputText;
 
 /** Execute the actual component effect with controlled browser and GPU timing. */
-function interactionHarness(t, { touch = false, motion = true, lowPerformance = false } = {}) {
+function interactionHarness(
+  t,
+  { touch = false, motion = true, lowPerformance = false, video = false, rejectPlay = false } = {}
+) {
   class FakeNode {
     listeners = new Map();
     children = [];
@@ -55,6 +58,30 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
   const cover = Object.assign(new FakeElement(), { complete: true, naturalWidth: 1000, naturalHeight: 500 });
   const preview = Object.assign(new FakeElement(), { complete: true, naturalWidth: 1000, naturalHeight: 500 });
   const canvas = Object.assign(new FakeElement(), { hidden: true });
+  const recording = Object.assign(new FakeElement(), {
+    paused: true,
+    readyState: 2,
+    currentTime: 0,
+    src: "",
+    plays: 0,
+    getAttribute() {
+      return this.src || null;
+    },
+    removeAttribute() {
+      this.src = "";
+    },
+    play() {
+      this.plays++;
+      if (rejectPlay) return Promise.reject(new DOMException("Blocked", "NotAllowedError"));
+      this.paused = false;
+      this.emit("playing");
+      return Promise.resolve();
+    },
+    pause() {
+      this.paused = true;
+    },
+    load() {},
+  });
   card.children = [anchor];
   anchor.children = [cover, preview, canvas];
   const document = Object.assign(new FakeNode(), { hidden: false, activeElement: null });
@@ -76,8 +103,8 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
   let intersection;
   let resize;
   const renderer = {
-    render(progress, x, y) {
-      renders.push({ progress, x, y, scrolling });
+    render(progress, x, y, video) {
+      renders.push({ progress, x, y, scrolling, video });
     },
     resize(...args) {
       sizes.push(args);
@@ -170,6 +197,7 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
     href: "/projects/example",
     src: "/cover.png",
     previewSrc: "/preview.png",
+    previewVideoSrc: video ? "/recording.webm" : undefined,
     alt: "Project cover",
     title: "Example",
     previewAlt: "Website screenshot",
@@ -178,9 +206,11 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
   });
   tree.props.ref.current = anchor;
   for (const child of tree.props.children) {
+    if (!child) continue;
     if (child.props.className === "project-image") child.props.ref.current = cover;
     if (child.props.className === "project-preview") child.props.ref.current = preview;
     if (child.type === "canvas") child.props.ref.current = canvas;
+    if (child.type === "video") child.props.ref.current = recording;
   }
   cleanup = effects[0]();
   t.after(() => cleanup());
@@ -236,6 +266,14 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
     canvas,
     renders,
     frames,
+    recording,
+    hide() {
+      intersection([{ isIntersecting: false }]);
+    },
+    visibility(hidden) {
+      document.hidden = hidden;
+      document.emit("visibilitychange");
+    },
     get creations() {
       return creations;
     },
@@ -288,6 +326,75 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
       }
     },
   };
+}
+
+test("recordings load on interaction, participate in the shader, and pause offscreen and when hidden", async (t) => {
+  const page = interactionHarness(t, { video: true });
+  page.show();
+  await page.ready();
+  assert.equal(page.recording.src, "");
+  page.hover();
+  await page.flushIdle();
+  assert.equal(page.recording.src, "/recording.webm");
+  assert.equal(page.recording.paused, false);
+  page.tick();
+  assert.equal(page.renders.at(-1).video, page.recording);
+  page.finishAnimation();
+  assert.equal(page.frames.size, 0, "Native playback should not need continuous WebGL frames");
+  page.hide();
+  assert.equal(page.recording.paused, true);
+  page.show();
+  await page.flushIdle();
+  assert.equal(page.recording.paused, false);
+  page.visibility(true);
+  assert.equal(page.recording.paused, true);
+  page.visibility(false);
+  await page.flushIdle();
+  assert.equal(page.recording.paused, false);
+  page.recording.currentTime = 5;
+  page.leave();
+  assert.equal(page.recording.paused, true);
+  assert.equal(page.renders.at(-1).video, page.recording, "Reverse from the paused video frame");
+  page.finishAnimation();
+  assert.equal(page.recording.currentTime, 0);
+  assert.equal(page.recording.dataset.frameReady, undefined);
+});
+
+test("touch recordings play on first tap and restore the cover on outside tap", async (t) => {
+  const page = interactionHarness(t, { video: true, touch: true });
+  page.show();
+  page.tap();
+  assert.equal(page.recording.src, "");
+  await page.ready();
+  assert.equal(page.recording.paused, false);
+  page.finishAnimation();
+  assert.equal(page.tap(), false);
+  page.outsideTap();
+  page.finishAnimation();
+  assert.equal(page.recording.paused, true);
+});
+
+test("blocked video playback preserves the poster without retrying in a loop", async (t) => {
+  const page = interactionHarness(t, { video: true, rejectPlay: true });
+  page.show();
+  await page.ready();
+  page.hover();
+  await page.flushIdle();
+  page.finishAnimation();
+  assert.equal(page.recording.plays, 1);
+  assert.equal(page.recording.dataset.frameReady, undefined);
+  assert.equal(page.anchor.dataset.shaderPending, undefined);
+});
+
+for (const options of [{ motion: false }, { lowPerformance: true }]) {
+  test(`video stays unloaded with ${options.motion === false ? "reduced motion" : "disabled effects"}`, async (t) => {
+    const page = interactionHarness(t, { video: true, ...options });
+    page.show();
+    page.hover();
+    await page.flushIdle();
+    assert.equal(page.recording.src, "");
+    assert.equal(page.recording.plays, 0);
+  });
 }
 
 test("cold first hover survives the initial resize and starts a shader reveal from the cover", async (t) => {

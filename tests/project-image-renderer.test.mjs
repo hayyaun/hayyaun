@@ -153,6 +153,26 @@ test("parallel compilation completes before link status or uniform queries", asy
   renderer.dispose();
 });
 
+test("video transitions upload only changed decoded frames and restore the poster", async () => {
+  const page = rendererHarness();
+  const renderer = await createProjectImageRenderer(page.canvas, page.cover, page.preview, page.preparation);
+  const video = { readyState: 2, videoWidth: 1804, videoHeight: 880, currentTime: 0 };
+  const uploads = () => page.calls.filter((call) => call.name === "texImage2D");
+  renderer.render(0.1, 0.5, 0.5, video);
+  assert.equal(uploads().length, 3);
+  renderer.render(0.2, 0.5, 0.5, video);
+  assert.equal(uploads().length, 3);
+  video.currentTime = 0.05;
+  renderer.render(0.3, 0.5, 0.5, video);
+  assert.equal(uploads().length, 4);
+  renderer.render(0, 0.5, 0.5);
+  assert.equal(uploads().at(-1).args.at(-1), page.preview);
+  renderer.render(0.5, 0.5, 0.5, { ...video, readyState: 0 });
+  renderer.render(0.5, 0.5, 0.5, { ...video, videoWidth: 8192 });
+  assert.equal(uploads().length, 5);
+  renderer.dispose();
+});
+
 test("cover and preview uploads occupy separate quiet jobs", async () => {
   const page = rendererHarness();
   const renderer = await createProjectImageRenderer(page.canvas, page.cover, page.preview, page.preparation);

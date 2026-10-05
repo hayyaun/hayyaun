@@ -152,6 +152,7 @@ export default function Home() {
                   href={`/projects/${project.slug}`}
                   src={project.image}
                   previewSrc={project.previewImage}
+                  previewVideoSrc={"previewVideo" in project ? project.previewVideo : undefined}
                   alt={project.imageAlt}
                   title={project.title}
                   previewAlt={project.previewAlt}

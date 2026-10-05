@@ -1,6 +1,6 @@
 export type ProjectImageRenderer = {
   resize(widthCss: number, heightCss: number, dpr: number): void;
-  render(progress: number, originX: number, originY: number): void;
+  render(progress: number, originX: number, originY: number, video?: HTMLVideoElement): void;
   dispose(): void;
 };
 
@@ -207,6 +207,7 @@ export async function createProjectImageRenderer(
       const y = Math.min(1, imageAspect / aspect);
       gl.uniform4f(location, x, y, (1 - x) * 0.5, (1 - y) * positionY);
     };
+    let videoFrame: number | undefined;
 
     return {
       resize(widthCss, heightCss, dpr) {
@@ -224,8 +225,29 @@ export async function createProjectImageRenderer(
         // Website captures should stay fully visible; stretch the sub-percent aspect mismatch.
         gl.uniform4f(uniforms.previewCrop, 1, 1, 0, 0);
       },
-      render(progress, originX, originY) {
+      render(progress, originX, originY, video) {
         if (disposed || gl.isContextLost()) return;
+        // Upload decoded frames only during the short transition. Native video
+        // playback takes over at the endpoint, without a continuous WebGL loop.
+        if (
+          video &&
+          video.readyState >= 2 &&
+          video.videoWidth <= maxTextureSize &&
+          video.videoHeight <= maxTextureSize
+        ) {
+          const decodedFrame = video.getVideoPlaybackQuality?.().totalVideoFrames ?? video.currentTime;
+          if (videoFrame !== decodedFrame) {
+            gl.activeTexture(gl.TEXTURE0 + 1);
+            gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
+            videoFrame = decodedFrame;
+          }
+        } else if (videoFrame !== undefined) {
+          gl.activeTexture(gl.TEXTURE0 + 1);
+          gl.bindTexture(gl.TEXTURE_2D, textures[1]);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, preview);
+          videoFrame = undefined;
+        }
         gl.uniform1f(uniforms.progress, Math.min(1, Math.max(0, progress)));
         gl.uniform2f(uniforms.origin, Math.min(1, Math.max(0, originX)), Math.min(1, Math.max(0, originY)));
         gl.drawArrays(gl.TRIANGLES, 0, 3);
