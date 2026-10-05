@@ -37,6 +37,24 @@ void main() {
   #include <colorspace_fragment>
 }`;
 
+// Drei recaptures the cubemap and resets rotation when children identity changes.
+// Keep this static lighting content stable across resize and parent updates.
+const environmentContent = (
+  <>
+    <Lightformer form="rect" intensity={4} color="#ffffff" position={[-4, 3, 4]} scale={[3, 6, 1]} target={[0, 0, 0]} />
+    <Lightformer form="rect" intensity={2} color="#ffffff" position={[4, 1, 2]} scale={[1, 5, 1]} target={[0, 0, 0]} />
+    <mesh>
+      <sphereGeometry args={[10, 64, 32]} />
+      <shaderMaterial
+        side={BackSide}
+        vertexShader={environmentVertex}
+        fragmentShader={environmentFragment}
+        toneMapped={false}
+      />
+    </mesh>
+  </>
+);
+
 function ReflectiveFloor() {
   const quality = useGraphicsPerformance(graphicsQuality);
   const preset = qualityPresets[quality];
@@ -71,7 +89,8 @@ function ReflectiveFloor() {
 export default function PrismModel({ prismColor }: { prismColor: string }) {
   const quality = useGraphicsPerformance(graphicsQuality);
   const preset = qualityPresets[quality];
-  const { viewport } = useThree();
+  const viewportWidth = useThree((state) => state.viewport.width);
+  const viewportHeight = useThree((state) => state.viewport.height);
   const gltf = useLoader(GLTFLoader, "/lab/prism/v030.glb");
   const geometry = useMemo(() => {
     const source = gltf.scene.getObjectByName("Reference_Prism");
@@ -96,7 +115,7 @@ export default function PrismModel({ prismColor }: { prismColor: string }) {
     [geometry]
   );
   // Match the visible bounds of the 720 × 650 loading preview.
-  const previewHeight = Math.min(viewport.height, (viewport.width * 650) / 720) / 1.12;
+  const previewHeight = Math.min(viewportHeight, (viewportWidth * 650) / 720) / 1.12;
   const scale = (previewHeight * (472 / 650)) / 2.8;
   return (
     <>
@@ -104,31 +123,7 @@ export default function PrismModel({ prismColor }: { prismColor: string }) {
       <ambientLight intensity={0.15} />
       <directionalLight position={[2, 8, -1.5]} intensity={0.5} color="#ffffff" />
       <Environment key={quality} background={false} frames={1} resolution={preset.environment}>
-        <Lightformer
-          form="rect"
-          intensity={4}
-          color="#ffffff"
-          position={[-4, 3, 4]}
-          scale={[3, 6, 1]}
-          target={[0, 0, 0]}
-        />
-        <Lightformer
-          form="rect"
-          intensity={2}
-          color="#ffffff"
-          position={[4, 1, 2]}
-          scale={[1, 5, 1]}
-          target={[0, 0, 0]}
-        />
-        <mesh>
-          <sphereGeometry args={[10, 64, 32]} />
-          <shaderMaterial
-            side={BackSide}
-            vertexShader={environmentVertex}
-            fragmentShader={environmentFragment}
-            toneMapped={false}
-          />
-        </mesh>
+        {environmentContent}
       </Environment>
       <group scale={scale} position={[-previewHeight * 0.008, -previewHeight * 0.025, 0]}>
         <ReflectiveFloor />

@@ -62,8 +62,9 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
     >
       <Canvas
         flat
-        // Scrolling changes position, not dimensions. ResizeObserver still tracks size.
-        resize={{ scroll: false }}
+        // Mobile toolbar resizes can introduce fractional bounding-rect jitter.
+        // Integer layout dimensions avoid clearing an unchanged drawing buffer.
+        resize={{ scroll: false, offsetSize: true }}
         // Pause animation offscreen, but allow a resize/readiness refresh to draw.
         // Switching to "never" drops invalidations during mobile scroll re-entry.
         frameloop="demand"
