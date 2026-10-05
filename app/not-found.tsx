@@ -37,9 +37,7 @@ export default function NotFound() {
         <span>4</span>
         <span className={styles.zero}>0</span>
         <span>4</span>
-        <span className="folio-label absolute bottom-0 text-center tracking-[0.05em]">
-          One wrong turn. No dead ends.
-        </span>
+        <span className="folio-label absolute bottom-0 text-center tracking-wider">One wrong turn. No dead ends.</span>
       </div>
       <footer className="folio-label flex flex-wrap justify-between gap-x-6 gap-y-2 border-t border-line py-5 split:col-span-full">
         <span>Hayyaun / Portfolio</span>

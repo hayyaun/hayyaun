@@ -164,7 +164,7 @@ export default function Home() {
                     <h3 className="text-ui leading-[1.35] font-normal tracking-[-0.04em] tablet:text-body">
                       {project.title}
                     </h3>
-                    <p className="mt-1 font-mono text-[9px] tracking-[0.1em] text-muted uppercase tablet:text-tiny">
+                    <p className="mt-1 font-mono text-[9px] tracking-widest text-muted uppercase tablet:text-tiny">
                       {project.category}
                     </p>
                   </div>

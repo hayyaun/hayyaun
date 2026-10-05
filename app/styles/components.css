@@ -12,7 +12,7 @@
     @apply relative text-[20px] font-medium tracking-[-0.06em];
   }
   .eyebrow {
-    @apply font-mono text-caption leading-[1.6] tracking-[0.1em] text-subtle uppercase;
+    @apply font-mono text-caption leading-[1.6] tracking-widest text-subtle uppercase;
   }
   .folio-label {
     @apply font-mono text-tiny leading-[1.6] tracking-[0.08em] text-muted uppercase;
