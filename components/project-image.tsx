@@ -142,7 +142,7 @@ export default function ProjectImage({
         if (renderer && !resumeQueued) {
           resumeQueued = true;
           void scrollIdle
-            .run(() => {
+            .runWhenStopped(() => {
               resumeQueued = false;
               if (!disposed && visible && !document.hidden) animate();
             }, lifetime.signal)

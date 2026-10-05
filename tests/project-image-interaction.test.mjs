@@ -63,6 +63,7 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
   const effects = [];
   const frames = new Map();
   const jobs = [];
+  const resumeJobs = [];
   const factories = [];
   const renders = [];
   const sizes = [];
@@ -88,20 +89,22 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
   const scrollIdle = {
     isScrolling: () => scrolling,
     release() {},
-    run(task, signal) {
-      if (signal.aborted) return Promise.reject(new DOMException("Cancelled", "AbortError"));
-      return new Promise((resolve, reject) => {
-        const job = { task, signal, resolve, reject };
-        job.abort = () => {
-          const position = jobs.indexOf(job);
-          if (position !== -1) jobs.splice(position, 1);
-          reject(new DOMException("Cancelled", "AbortError"));
-        };
-        signal.addEventListener("abort", job.abort, { once: true });
-        jobs.push(job);
-      });
-    },
+    run: (task, signal) => enqueue(task, signal, jobs),
+    runWhenStopped: (task, signal) => enqueue(task, signal, resumeJobs),
   };
+  function enqueue(task, signal, queue) {
+    if (signal.aborted) return Promise.reject(new DOMException("Cancelled", "AbortError"));
+    return new Promise((resolve, reject) => {
+      const job = { task, signal, resolve, reject };
+      job.abort = () => {
+        const position = queue.indexOf(job);
+        if (position !== -1) queue.splice(position, 1);
+        reject(new DOMException("Cancelled", "AbortError"));
+      };
+      signal.addEventListener("abort", job.abort, { once: true });
+      queue.push(job);
+    });
+  }
   const runtime = {
     jsx: (type, props) => ({ type, props }),
     jsxs: (type, props) => ({ type, props }),
@@ -203,6 +206,16 @@ function interactionHarness(t, { touch = false, motion = true, lowPerformance = 
     time += milliseconds;
     const callbacks = [...frames.values()];
     frames.clear();
+    if (!scrolling) {
+      for (const job of resumeJobs.splice(0)) {
+        job.signal.removeEventListener("abort", job.abort);
+        try {
+          job.resolve(job.task());
+        } catch (error) {
+          job.reject(error);
+        }
+      }
+    }
     callbacks.forEach((callback) => callback(time));
   };
   const pointer = (type, target = anchor, values = {}) => {
@@ -309,7 +322,7 @@ test("cold first tap reveals with the shader and navigation waits until the reve
   assert.equal(page.tap(), false, "A tap on the completed preview should follow the case study link");
 });
 
-test("a warm first interaction waits through scroll quiet time without settling the reveal", async (t) => {
+test("a prepared hover resumes on the next frame after scrolling ends without waiting for idle work", async (t) => {
   const page = interactionHarness(t);
   page.show();
   await page.ready();
@@ -318,13 +331,33 @@ test("a warm first interaction waits through scroll quiet time without settling 
   page.hover();
   assert.equal(page.anchor.dataset.shaderPending, "true");
   await page.flushIdle();
+  page.tick();
   assert.equal(page.renders.length, before, "No shader draws should run during momentum");
   page.scrolling(false);
-  await page.flushIdle();
+  page.tick();
   assert.equal(page.renders.at(-1).progress, 0);
   assert.equal(page.canvas.hidden, false);
   page.finishAnimation();
   assert.equal(page.renders.at(-1).progress, 1);
+  assert.ok(page.renders.every((render) => !render.scrolling));
+});
+
+test("a prepared first tap resumes after momentum on the next frame and keeps navigation guarded", async (t) => {
+  const page = interactionHarness(t, { touch: true });
+  page.show();
+  await page.ready();
+  page.scrolling(true);
+  assert.equal(page.tap(), true);
+  assert.equal(page.anchor.dataset.shaderPending, "true");
+  page.tick();
+  assert.equal(page.canvas.hidden, true);
+  page.scrolling(false);
+  page.tick();
+  assert.equal(page.canvas.hidden, false);
+  assert.equal(page.renders.at(-1).progress, 0);
+  assert.equal(page.tap(), true);
+  page.finishAnimation();
+  assert.equal(page.tap(), false);
   assert.ok(page.renders.every((render) => !render.scrolling));
 });
 

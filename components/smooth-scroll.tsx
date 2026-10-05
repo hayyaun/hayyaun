@@ -3,6 +3,7 @@
 import type Lenis from "lenis";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { registerSmoothScroll } from "@/lib/scroll-idle";
 
 /** Enhance desktop wheel input without replacing native touch or navigation. */
 export default function SmoothScroll() {
@@ -13,6 +14,10 @@ export default function SmoothScroll() {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let lenis: Lenis | undefined;
     let generation = 0;
+    const unregister = registerSmoothScroll(() => {
+      const state = lenis?.isScrolling;
+      return state === true ? "smooth" : (state ?? false);
+    });
     const cancelInertia = () => {
       if (lenis?.isScrolling === "smooth") lenis.scrollTo(lenis.actualScroll, { immediate: true });
     };
@@ -75,6 +80,7 @@ export default function SmoothScroll() {
     return () => {
       generation++;
       lenis?.destroy();
+      unregister();
       desktop.removeEventListener("change", update);
       reducedMotion.removeEventListener("change", update);
       document.removeEventListener("visibilitychange", update);
