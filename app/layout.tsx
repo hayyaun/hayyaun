@@ -1,4 +1,5 @@
 import SiteHeader from "@/components/site-header";
+import SmoothScroll from "@/components/smooth-scroll";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -28,7 +29,13 @@ export const metadata: Metadata = {
     : {
         index: true,
         follow: true,
-        googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
+        googleBot: {
+          index: true,
+          follow: true,
+          "max-image-preview": "large",
+          "max-snippet": -1,
+          "max-video-preview": -1,
+        },
       },
   openGraph: {
     title: site.title,
@@ -45,8 +52,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <SmoothScroll />
         <SiteHeader />
         {children}
       </body>

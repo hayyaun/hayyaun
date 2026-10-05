@@ -60,7 +60,9 @@ export default function HomeDebugPanel() {
 
   return (
     <>
-      <LevaPanel store={store} titleBar={{ title: "Home · Debug" }} collapsed={false} />
+      <div data-lenis-prevent>
+        <LevaPanel store={store} titleBar={{ title: "Home · Debug" }} collapsed={false} />
+      </div>
       <p className="sr-only" role="status">
         {message}
       </p>
