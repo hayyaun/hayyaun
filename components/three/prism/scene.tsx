@@ -44,8 +44,7 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
     if (contextLost) {
       setPresented(false);
       markPrismFailed();
-    }
-    else {
+    } else {
       markPrismLoading();
       setContextVersion((version) => version + 1);
     }
@@ -65,7 +64,9 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
         flat
         // Scrolling changes position, not dimensions. ResizeObserver still tracks size.
         resize={{ scroll: false }}
-        frameloop={active ? "demand" : "never"}
+        // Pause animation offscreen, but allow a resize/readiness refresh to draw.
+        // Switching to "never" drops invalidations during mobile scroll re-entry.
+        frameloop="demand"
         dpr={[1, qualityPresets[quality].dpr]}
         camera={cameraSettings}
         // Readiness gates measurements; a quality refresh must not flash the preview.

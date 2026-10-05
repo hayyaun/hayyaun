@@ -38,7 +38,7 @@ export default function HeroPrism() {
     (state) => !performanceModeConfig[state.mode].prism || !state.prismEnabled
   );
   const host = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  const [active, setActive] = useState(false);
   const [visited, setVisited] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [initialized, setInitialized] = useState(false);
@@ -51,29 +51,42 @@ export default function HeroPrism() {
     };
     sync();
     motion.addEventListener("change", sync);
-    const observer = new IntersectionObserver(([entry]) => {
-      setVisible(entry.isIntersecting);
-      if (entry.isIntersecting) setVisited(true);
-    });
+    let pauseTimer: ReturnType<typeof setTimeout> | undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        clearTimeout(pauseTimer);
+        if (entry.isIntersecting) {
+          setActive(true);
+          setVisited(true);
+        } else {
+          // A quick scroll reversal should not repeatedly stop and restart the scene.
+          pauseTimer = setTimeout(() => setActive(false), 250);
+        }
+      },
+      // Warm a frame before momentum scrolling brings the canvas into view.
+      // Keep this margin fixed: mobile browser toolbar resizes must not reconnect it.
+      { rootMargin: `${Math.ceil(window.innerHeight)}px 0px` }
+    );
     if (host.current) observer.observe(host.current);
     return () => {
       observer.disconnect();
+      clearTimeout(pauseTimer);
       motion.removeEventListener("change", sync);
     };
   }, []);
 
   useEffect(() => {
     if (!initialized) return;
-    setPrismActive(enabled && visible && !lowPerformance);
+    setPrismActive(enabled && active && !lowPerformance);
     return () => setPrismActive(null);
-  }, [initialized, enabled, visible, lowPerformance]);
+  }, [initialized, enabled, active, lowPerformance]);
 
   return (
     <div ref={host} className="hero-canvas">
       {enabled && visited && !lowPerformance && (
         <div className="hero-scene-frame">
           <SceneBoundary>
-            <Scene debug={debug} active={visible} />
+            <Scene debug={debug} active={active} />
           </SceneBoundary>
         </div>
       )}

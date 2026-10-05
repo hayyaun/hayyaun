@@ -65,7 +65,11 @@ export default function EnvironmentMotion({
       clearTimeout(timer);
       timer = undefined;
       last = performance.now();
-      if (!document.hidden && !contextLost) timer = setTimeout(tick, 1000 / 30);
+      if (!document.hidden && !contextLost) {
+        // Refresh immediately on visibility restoration instead of waiting for a tick.
+        invalidate();
+        timer = setTimeout(tick, 1000 / 30);
+      }
     };
     const move = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;

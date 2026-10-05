@@ -18,6 +18,10 @@
       display: none;
     }
   }
+  .hero-prism-surface {
+    position: absolute;
+    inset: 0;
+  }
   .hero-canvas {
     position: absolute;
     inset: 0;
@@ -270,11 +274,14 @@
       bottom: 65px;
     }
   }
-  .hero-canvas,
-  .prism-fallback {
-    mask-image:
-      linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
-      linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
-    mask-composite: intersect;
+  /* Fade into the page without masking a live WebGL compositing surface. */
+  .hero-prism-surface::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(to right, var(--color-background), transparent 7%, transparent 93%, var(--color-background)),
+      linear-gradient(to bottom, var(--color-background), transparent 7%, transparent 93%, var(--color-background));
   }
 }
