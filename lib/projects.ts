@@ -26,6 +26,7 @@ export const projects = [
     image: "/projects/og-josephlaw.webp",
     imageAlt: "Joseph Law: ‘For the times’ beneath a metallic monogram and glowing cube on a dark perspective grid.",
     previewImage: "/projects/forthetimes-poster.webp",
+    previewVideo: "/projects/forthetimes.webm",
     previewAlt:
       "Joseph Law homepage: ‘For the times’ and an Explore button over a dark 3D monogram and tiled floor, framed by navigation and social links.",
     width: 1200,
@@ -43,6 +44,7 @@ export const projects = [
     imageAlt:
       "Land Services Group: a floating golden crystal above a dark green landscape, with white and gold lettering.",
     previewImage: "/projects/lsg-poster.webp",
+    previewVideo: "/projects/lsg.webm",
     previewAlt:
       "Land Services Group homepage: a golden crystal above a moody landscape, with ‘Real Estate Investment Management’, gold navigation, and slide indicators.",
     width: 1200,
