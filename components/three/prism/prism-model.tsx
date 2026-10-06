@@ -3,39 +3,41 @@
 import { useLoader, useThree } from "@react-three/fiber";
 import { Lightformer } from "@react-three/drei/core/Lightformer";
 import { Environment } from "@react-three/drei/core/Environment";
-import { useEffect, useMemo } from "react";
+import { Bvh } from "@react-three/drei/core/Bvh";
+import { useEffect, useMemo, useRef } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { BackSide, Mesh, PlaneGeometry, ShaderMaterial } from "three";
 import { Reflector } from "three/addons/objects/Reflector.js";
 import { graphicsQuality, useGraphicsPerformance } from "@/lib/graphics-performance";
 import { qualityPresets } from "./quality-presets";
+import { smokeProgramKey, type SurfaceActivity } from "./surface-smoke";
+import { useSurfaceSmoke } from "./use-surface-smoke";
 
-// This sphere exists only in the environment capture, never as a scene overlay.
-const environmentVertex = /* glsl */ `varying vec3 direction; void main(){direction=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
+const environmentVertex = /* glsl */ `
+  varying vec3 direction;
+  void main() {
+    direction = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.);
+  }
+`;
 const environmentFragment = /* glsl */ `
-varying vec3 direction;
-void main() {
-  vec3 d = normalize(direction);
-  float longitude = atan(d.x, d.z);
-  float hue = fract(longitude / 2.4 + d.y * .4 + .52);
-  // Dark cyan, blue, violet, pink, gray, and black; smoothly blended.
-  vec3 palette[6];
-  palette[0] = vec3(8., 145., 178.) / 255.;
-  palette[1] = vec3(37., 99., 180.) / 255.;
-  palette[2] = vec3(117., 112., 179.) / 255.;
-  palette[3] = vec3(231., 41., 138.) / 255.;
-  palette[4] = vec3(102.) / 255.;
-  palette[5] = vec3(12.) / 255.;
-  float segment = hue * 6.;
-  int index = int(floor(segment));
-  vec3 srgb = mix(palette[index], palette[(index + 1) % 6], smoothstep(0., 1., fract(segment)));
-  vec3 color = mix(srgb / 12.92, pow((srgb + .055) / 1.055, vec3(2.4)), step(vec3(.04045), srgb));
-  float edgeCards = exp(-pow((longitude - 1.48) / .3, 2.)) + exp(-pow((longitude + 1.42) / .3, 2.));
-  float cardHeight = smoothstep(-.85, -.6, d.y) * (1. - smoothstep(.65, .9, d.y));
-  color = mix(color, vec3(.006), min(1., edgeCards) * cardHeight);
-  gl_FragColor = vec4(color, 1.);
-  #include <colorspace_fragment>
-}`;
+  varying vec3 direction;
+  void main() {
+    vec3 d = normalize(direction);
+    // Broad, softly curled patches on a black base; captured once in the cubemap.
+    vec3 warped = d + .12 * vec3(
+      sin(d.y * 6. + d.z * 3.),
+      sin(d.z * 5. - d.x * 4.),
+      sin(d.x * 6. + d.y * 3.)
+    );
+    float shadeA = exp(-dot(warped - vec3(-.6, -.25, .7), warped - vec3(-.6, -.25, .7)) * 7.);
+    float shadeB = exp(-dot(warped - vec3(.65, .3, -.55), warped - vec3(.65, .3, -.55)) * 9.);
+    float wisps = .65 + .35 * sin(warped.y * 8. + warped.x * 4. + sin(warped.z * 5.));
+    float smoke = smoothstep(.04, .75, max(shadeA, shadeB * .7)) * wisps;
+    gl_FragColor = vec4(vec3(.045, .018, .075) * smoke, 1.);
+    #include <colorspace_fragment>
+  }
+`;
 
 // Drei recaptures the cubemap and resets rotation when children identity changes.
 // Keep this static lighting content stable across resize and parent updates.
@@ -86,7 +88,19 @@ function ReflectiveFloor() {
   return <primitive object={floor} />;
 }
 
-export default function PrismModel({ prismColor }: { prismColor: string }) {
+export default function PrismModel({
+  prismColor,
+  active,
+  debug,
+  activity,
+}: {
+  prismColor: string;
+  active: boolean;
+  debug: boolean;
+  activity: SurfaceActivity;
+}) {
+  const body = useRef<Mesh>(null);
+  const compileSmoke = useSurfaceSmoke(body, activity, active, debug);
   const quality = useGraphicsPerformance(graphicsQuality);
   const preset = qualityPresets[quality];
   const viewportWidth = useThree((state) => state.viewport.width);
@@ -127,16 +141,21 @@ export default function PrismModel({ prismColor }: { prismColor: string }) {
       </Environment>
       <group scale={scale} position={[-previewHeight * 0.008, -previewHeight * 0.025, 0]}>
         <ReflectiveFloor />
-        <mesh geometry={geometry}>
-          <meshPhysicalMaterial
-            color={prismColor}
-            metalness={1}
-            roughness={0.085}
-            clearcoat={0.65}
-            clearcoatRoughness={0.05}
-            envMapIntensity={1.5}
-          />
-        </mesh>
+        <Bvh firstHitOnly indirect>
+          <mesh ref={body} geometry={geometry}>
+            <meshPhysicalMaterial
+              key={smokeProgramKey()}
+              color={prismColor}
+              metalness={1}
+              roughness={0.085}
+              clearcoat={0.65}
+              clearcoatRoughness={0.05}
+              envMapIntensity={1.5}
+              onBeforeCompile={compileSmoke}
+              customProgramCacheKey={smokeProgramKey}
+            />
+          </mesh>
+        </Bvh>
       </group>
     </>
   );

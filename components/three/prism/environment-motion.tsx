@@ -3,15 +3,18 @@
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef, type RefObject } from "react";
 import type { EnvironmentRotationControl } from "@/lib/prism-debug";
+import type { SurfaceActivity } from "./surface-smoke";
 
 export default function EnvironmentMotion({
   active,
   autoRotate,
   rotationControl,
+  surfaceActivity,
 }: {
   active: boolean;
   autoRotate: boolean;
   rotationControl?: RefObject<EnvironmentRotationControl>;
+  surfaceActivity: SurfaceActivity;
 }) {
   const { scene, invalidate, gl } = useThree();
   const automaticAngle = useRef(0);
@@ -55,6 +58,7 @@ export default function EnvironmentMotion({
       apply();
       if (
         autoRotate ||
+        surfaceActivity.getUntil() > now / 1000 ||
         now - lastPointerMove <= 700 ||
         Math.abs(targetX - currentX) + Math.abs(targetY - currentY) > 0.001
       ) {
@@ -71,12 +75,20 @@ export default function EnvironmentMotion({
         timer = setTimeout(tick, 1000 / 30);
       }
     };
+    // Hover only wakes this existing clock; it cannot create another render loop.
+    const wake = () => {
+      if (timer === undefined && !document.hidden && !contextLost) {
+        last = performance.now();
+        timer = setTimeout(tick, 1000 / 30);
+      }
+    };
+    const unsubscribeSurface = surfaceActivity.subscribe(wake);
     const move = (event: PointerEvent) => {
       if (event.pointerType === "touch") return;
       lastPointerMove = performance.now();
       targetX = Math.max(-1, Math.min(1, 1 - (event.clientX / window.innerWidth) * 2)) * 0.18;
       targetY = Math.max(-1, Math.min(1, 1 - (event.clientY / window.innerHeight) * 2)) * 0.18;
-      if (timer === undefined) resume();
+      wake();
     };
     const lost = () => {
       contextLost = true;
@@ -94,12 +106,13 @@ export default function EnvironmentMotion({
     resume();
     return () => {
       unsubscribeRotation?.();
+      unsubscribeSurface();
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("pointermove", move);
       gl.domElement.removeEventListener("webglcontextlost", lost);
       gl.domElement.removeEventListener("webglcontextrestored", restored);
     };
-  }, [active, autoRotate, rotationControl, scene, invalidate, gl]);
+  }, [active, autoRotate, rotationControl, scene, invalidate, gl, surfaceActivity]);
   return null;
 }

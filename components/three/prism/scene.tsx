@@ -17,6 +17,7 @@ import EnvironmentMotion from "./environment-motion";
 import PrismModel from "./prism-model";
 import { ContextLifecycle, SceneReadiness } from "./scene-lifecycle";
 import { qualityPresets } from "./quality-presets";
+import { smokeProgramKey, SurfaceActivity } from "./surface-smoke";
 
 const cameraSettings = { position: [3.9, 1.6, 6.62] as [number, number, number], fov: 38 };
 
@@ -28,12 +29,14 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
   const [lost, setLost] = useState(false);
   const [presented, setPresented] = useState(false);
   const [contextVersion, setContextVersion] = useState(0);
+  const [surfaceActivity] = useState(() => new SurfaceActivity());
+  const shaderVersion = smokeProgramKey();
 
-  // A quality change starts a fresh loading cycle.
+  // Shader edits also compile afresh. Their compile pause must not count as slow GPU frames.
   useLayoutEffect(() => {
     markPrismLoading();
     return clearPrismReadiness;
-  }, [quality]);
+  }, [quality, shaderVersion]);
   const sceneReady = useCallback(() => {
     if (graphicsQuality(useGraphicsPerformance.getState()) !== quality) return;
     markPrismReady(quality);
@@ -57,7 +60,7 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
       aria-label={
         debug
           ? "Interactive carbon-metal prism. Drag to orbit or pan."
-          : "Carbon-metal prism. Move the pointer to shift its environment reflections."
+          : "Carbon-metal prism. Move the pointer over its surface to reveal fading violet wisps."
       }
     >
       <Canvas
@@ -68,7 +71,9 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
         // Pause animation offscreen, but allow a resize/readiness refresh to draw.
         // Switching to "never" drops invalidations during mobile scroll re-entry.
         frameloop="demand"
-        dpr={[1, qualityPresets[quality].dpr]}
+        // Render at the selected quality, including supersampling on low-DPI screens.
+        // A [min, max] range instead clamps the device DPR (1.1 on some desktop scales).
+        dpr={qualityPresets[quality].dpr}
         camera={cameraSettings}
         // Readiness gates measurements; a quality refresh must not flash the preview.
         style={{ opacity: presented && !lost && !failed ? 1 : 0 }}
@@ -93,15 +98,20 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
           />
         )}
         <Suspense fallback={null}>
-          <PrismModel prismColor={debug ? color : prismDefaults.color} />
-          {!lost && <SceneReadiness key={`${quality}-${contextVersion}`} onReady={sceneReady} />}
-          {ready && (
-            <EnvironmentMotion
-              active={active}
-              autoRotate={debug ? autoRotate : prismDefaults.autoRotate}
-              rotationControl={debug ? environmentRotationControl : undefined}
-            />
-          )}
+          <PrismModel
+            key={shaderVersion}
+            active={active}
+            debug={debug}
+            activity={surfaceActivity}
+            prismColor={debug ? color : prismDefaults.color}
+          />
+          {!lost && <SceneReadiness key={`${quality}-${contextVersion}-${shaderVersion}`} onReady={sceneReady} />}
+          <EnvironmentMotion
+            active={active && ready}
+            surfaceActivity={surfaceActivity}
+            autoRotate={debug ? autoRotate : prismDefaults.autoRotate}
+            rotationControl={debug ? environmentRotationControl : undefined}
+          />
         </Suspense>
       </Canvas>
       {failed && (
