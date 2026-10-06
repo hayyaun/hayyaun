@@ -137,9 +137,13 @@ class SmokeWake {
 
 /** Shared with the environment so both effects use the same demand-render clock. */
 export class SurfaceActivity {
+  readonly version: string;
+  constructor(version = "") {
+    this.version = version;
+  }
+
   private until = 0;
   private wake = () => {};
-
   getUntil() {
     return this.until;
   }
@@ -276,7 +280,6 @@ export class SurfaceSmoke {
   private readonly startNormal = new Vector3();
   private readonly point = new Vector3();
   private readonly normal = new Vector3();
-
   setBounds(bounds: Box3) {
     this.clear();
     this.wake.setBounds(bounds);
@@ -403,7 +406,8 @@ let signature = 2166136261;
 for (const character of declarations +
   compileSurfaceSmoke.toString() +
   SurfaceSmoke.toString() +
-  SmokeWake.toString()) {
+  SmokeWake.toString() +
+  SurfaceActivity.toString()) {
   signature = Math.imul(signature ^ character.charCodeAt(0), 16777619);
 }
 export const smokeProgramKey = () => `prism-surface-smoke-${signature >>> 0}`;

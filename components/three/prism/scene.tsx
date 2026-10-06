@@ -2,7 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei/core/OrbitControls";
-import { Suspense, useCallback, useLayoutEffect, useState } from "react";
+import { Suspense, useCallback, useLayoutEffect, useMemo, useState } from "react";
 import {
   clearPrismReadiness,
   graphicsQuality,
@@ -29,8 +29,8 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
   const [lost, setLost] = useState(false);
   const [presented, setPresented] = useState(false);
   const [contextVersion, setContextVersion] = useState(0);
-  const [surfaceActivity] = useState(() => new SurfaceActivity());
   const shaderVersion = smokeProgramKey();
+  const surfaceActivity = useMemo(() => new SurfaceActivity(shaderVersion), [shaderVersion]);
 
   // Shader edits also compile afresh. Their compile pause must not count as slow GPU frames.
   useLayoutEffect(() => {
@@ -38,10 +38,11 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
     return clearPrismReadiness;
   }, [quality, shaderVersion]);
   const sceneReady = useCallback(() => {
+    if (surfaceActivity.version !== smokeProgramKey()) return;
     if (graphicsQuality(useGraphicsPerformance.getState()) !== quality) return;
     markPrismReady(quality);
     setPresented(true);
-  }, [quality]);
+  }, [quality, surfaceActivity]);
   const contextChanged = useCallback((contextLost: boolean) => {
     setLost(contextLost);
     if (contextLost) {
@@ -57,6 +58,7 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
     <div
       style={{ height: "100%", width: "100%", position: "relative" }}
       role="region"
+      data-presented={presented && !lost && !failed}
       aria-label={
         debug
           ? "Interactive carbon-metal prism. Drag to orbit or pan."
@@ -107,6 +109,7 @@ export default function Scene({ debug = false, active = true }: { debug?: boolea
           />
           {!lost && <SceneReadiness key={`${quality}-${contextVersion}-${shaderVersion}`} onReady={sceneReady} />}
           <EnvironmentMotion
+            key={`environment-${shaderVersion}`}
             active={active && ready}
             surfaceActivity={surfaceActivity}
             autoRotate={debug ? autoRotate : prismDefaults.autoRotate}

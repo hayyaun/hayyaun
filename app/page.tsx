@@ -109,7 +109,7 @@ export default function Home() {
           <div className="relative isolate mt-1.25 h-85 tablet:absolute tablet:top-0 tablet:-right-5 tablet:m-0 tablet:h-full tablet:w-[64%] desktop:w-[62%]">
             <div className="hero-prism-surface">
               <Image
-                src="/images/prism-dark2-cool.webp"
+                src="/images/prism-preview-v002.webp"
                 alt=""
                 fill
                 sizes="(max-width: 700px) 100vw, 60vw"

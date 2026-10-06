@@ -2,7 +2,7 @@
 
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef, type RefObject } from "react";
-import type { EnvironmentRotationControl } from "@/lib/prism-debug";
+import { prismInitialEnvironmentRotation, type EnvironmentRotationControl } from "@/lib/prism-debug";
 import type { SurfaceActivity } from "./surface-smoke";
 
 export default function EnvironmentMotion({
@@ -17,7 +17,7 @@ export default function EnvironmentMotion({
   surfaceActivity: SurfaceActivity;
 }) {
   const { scene, invalidate, gl } = useThree();
-  const automaticAngle = useRef(0);
+  const automaticAngle = useRef(prismInitialEnvironmentRotation[1]);
   useEffect(() => {
     if (!active) return;
     let angle = automaticAngle.current;

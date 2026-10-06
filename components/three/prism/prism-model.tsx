@@ -11,6 +11,7 @@ import { Reflector } from "three/addons/objects/Reflector.js";
 import { graphicsQuality, useGraphicsPerformance } from "@/lib/graphics-performance";
 import { qualityPresets } from "./quality-presets";
 import { smokeProgramKey, type SurfaceActivity } from "./surface-smoke";
+import { prismInitialEnvironmentRotation } from "@/lib/prism-debug";
 import { useSurfaceSmoke } from "./use-surface-smoke";
 
 const environmentVertex = /* glsl */ `
@@ -136,7 +137,13 @@ export default function PrismModel({
       <color attach="background" args={["white"]} />
       <ambientLight intensity={0.15} />
       <directionalLight position={[2, 8, -1.5]} intensity={0.5} color="#ffffff" />
-      <Environment key={quality} background={false} frames={1} resolution={preset.environment}>
+      <Environment
+        key={quality}
+        background={false}
+        frames={1}
+        resolution={preset.environment}
+        environmentRotation={prismInitialEnvironmentRotation}
+      >
         {environmentContent}
       </Environment>
       <group scale={scale} position={[-previewHeight * 0.008, -previewHeight * 0.025, 0]}>

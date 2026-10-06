@@ -22,6 +22,20 @@
     position: absolute;
     inset: 0;
   }
+  .prism-fallback {
+    z-index: 1;
+    pointer-events: none;
+    opacity: 1;
+  }
+  .hero-prism-surface:has(.hero-canvas [data-presented="true"]) .prism-fallback {
+    opacity: 0;
+    transition: opacity 1.6s ease-in-out;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .hero-prism-surface:has(.hero-canvas [data-presented="true"]) .prism-fallback {
+      transition: none;
+    }
+  }
   .hero-canvas {
     position: absolute;
     inset: 0;

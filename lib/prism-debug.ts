@@ -10,6 +10,8 @@ export type EnvironmentRotationControl = {
   subscribeDisplay: (listener: (degrees: [number, number, number]) => void) => () => void;
 };
 
+export const prismInitialEnvironmentRotation: [number, number, number] = [0, (105 * Math.PI) / 180, 0];
+
 export const prismDefaults = { color: "#8b82aa", autoRotate: true };
 
 // Shared by the homepage controls and the lazily loaded prism scene.

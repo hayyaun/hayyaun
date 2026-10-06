@@ -15,7 +15,13 @@ export function useSurfaceSmoke(
   const { camera, gl, invalidate, raycaster } = useThree();
   const quality = useGraphicsPerformance(graphicsQuality);
   const [smoke] = useState(() => new SurfaceSmoke());
-  const input = useRef({ x: 0, y: 0, pending: false, enabled: false, lastCast: -Infinity });
+  const input = useRef({
+    x: 0,
+    y: 0,
+    pending: false,
+    enabled: false,
+    lastCast: -Infinity,
+  });
   const pointer = useRef(new Vector2());
   const normal = useRef(new Vector3());
   const hits = useRef<Intersection[]>([]);
