@@ -22,6 +22,8 @@ export function useSurfaceSmoke(
     pending: false,
     enabled: false,
     lastCast: -Infinity,
+    touchId: null as number | null,
+    tap: false,
     ambientEnabled: false,
     ambientStart: -Infinity,
     ambientX: 0,
@@ -65,10 +67,12 @@ export function useSurfaceSmoke(
     };
     const stop = () => {
       state.pending = false;
+      state.touchId = null;
+      state.tap = false;
       buffer.breakStroke();
     };
     const sync = () => {
-      state.enabled = active && !document.hidden && !contextLost && !reduced.matches && hover.matches;
+      state.enabled = active && !document.hidden && !contextLost && !reduced.matches;
       state.ambientEnabled = active && ready && !document.hidden && !contextLost && !reduced.matches;
       state.ambientStart = -Infinity;
       scheduleAmbient(1800);
@@ -80,7 +84,8 @@ export function useSurfaceSmoke(
     const move = (event: PointerEvent) => {
       if (
         !state.enabled ||
-        event.pointerType === "touch" ||
+        (event.pointerType === "mouse" && !hover.matches) ||
+        (event.pointerType === "touch" && event.pointerId !== state.touchId) ||
         event.isPrimary === false ||
         event.target !== canvas ||
         (debug && event.buttons !== 0)
@@ -106,15 +111,33 @@ export function useSurfaceSmoke(
       contextLost = false;
       sync();
     };
-    const drag = () => {
+    const drag = (event: PointerEvent) => {
       if (debug) {
         stop();
         postponeAmbient();
+      } else if (state.enabled && event.pointerType === "touch" && event.isPrimary !== false) {
+        state.touchId = event.pointerId;
+        state.tap = true;
+        buffer.breakStroke();
+        move(event);
       }
+    };
+    const endTouch = (event: PointerEvent) => {
+      if (event.pointerId !== state.touchId) return;
+      state.touchId = null;
+      // A quick tap can end before the next frame. Preserve its queued dab.
+      if (!state.tap) state.pending = false;
+      buffer.breakStroke();
+    };
+    const out = (event: PointerEvent) => {
+      if (event.pointerType === "touch") endTouch(event);
+      else stop();
     };
     sync();
     window.addEventListener("pointermove", move, { passive: true });
-    window.addEventListener("pointerout", stop);
+    window.addEventListener("pointerout", out);
+    window.addEventListener("pointerup", endTouch, { passive: true });
+    window.addEventListener("pointercancel", stop, { passive: true });
     window.addEventListener("blur", stop);
     canvas.addEventListener("pointerdown", drag);
     canvas.addEventListener("webglcontextlost", lost);
@@ -129,9 +152,13 @@ export function useSurfaceSmoke(
       state.ambientStart = -Infinity;
       state.enabled = false;
       state.pending = false;
+      state.touchId = null;
+      state.tap = false;
       activity.setUntil(0);
       window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerout", stop);
+      window.removeEventListener("pointerout", out);
+      window.removeEventListener("pointerup", endTouch);
+      window.removeEventListener("pointercancel", stop);
       window.removeEventListener("blur", stop);
       canvas.removeEventListener("pointerdown", drag);
       canvas.removeEventListener("webglcontextlost", lost);
@@ -192,13 +219,12 @@ export function useSurfaceSmoke(
         // Three.js interpolates vertex normals here, keeping round corners continuous.
         normal.current.copy(hit.normal).normalize();
         mesh.worldToLocal(hit.point);
-        buffer.sample(
-          hit.point,
-          normal.current,
-          now - epoch.current,
-          quality === "low" ? 16 : quality === "medium" ? 24 : 32
-        );
+        const limit = quality === "low" ? 16 : quality === "medium" ? 24 : 32;
+        if (state.tap) buffer.dab(hit.point, normal.current, now - epoch.current, limit);
+        else buffer.sample(hit.point, normal.current, now - epoch.current, limit);
+        if (state.tap && state.touchId === null) buffer.breakStroke();
       } else buffer.breakStroke();
+      state.tap = false;
     }
     // Keep the fluid phase moving between gestures; only stroke ages reset to zero.
     const until = buffer.advance(now - epoch.current, now);

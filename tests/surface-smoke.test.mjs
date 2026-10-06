@@ -42,6 +42,26 @@ function maximumAlpha(smoke) {
   return maximum;
 }
 
+test("a single touch dab reveals smoke without needing a drag and fades completely", () => {
+  const smoke = boundedSmoke();
+  smoke.dab(at(0), front, 0);
+  smoke.advance(0.15);
+  assert.ok(maximumAlpha(smoke) > 0, "one contact paints a visible patch");
+  assert.equal(smoke.uniforms.uSmokeActive.value, 1);
+  smoke.advance(smokeLifetime + 0.01);
+  assertEmptyWake(smoke);
+  assert.equal(smoke.uniforms.uSmokeActive.value, 0);
+});
+
+test("separate taps do not draw a connecting stroke", () => {
+  const smoke = boundedSmoke();
+  smoke.dab(at(-0.4), front, 0);
+  smoke.dab(at(0.4), front, 0.1);
+  assert.equal(smoke.uniforms.uSmokeCount.value, 2);
+  assert.equal(smoke.uniforms.uSmokeNormals.value[0].w, 0);
+  assert.equal(smoke.uniforms.uSmokeNormals.value[1].w, 0);
+});
+
 test("idle mist fades in slowly, holds its density, then fades completely", () => {
   const smoke = boundedSmoke();
   smoke.sample(at(0), front, 0, 16, 0.45, true);

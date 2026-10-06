@@ -350,6 +350,13 @@ export class SurfaceSmoke {
     }
   }
 
+  dab(point: Vector3, normal: Vector3, now: number, limit = capacity) {
+    this.breakStroke();
+    this.sample(point, normal, now, limit);
+    // A tap has no second endpoint, so paint its contact patch explicitly.
+    this.wake.paint(point, normal, now, now, 1, false);
+  }
+
   private push(point: Vector3, normal: Vector3, now: number, connected: boolean, limit: number) {
     const { uSmokePoints: points, uSmokeNormals: normals, uSmokeCount: count } = this.uniforms;
     count.value = Math.min(count.value + 1, limit, capacity);
