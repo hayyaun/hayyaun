@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Box3, LinearFilter, Vector3 } from "three";
-import { SurfaceSmoke, smokeLifetime } from "../components/three/prism/surface-smoke.ts";
+import { SurfaceSmoke, smokeLifetime, ambientSmokeTiming } from "../components/three/prism/surface-smoke.ts";
 
 const front = new Vector3(0, 0, 1);
 const at = (x) => new Vector3(x, 0, 0);
@@ -41,6 +41,73 @@ function maximumAlpha(smoke) {
   for (let index = 3; index < data.length; index += 4) maximum = Math.max(maximum, data[index]);
   return maximum;
 }
+
+test("idle mist fades in slowly, holds its density, then fades completely", () => {
+  const smoke = boundedSmoke();
+  smoke.sample(at(0), front, 0, 16, 0.45, true);
+  smoke.sample(at(0.12), front, 0.1, 16, 0.45, true);
+  smoke.advance(0.15);
+  const early = maximumAlpha(smoke);
+  smoke.advance(0.65);
+  const rising = maximumAlpha(smoke);
+  smoke.advance(1.25);
+  const peak = maximumAlpha(smoke);
+  smoke.advance(1.85);
+  assert.ok(early < rising && rising < peak, "density builds gradually rather than popping in");
+  assert.equal(maximumAlpha(smoke), peak, "fully revealed mist stays visible through its hold");
+  smoke.advance(3.1);
+  assert.ok(maximumAlpha(smoke) < peak && maximumAlpha(smoke) > 0);
+  const lifetime = ambientSmokeTiming.fadeIn + ambientSmokeTiming.hold + ambientSmokeTiming.fadeOut;
+  smoke.advance(lifetime + 0.11);
+  assertEmptyWake(smoke);
+  assert.equal(smoke.uniforms.uSmokeActive.value, 0);
+});
+
+test("idle mist covers a wider area than a pointer stroke", () => {
+  const ambient = boundedSmoke();
+  const pointer = boundedSmoke();
+  for (const [smoke, idle] of [
+    [ambient, true],
+    [pointer, false],
+  ]) {
+    smoke.sample(at(0), front, 0, 16, 0.45, idle);
+    smoke.sample(at(0.12), front, 0.1, 16, 0.45, idle);
+    smoke.advance(idle ? 1.25 : 0.25);
+  }
+  const edge = new Vector3(0.06, 0.4, 0);
+  assert.ok(volumeCell(ambient, edge)[3] > volumeCell(pointer, edge)[3] * 2);
+});
+
+test("gentle autonomous strokes stay dimmer than pointer strokes and expire fully", () => {
+  const ambient = boundedSmoke();
+  const pointer = boundedSmoke();
+  for (const [smoke, strength] of [
+    [ambient, 0.45],
+    [pointer, 1],
+  ]) {
+    smoke.sample(at(0), front, 0, 16, strength);
+    smoke.sample(at(0.12), front, 0.1, 16, strength);
+    smoke.advance(0.25);
+  }
+  assert.ok(maximumAlpha(ambient) > 0);
+  assert.ok(maximumAlpha(ambient) < maximumAlpha(pointer) * 0.5);
+  ambient.advance(smokeLifetime + 0.11);
+  assertEmptyWake(ambient);
+  assert.equal(ambient.uniforms.uSmokeActive.value, 0);
+});
+
+test("a gentle stroke cannot erase a brighter pointer wake", () => {
+  const smoke = boundedSmoke();
+  smoke.sample(at(0), front, 0);
+  smoke.sample(at(0.12), front, 0.1);
+  smoke.advance(0.25);
+  const before = volumeCell(smoke, at(0.06))[3];
+  smoke.breakStroke();
+  smoke.sample(at(0), front, 0.26, 16, 0.45);
+  smoke.sample(at(0.12), front, 0.36, 16, 0.45);
+  smoke.advance(0.4);
+  assert.ok(volumeCell(smoke, at(0.06))[3] >= before * 0.98);
+});
 
 test("small movement accumulates from the last retained sample, rather than each pointer event", () => {
   const smoke = new SurfaceSmoke();

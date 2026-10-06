@@ -2,6 +2,8 @@ import { Box3, Data3DTexture, LinearFilter, RGBAFormat, Vector3, Vector4, type M
 
 const capacity = 32;
 export const smokeLifetime = 2.2;
+export const ambientSmokeTiming = { fadeIn: 1.1, hold: 1, fadeOut: 1.8 };
+const ambientLifetime = ambientSmokeTiming.fadeIn + ambientSmokeTiming.hold + ambientSmokeTiming.fadeOut;
 const spacing = 0.045;
 const volumeSize = [48, 48, 32] as const;
 
@@ -20,6 +22,7 @@ class SmokeWake {
   private readonly initial = new Uint8Array(this.strength.length);
   private readonly normals = new Int8Array((this.data.length / 4) * 3);
   private readonly birth = new Float64Array(this.strength.length);
+  private readonly ambient = new Uint8Array(this.strength.length);
   private readonly occupied = new Uint32Array(this.strength.length);
   private count = 0;
   private dirty = false;
@@ -52,7 +55,17 @@ class SmokeWake {
     for (let i = 3; i < this.data.length; i += 4) this.data[i] = 0;
   }
 
-  paint(point: Vector3, normal: Vector3, birth: number, now: number) {
+  private density(index: number, age: number) {
+    const fadeIn = this.ambient[index] ? ambientSmokeTiming.fadeIn : 0.1;
+    const fadeStart = this.ambient[index] ? ambientSmokeTiming.fadeIn + ambientSmokeTiming.hold : 0.3;
+    const lifetime = this.ambient[index] ? ambientLifetime : smokeLifetime;
+    return (
+      (this.initial[index] + (this.strength[index] - this.initial[index]) * smoothstep(0, fadeIn, age)) *
+      (1 - smoothstep(fadeStart, lifetime, age))
+    );
+  }
+
+  paint(point: Vector3, normal: Vector3, birth: number, now: number, strength: number, ambient: boolean) {
     const [width, height, depth] = volumeSize;
     const sx = this.extent.x / width,
       sy = this.extent.y / height,
@@ -60,7 +73,7 @@ class SmokeWake {
     const px = (point.x - this.min.x) / sx - 0.5;
     const py = (point.y - this.min.y) / sy - 0.5;
     const pz = (point.z - this.min.z) / sz - 0.5;
-    const radius = 0.46;
+    const radius = ambient ? 0.88 : 0.46;
     const x0 = Math.max(0, Math.ceil(px - radius / sx)),
       x1 = Math.min(width - 1, Math.floor(px + radius / sx));
     const y0 = Math.max(0, Math.ceil(py - radius / sy)),
@@ -76,15 +89,15 @@ class SmokeWake {
           const normalDistance = dx * normal.x + dy * normal.y + dz * normal.z;
           if (Math.abs(normalDistance) >= 0.16) continue;
           const tangentSquared = Math.max(0, dx * dx + dy * dy + dz * dz - normalDistance * normalDistance);
-          const footprint = Math.exp(-tangentSquared / 0.055) * (1 - smoothstep(0.035, 0.16, Math.abs(normalDistance)));
-          const candidate = Math.round(255 * footprint);
+          const footprint =
+            Math.exp(-tangentSquared / (ambient ? 0.2 : 0.055)) *
+            (1 - smoothstep(0.035, 0.16, Math.abs(normalDistance)));
+          const candidate = Math.round(255 * footprint * strength);
           if (candidate < 2) continue;
           const index = x + width * (y + height * z);
           if (this.strength[index] && birth < this.birth[index]) continue;
           const oldAge = Math.max(0, now - this.birth[index]);
-          const previous =
-            (this.initial[index] + (this.strength[index] - this.initial[index]) * smoothstep(0, 0.1, oldAge)) *
-            (1 - smoothstep(0.3, smokeLifetime, oldAge));
+          const previous = this.density(index, oldAge);
           if (candidate < previous) continue;
           if (!this.strength[index]) this.occupied[this.count++] = index;
           this.strength[index] = candidate;
@@ -92,6 +105,7 @@ class SmokeWake {
           // bright mist while their fade-in catches up.
           this.initial[index] = Math.round(previous);
           this.birth[index] = birth;
+          this.ambient[index] = ambient ? 1 : 0;
           this.normals[index * 3] = Math.round(normal.x * 127);
           this.normals[index * 3 + 1] = Math.round(normal.y * 127);
           this.normals[index * 3 + 2] = Math.round(normal.z * 127);
@@ -106,8 +120,8 @@ class SmokeWake {
     for (let slot = 0; slot < this.count; slot++) {
       const index = this.occupied[slot];
       const age = Math.max(0, now - this.birth[index]);
-      const ramp = this.initial[index] + (this.strength[index] - this.initial[index]) * smoothstep(0, 0.1, age);
-      const alpha = Math.round(ramp * (1 - smoothstep(0.3, smokeLifetime, age)));
+      const lifetime = this.ambient[index] ? ambientLifetime : smokeLifetime;
+      const alpha = Math.round(this.density(index, age));
       // Premultiply the signed normal by density before trilinear filtering.
       // Empty texels contribute zero direction, rather than an arbitrary back normal.
       for (let component = 0; component < 3; component++) {
@@ -121,11 +135,11 @@ class SmokeWake {
         this.data[index * 4 + 3] = alpha;
         this.dirty = true;
       }
-      if (age >= smokeLifetime) {
+      if (age >= lifetime) {
         this.strength[index] = 0;
         this.initial[index] = 0;
         this.occupied[slot--] = this.occupied[--this.count];
-      } else until = Math.max(until, this.birth[index] + smokeLifetime);
+      } else until = Math.max(until, this.birth[index] + lifetime);
     }
     if (this.dirty) {
       this.texture.needsUpdate = true;
@@ -301,7 +315,7 @@ export class SurfaceSmoke {
     this.breakStroke();
   }
 
-  sample(point: Vector3, normal: Vector3, now: number, limit = capacity) {
+  sample(point: Vector3, normal: Vector3, now: number, limit = capacity, strength = 1, ambient = false) {
     this.advance(now);
     const count = this.uniforms.uSmokeCount.value;
     const previous = this.uniforms.uSmokePoints.value[0];
@@ -324,7 +338,7 @@ export class SurfaceSmoke {
     // A resting pointer fades out; small jitter cannot keep refreshing a bright dot.
     if (distance < spacing) return;
     const startTime = previous.w;
-    this.wake.paint(this.start, this.startNormal, startTime, now);
+    this.wake.paint(this.start, this.startNormal, startTime, now, strength, ambient);
     const steps = Math.ceil(distance / 0.09);
     for (let step = 1; step <= steps; step++) {
       const t = step / steps;
@@ -332,7 +346,7 @@ export class SurfaceSmoke {
       this.normal.lerpVectors(this.startNormal, normal, t).normalize();
       const birth = startTime + (now - startTime) * t;
       this.push(this.point, this.normal, birth, true, limit);
-      this.wake.paint(this.point, this.normal, birth, now);
+      this.wake.paint(this.point, this.normal, birth, now, strength, ambient);
     }
   }
 

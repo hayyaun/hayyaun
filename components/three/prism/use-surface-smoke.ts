@@ -3,7 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { Vector2, Vector3, type Intersection, type Mesh, type MeshPhysicalMaterial } from "three";
-import { graphicsQuality, useGraphicsPerformance } from "@/lib/graphics-performance";
+import { graphicsQuality, isPrismReady, useGraphicsPerformance } from "@/lib/graphics-performance";
 import { compileSurfaceSmoke, SurfaceSmoke, type SurfaceActivity } from "./surface-smoke";
 
 export function useSurfaceSmoke(
@@ -14,6 +14,7 @@ export function useSurfaceSmoke(
 ) {
   const { camera, gl, invalidate, raycaster } = useThree();
   const quality = useGraphicsPerformance(graphicsQuality);
+  const ready = useGraphicsPerformance(isPrismReady);
   const [smoke] = useState(() => new SurfaceSmoke());
   const input = useRef({
     x: 0,
@@ -21,6 +22,10 @@ export function useSurfaceSmoke(
     pending: false,
     enabled: false,
     lastCast: -Infinity,
+    ambientEnabled: false,
+    ambientStart: -Infinity,
+    ambientX: 0,
+    ambientY: 0,
   });
   const pointer = useRef(new Vector2());
   const normal = useRef(new Vector3());
@@ -39,12 +44,34 @@ export function useSurfaceSmoke(
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const hover = window.matchMedia("(any-hover: hover) and (any-pointer: fine)");
     let contextLost = gl.getContext().isContextLost();
+    let ambientTimer: ReturnType<typeof setTimeout> | undefined;
+    const scheduleAmbient = (delay: number) => {
+      clearTimeout(ambientTimer);
+      if (!state.ambientEnabled) return;
+      ambientTimer = setTimeout(() => {
+        // Only enqueue a stroke here; raycasts use the existing scene clock.
+        state.ambientStart = -1;
+        state.ambientX = -0.42 + Math.random() * 0.12;
+        state.ambientY = -0.3 + Math.random() * 0.1;
+        buffer.breakStroke();
+        activity.request(performance.now() / 1000 + 1.5);
+        scheduleAmbient(3500 + Math.random() * 1500);
+      }, delay);
+    };
+    const postponeAmbient = () => {
+      state.ambientStart = -Infinity;
+      buffer.breakStroke();
+      scheduleAmbient(3500 + Math.random() * 1500);
+    };
     const stop = () => {
       state.pending = false;
       buffer.breakStroke();
     };
     const sync = () => {
       state.enabled = active && !document.hidden && !contextLost && !reduced.matches && hover.matches;
+      state.ambientEnabled = active && ready && !document.hidden && !contextLost && !reduced.matches;
+      state.ambientStart = -Infinity;
+      scheduleAmbient(1800);
       stop();
       buffer.clear();
       activity.setUntil(0);
@@ -65,6 +92,10 @@ export function useSurfaceSmoke(
       state.x = event.clientX;
       state.y = event.clientY;
       state.pending = true;
+      // Separate autonomous and pointer strokes, without wiping visible mist.
+      if (state.ambientStart !== -Infinity) buffer.breakStroke();
+      state.ambientStart = -Infinity;
+      scheduleAmbient(3500 + Math.random() * 1500);
       activity.request(performance.now() / 1000 + 0.1);
     };
     const lost = () => {
@@ -76,7 +107,10 @@ export function useSurfaceSmoke(
       sync();
     };
     const drag = () => {
-      if (debug) stop();
+      if (debug) {
+        stop();
+        postponeAmbient();
+      }
     };
     sync();
     window.addEventListener("pointermove", move, { passive: true });
@@ -90,6 +124,9 @@ export function useSurfaceSmoke(
     hover.addEventListener("change", sync);
     return () => {
       buffer.clear();
+      clearTimeout(ambientTimer);
+      state.ambientEnabled = false;
+      state.ambientStart = -Infinity;
       state.enabled = false;
       state.pending = false;
       activity.setUntil(0);
@@ -103,7 +140,7 @@ export function useSurfaceSmoke(
       reduced.removeEventListener("change", sync);
       hover.removeEventListener("change", sync);
     };
-  }, [active, activity, body, debug, gl, invalidate, smoke]);
+  }, [active, activity, body, debug, gl, invalidate, ready, smoke]);
 
   useEffect(() => () => smoke.dispose(), [smoke]);
 
@@ -113,6 +150,29 @@ export function useSurfaceSmoke(
     const buffer = smoke;
     const mesh = body.current;
     if (buffer.uniforms.uSmokeCount.value === 0 && buffer.uniforms.uSmokeActive.value === 0) epoch.current = now;
+    if (state.ambientEnabled && state.ambientStart !== -Infinity && mesh && now - state.lastCast >= 1 / 30) {
+      if (state.ambientStart === -1) state.ambientStart = now;
+      const t = (now - state.ambientStart) / 1.35;
+      if (t > 1) {
+        state.ambientStart = -Infinity;
+        buffer.breakStroke();
+      } else {
+        state.lastCast = now;
+        // Spread the mist across a wider curved region of the visible face.
+        pointer.current.set(state.ambientX + t * 0.4, state.ambientY + t * 0.43 + Math.sin(t * Math.PI) * 0.06);
+        camera.updateWorldMatrix(true, false);
+        mesh.updateWorldMatrix(true, false);
+        raycaster.setFromCamera(pointer.current, camera);
+        hits.current.length = 0;
+        raycaster.intersectObject(mesh, false, hits.current);
+        const hit = hits.current[0];
+        if (hit?.normal) {
+          normal.current.copy(hit.normal).normalize();
+          mesh.worldToLocal(hit.point);
+          buffer.sample(hit.point, normal.current, now - epoch.current, 16, 0.95, true);
+        } else buffer.breakStroke();
+      }
+    }
     if (state.enabled && state.pending && mesh && now - state.lastCast >= 1 / 30) {
       state.lastCast = now;
       state.pending = false;
@@ -142,7 +202,9 @@ export function useSurfaceSmoke(
     }
     // Keep the fluid phase moving between gestures; only stroke ages reset to zero.
     const until = buffer.advance(now - epoch.current, now);
-    activity.setUntil(Math.max(state.pending ? now + 0.1 : 0, until ? until + epoch.current : 0));
+    activity.setUntil(
+      Math.max(state.pending || state.ambientStart !== -Infinity ? now + 0.1 : 0, until ? until + epoch.current : 0)
+    );
   });
 
   return useCallback<MeshPhysicalMaterial["onBeforeCompile"]>(
