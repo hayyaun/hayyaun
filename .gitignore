@@ -46,4 +46,4 @@ next-env.d.ts
 # Public configuration template
 !.env.example
 
-/assets/me.mp4
+/assets/
