@@ -7,11 +7,15 @@ clears keyboard selection. Mouse clicks do not pin cards open.
 Skill names and technologies are server-rendered; mobile shows all descriptions.
 
 The portrait uses the original 4K footage from `assets/me.mp4`, including natural
-blinks. Four short native loops are buffered when the portrait enters view.
-Only the selected loop plays. Switching cards changes the visible layer directly,
-with a 180ms fade and no timeline seeking, speed changes, or queue of head turns.
-Late playback promises cannot restart an obsolete pose. Seam fades are encoded
-offline so loop boundaries do not jump.
+blinks and body movement. Four held-pose loops and six recorded turn clips are
+buffered when the portrait enters view. Selecting a card plays the recorded turn
+from center before entering the held pose. Leaving plays the recorded return.
+Switching between cards returns through center. A turn finishes at normal speed;
+only the latest requested target is retained, so rapid hovering cannot accumulate
+a queue of turns. Only one video plays at a time. An 80ms fade starts after the
+next clip has a decoded frame, keeping the prior frame visible during buffering.
+Late playback promises cannot restart an obsolete clip. Held-loop seam fades
+are encoded offline.
 
 Videos load only when the portrait is visible, pause offscreen and in hidden tabs,
 and stay unloaded under reduced motion or Save-Data. Each pose has a matching
@@ -36,6 +40,12 @@ python3 scripts/prepare-portrait.py \
   --model /path/to/rvm_mobilenetv3_fp32.onnx \
   --superres-model /path/to/FSRCNN_x2.pb
 # Optional: export one pose using --pose idle|left|middle|right.
+# Recorded turns: repeat for left-in, left-out, middle-in, middle-out, right-in, right-out.
+python3 scripts/prepare-portrait.py \
+  --model /path/to/rvm_mobilenetv3_fp32.onnx \
+  --superres-model /path/to/FSRCNN_x2.pb \
+  --turn left-in --output public/portrait/turns \
+  --scratch output/portrait/turns/frames
 ```
 
 The matting model removes the curtain before encoding. MP4 is composited on white
@@ -43,4 +53,10 @@ for broad browser support; CSS multiply blending lets the white disappear into
 the section's subtle background. The poster retains its alpha channel. Keep the
 section background light; a dark theme would need a transparent video encoding
 or another compositor. Intermediate lossless clips and comparisons remain ignored
-in `output/portrait`. Final assets are in `public/portrait/v2`.
+in `output/portrait`. Held assets are in `public/portrait/v2`; turns are in
+`public/portrait/turns`. The script records the source cut points. All clips use
+the same crop, scale, matting, and enhancement; no face or motion is generated.
+
+Desktop side cards sit 90px higher to match the recorded upward glance. The
+ring's lower arc fades out before the hands fade, avoiding a visible line through
+the hands. Mobile cards remain stacked below the portrait.

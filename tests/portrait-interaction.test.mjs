@@ -4,7 +4,6 @@ import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 
-const poses = ["idle", "left", "middle", "right"];
 const jsx = (type, props) => ({ type, props });
 const flush = async () => {
   for (let i = 0; i < 5; i++) await Promise.resolve();
@@ -27,8 +26,11 @@ function compile(filename, imports) {
     queueMicrotask,
     DOMException,
   });
-  return sandboxModule.exports.default;
+  return sandboxModule.exports.default ?? sandboxModule.exports;
 }
+
+const motion = compile("../lib/portrait-motion.ts", {});
+const clipIds = motion.portraitClips.map((clip) => clip.id);
 
 function walk(tree, predicate) {
   if (!tree || typeof tree !== "object") return undefined;
@@ -104,13 +106,13 @@ function skillHarness() {
   };
 }
 
-function playerHarness({ motion = true, saveData = false } = {}) {
+function playerHarness({ motion: animate = true, saveData = false } = {}) {
   const h = hooks();
   const players = new Map();
   const motionListeners = new Set(),
     visibilityListeners = new Set();
   const media = {
-    matches: !motion,
+    matches: !animate,
     addEventListener: (_, fn) => motionListeners.add(fn),
     removeEventListener: (_, fn) => motionListeners.delete(fn),
   };
@@ -140,7 +142,7 @@ function playerHarness({ motion = true, saveData = false } = {}) {
         react: h.react,
         "react/jsx-runtime": { jsx, jsxs: jsx },
         "next/image": () => {},
-        "@/lib/portrait-motion": { portraitPoses: poses, portraitAssetBase: "/portrait/v2" },
+        "@/lib/portrait-motion": motion,
       })[name],
     window: { matchMedia: () => media },
     navigator: { connection: { saveData } },
@@ -161,16 +163,29 @@ function playerHarness({ motion = true, saveData = false } = {}) {
     const tree = sandboxModule.exports.default({ direction });
     if (mount) {
       tree.props.ref.current = { setAttribute: (key, value) => attributes.set(key, value) };
-      for (const pose of poses) {
+      for (const pose of clipIds) {
         const calls = [],
           frames = new Map(),
-          attrs = new Map();
+          attrs = new Map(),
+          listeners = new Map();
         const video = {
           paused: true,
+          readyState: 4,
+          currentTime: 0,
           loads: 0,
           frames,
           calls,
           attrs,
+          addEventListener(event, fn) {
+            listeners.set(event, fn);
+          },
+          removeEventListener(event) {
+            listeners.delete(event);
+          },
+          finish() {
+            this.paused = true;
+            listeners.get("ended")?.();
+          },
           getAttribute(key) {
             return key === "src" ? this.src : attrs.get(key);
           },
@@ -210,6 +225,18 @@ function playerHarness({ motion = true, saveData = false } = {}) {
     players,
     attributes,
     select: render,
+    async present(key) {
+      const video = players.get(key);
+      video.calls.at(-1).resolve();
+      await flush();
+      for (const [id, fn] of video.frames) {
+        video.frames.delete(id);
+        fn();
+      }
+    },
+    finish(key) {
+      players.get(key).finish();
+    },
     visible(value) {
       observer([{ isIntersecting: value }]);
     },
@@ -250,34 +277,70 @@ test("mouse clicks do not pin a card; touch toggles and keyboard focus remains a
   assert.equal(ui.stage()["data-active"], "idle");
 });
 
-test("late playback completion cannot restart a pose after rapid hover changes", async () => {
+test("recorded turns lead into the held pose and return to idle", async () => {
+  for (const direction of ["left", "middle", "right"]) {
+    const p = playerHarness();
+    p.visible(true);
+    await p.present("idle");
+    p.select(direction);
+    assert.equal(p.attributes.get("data-pose"), "idle", "retain previous decoded frame until ready");
+    await p.present(`${direction}-in`);
+    assert.equal(p.attributes.get("data-pose"), `${direction}-in`);
+    p.finish(`${direction}-in`);
+    await p.present(direction);
+    assert.equal(p.attributes.get("data-pose"), direction);
+    assert.equal(p.players.get(`${direction}-in`).paused, true);
+    p.select(null);
+    await p.present(`${direction}-out`);
+    p.finish(`${direction}-out`);
+    await p.present("idle");
+    assert.equal(p.attributes.get("data-pose"), "idle");
+  }
+});
+
+test("rapid card changes finish the current turn and use only the latest target", async () => {
   const p = playerHarness();
   p.visible(true);
   p.select("left");
+  await p.present("left-in");
+  p.select("middle");
+  p.select(null);
   p.select("right");
-  p.players.get("left").calls[0].resolve();
-  p.players.get("right").calls[0].resolve();
-  await flush();
+  p.finish("left-in");
+  await p.present("left-out");
+  p.finish("left-out");
+  await p.present("right-in");
+  p.finish("right-in");
+  await p.present("right");
   assert.equal(p.attributes.get("data-pose"), "right");
-  assert.equal(p.players.get("left").paused, true);
+  assert.equal(p.players.get("middle-in").calls.length, 0);
+  assert.equal(p.players.get("left").calls.length, 0);
+  assert.equal(p.players.get("left-out").calls.length, 1);
   assert.equal(p.players.get("right").paused, false);
 });
 
-test("rapid leave-and-return retries an interrupted play for the latest pose", async () => {
+test("late playback completion cannot revive a turn in a hidden tab", async () => {
   const p = playerHarness();
   p.visible(true);
   p.select("left");
-  p.select("right");
-  p.select("left");
-  p.players.get("left").calls[0].reject(new DOMException("Interrupted", "AbortError"));
-  await flush();
-  assert.equal(p.players.get("left").calls.length, 2);
-  p.players.get("left").calls[1].resolve();
-  await flush();
-  assert.equal(p.players.get("left").paused, false);
-  assert.equal(p.players.get("right").paused, true);
+  p.hidden(true);
+  await p.present("left-in");
+  assert.equal(p.attributes.get("data-pose"), "idle");
+  assert.equal(p.players.get("left-in").paused, true);
 });
 
+test("an interrupted play retries the active recorded turn", async () => {
+  const p = playerHarness();
+  p.visible(true);
+  p.select("left");
+  p.players.get("left-in").paused = true;
+  p.players.get("left-in").calls[0].reject(new DOMException("Interrupted", "AbortError"));
+  await flush();
+  assert.equal(p.players.get("left-in").calls.length, 2);
+  await p.present("left-in");
+  assert.equal(p.players.get("left-in").paused, false);
+  assert.equal(p.attributes.get("data-pose"), "left-in");
+});
 test("reduced motion and Save-Data keep video unloaded; hidden and offscreen pause every pose", () => {
   for (const options of [{ motion: false }, { saveData: true }]) {
     const p = playerHarness(options);

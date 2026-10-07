@@ -15,6 +15,7 @@ parser.add_argument("--source", default="assets/me.mp4")
 parser.add_argument("--output", default="public/portrait/v2")
 parser.add_argument("--scratch", default="output/portrait/v2")
 parser.add_argument("--pose", choices=["idle", "left", "middle", "right"])
+parser.add_argument("--turn", choices=["left-in", "left-out", "middle-in", "middle-out", "right-in", "right-out"], help="Export one recorded turn instead of a loop")
 args = parser.parse_args()
 out, scratch = Path(args.output), Path(args.scratch)
 out.mkdir(parents=True, exist_ok=True)
@@ -28,11 +29,17 @@ enhancer.readModel(args.superres_model)
 enhancer.setModel("fsrcnn", 2)
 # Source timestamps with stable poses and real blinks; no talking/head turns.
 segments = {"idle": (5.2, 4.0), "left": (11.5, 4.8), "middle": (25.5, 5.0), "right": (40.5, 5.0)}
+if args.turn:
+    segments = {args.turn: {
+        "left-in": (9.45, 1.15), "left-out": (17.95, 0.9),
+        "middle-in": (24.35, 1.15), "middle-out": (32.4, 1.2),
+        "right-in": (39.25, 1.15), "right-out": (48.35, 0.9),
+    }[args.turn]}
 width, height, target = 800, 960, (960, 1152)
 fps, overlap = 30, 0.2
 
 for pose, (start, duration) in segments.items():
-    if args.pose and args.pose != pose:
+    if args.pose and not args.turn and args.pose != pose:
         continue
     states = [np.zeros((1, 1, 1, 1), dtype=np.float32) for _ in range(4)]
     lossless = scratch / f"{pose}.mkv"
@@ -67,7 +74,7 @@ for pose, (start, duration) in segments.items():
             matte = cv2.resize(alpha[0, 0], target, interpolation=cv2.INTER_LINEAR).clip(0, 1)
             if count == 6:
                 rgba = np.dstack([enhanced, (matte * 255).astype(np.uint8)])
-                Image.fromarray(rgba).save(out / f"{pose}.webp", quality=94, method=6)
+                Image.fromarray(rgba).save((scratch if args.turn else out) / f"{pose}.webp", quality=94, method=6)
                 if pose == "idle":
                     baseline = cv2.resize(native, target, interpolation=cv2.INTER_LANCZOS4)
                     Image.fromarray(baseline).save(scratch / "native-comparison.png")
@@ -83,8 +90,8 @@ for pose, (start, duration) in segments.items():
     if reader.wait() != 0 or writer.wait() != 0:
         raise RuntimeError(f"FFmpeg failed for {pose}")
     actual = count / fps
-    # End on the same held pose as the start, without a visible looping jump.
-    graph = (
+    # Turns play once in recorded order; only held poses need an offline seam fade.
+    graph = "[0:v]setpts=PTS-STARTPTS[out]" if args.turn else (
         f"[0:v]split[body][head];"
         f"[body]trim=start={overlap},setpts=PTS-STARTPTS,settb=AVTB[body];"
         f"[head]trim=end={overlap},setpts=PTS-STARTPTS,settb=AVTB[head];"
