@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type PointerEvent } from "react";
+import { useRef, useState } from "react";
 import PortraitPlayer from "@/components/portrait-player";
-import { portraitRegion, type PortraitDirection } from "@/lib/portrait-motion";
+import { type PortraitDirection } from "@/lib/portrait-motion";
 
 const skills = [
   {
@@ -35,19 +35,11 @@ const skills = [
 ] as const;
 
 export default function PortraitSkills() {
-  const [active, setActive] = useState<PortraitDirection | null>(null);
-  const focused = useRef<PortraitDirection | null>(null);
-  const lastRegion = useRef<PortraitDirection | null>(null);
-
-  function move(event: PointerEvent<HTMLDivElement>) {
-    if (event.pointerType !== "mouse" || focused.current) return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    const next = portraitRegion((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
-    if (lastRegion.current !== next) {
-      lastRegion.current = next;
-      setActive(next);
-    }
-  }
+  const [hovered, setHovered] = useState<PortraitDirection | null>(null);
+  const [focused, setFocused] = useState<PortraitDirection | null>(null);
+  const [tapped, setTapped] = useState<PortraitDirection | null>(null);
+  const pointerType = useRef("mouse");
+  const active = focused ?? hovered ?? tapped;
 
   return (
     <section className="portrait-section page-width border-b border-line" aria-labelledby="portrait-title">
@@ -62,15 +54,7 @@ export default function PortraitSkills() {
           <span aria-hidden="true">↖</span> Explore what I work with.
         </p>
       </div>
-      <div
-        className="portrait-stage"
-        data-active={active ?? "idle"}
-        onPointerMove={move}
-        onPointerLeave={() => {
-          lastRegion.current = null;
-          if (!focused.current) setActive(null);
-        }}
-      >
+      <div className="portrait-stage" data-active={active ?? "idle"}>
         <div className="portrait-orbit" aria-hidden="true" />
         <div className="portrait-person">
           <PortraitPlayer direction={active} />
@@ -81,29 +65,35 @@ export default function PortraitSkills() {
               key={skill.id}
               className={`portrait-skill portrait-skill-${skill.id}`}
               data-selected={active === skill.id}
+              onPointerEnter={(event) => {
+                if (event.pointerType === "touch") return;
+                setTapped(null);
+                setHovered(skill.id);
+              }}
+              onPointerLeave={() => setHovered(null)}
             >
               <button
                 type="button"
                 className="portrait-trigger"
                 aria-pressed={active === skill.id}
                 aria-controls={`portrait-detail-${skill.id}`}
-                onFocus={() => {
-                  // Mouse clicks must not pin the keyboard's selection.
-                  focused.current = document.activeElement?.matches(":focus-visible") ? skill.id : null;
-                  setActive(skill.id);
+                onFocus={(event) => {
+                  if (event.currentTarget.matches(":focus-visible")) setFocused(skill.id);
                 }}
-                onBlur={() => {
-                  focused.current = null;
-                  setActive(null);
+                onBlur={() => setFocused(null)}
+                onPointerDown={(event) => {
+                  pointerType.current = event.pointerType;
+                  if (event.pointerType === "mouse") setFocused(null);
                 }}
-                onPointerEnter={(event) => {
-                  if (event.pointerType === "mouse" && !focused.current) setActive(skill.id);
+                onClick={() => {
+                  if (pointerType.current !== "mouse")
+                    setTapped((previous) => (previous === skill.id ? null : skill.id));
                 }}
-                onClick={() => setActive(skill.id)}
                 onKeyDown={(event) => {
                   if (event.key === "Escape") {
                     event.currentTarget.blur();
-                    setActive(null);
+                    setFocused(null);
+                    setTapped(null);
                   }
                 }}
               >
