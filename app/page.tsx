@@ -1,4 +1,6 @@
 import "./styles/home.css";
+import "./styles/portrait.css";
+import PortraitSkills from "@/components/portrait-skills";
 import Arrow from "@/components/ui/arrow";
 import CapabilityCard from "@/components/ui/capability-card";
 import { serializeJsonLd } from "@/lib/json-ld";
@@ -123,6 +125,7 @@ export default function Home() {
             <HeroSlogan />
           </div>
         </section>
+        <PortraitSkills />
         <section
           id="work"
           className="page-width grid gap-9.5 border-b border-line py-12 tablet:relative tablet:grid-cols-12 tablet:gap-x-0 tablet:gap-y-10 tablet:pt-16.25 tablet:pb-13.75 desktop:gap-y-12.5"

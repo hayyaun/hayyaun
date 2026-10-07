@@ -13,6 +13,9 @@
 # testing
 /coverage
 
+# Reproducible intermediate portrait frames; final assets live in public/portrait.
+/output/portrait/
+
 # next.js
 /.next/
 /out/
@@ -42,3 +45,5 @@ next-env.d.ts
 
 # Public configuration template
 !.env.example
+
+/assets/me.mp4

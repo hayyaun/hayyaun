@@ -1,0 +1,265 @@
+@layer components {
+  .portrait-section {
+    padding-block: 64px 28px;
+  }
+  .portrait-instruction {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .portrait-instruction > span {
+    color: var(--color-accent);
+    font-size: 24px;
+  }
+  .portrait-stage {
+    position: relative;
+    isolation: isolate;
+    margin-top: 28px;
+    padding-top: 12px;
+  }
+  .portrait-person {
+    position: relative;
+    width: 280px;
+    margin: 0 auto;
+    z-index: 1;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+  }
+  .portrait-media {
+    position: relative;
+    aspect-ratio: 5 / 6;
+    mask-image: linear-gradient(#000 87%, transparent);
+  }
+  .portrait-still,
+  .portrait-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .portrait-snapshot {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+  .portrait-snapshot[data-visible] {
+    opacity: 1;
+    transition: none;
+  }
+  .portrait-video {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 300ms var(--ease-interaction);
+  }
+  .portrait-media[data-playing] .portrait-video {
+    opacity: 1;
+  }
+  .portrait-media[data-playing] .portrait-still {
+    visibility: hidden;
+  }
+  .portrait-orbit {
+    position: absolute;
+    width: 280px;
+    height: 280px;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 1px solid var(--color-line);
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--color-surface), transparent 70%);
+    z-index: -1;
+  }
+  .portrait-skills {
+    display: grid;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .portrait-skill {
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    background: var(--color-background);
+    transition:
+      background 400ms var(--ease-interaction),
+      border-color 400ms var(--ease-interaction),
+      transform 400ms var(--ease-interaction);
+  }
+  .portrait-skill[data-selected="true"] {
+    border-color: var(--color-surface-border);
+    background: var(--color-surface);
+    transform: translateY(-3px);
+  }
+  .portrait-trigger {
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px 1fr 28px;
+    gap: 8px;
+    width: 100%;
+    padding: 18px 20px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 14px;
+  }
+  .portrait-trigger:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 4px;
+  }
+  .portrait-skill-number {
+    padding-top: 4px;
+    font-size: var(--text-tiny);
+    color: var(--color-subtle);
+  }
+  .portrait-skill-title {
+    font-size: 22px;
+    letter-spacing: -0.04em;
+    line-height: 1.2;
+  }
+  .portrait-skill-icon {
+    display: grid;
+    place-items: center;
+    font-size: 23px;
+    color: var(--color-accent);
+  }
+  .portrait-tools {
+    grid-column: 2 / 4;
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 11px;
+    color: var(--color-subtle);
+  }
+  .portrait-detail {
+    padding: 0 20px 20px 56px;
+  }
+  .portrait-skill-description {
+    font-size: 14px;
+    letter-spacing: -0.025em;
+  }
+  .portrait-skill-copy {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--color-subtle);
+    line-height: 1.6;
+  }
+  .portrait-signature {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 28px;
+    font-family: var(--font-geist-mono), monospace;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+  .portrait-status {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+  }
+
+  @media (min-width: 701px) {
+    .portrait-section {
+      padding-block: 72px 36px;
+    }
+    .portrait-stage {
+      height: 640px;
+      margin-top: 34px;
+      padding-top: 0;
+    }
+    .portrait-person {
+      position: absolute;
+      width: 380px;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .portrait-orbit {
+      width: 440px;
+      height: 440px;
+      top: 155px;
+    }
+    .portrait-skills {
+      display: contents;
+    }
+    .portrait-skill {
+      position: absolute;
+      z-index: 2;
+      width: clamp(205px, 24%, 280px);
+      background: color-mix(in srgb, var(--color-background) 94%, transparent);
+    }
+    .portrait-skill-left {
+      left: 0;
+      top: 230px;
+    }
+    .portrait-skill-middle {
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+    }
+    .portrait-skill-right {
+      right: 0;
+      top: 230px;
+    }
+    .portrait-skill-middle[data-selected="true"] {
+      transform: translate(-50%, -3px);
+    }
+    .portrait-detail {
+      display: grid;
+      grid-template-rows: 0fr;
+      padding: 0 20px;
+      visibility: hidden;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition:
+        opacity 300ms ease,
+        max-height 400ms var(--ease-interaction),
+        padding 400ms var(--ease-interaction),
+        visibility 300ms;
+    }
+    .portrait-skill[data-selected="true"] .portrait-detail {
+      max-height: 140px;
+      padding: 0 20px 20px;
+      visibility: visible;
+      opacity: 1;
+    }
+    .portrait-signature {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      margin: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .portrait-skill,
+    .portrait-detail,
+    .portrait-video {
+      transition: none;
+    }
+    .portrait-skill[data-selected="true"] {
+      transform: none;
+    }
+    .portrait-skill-middle[data-selected="true"] {
+      transform: translateX(-50%);
+    }
+    .portrait-video,
+    .portrait-snapshot {
+      display: none;
+    }
+    .portrait-media[data-playing] .portrait-still {
+      visibility: visible;
+    }
+  }
+  @media (forced-colors: active) {
+    .portrait-person {
+      mix-blend-mode: normal;
+    }
+    .portrait-orbit {
+      display: none;
+    }
+    .portrait-skill[data-selected="true"] {
+      border-color: Highlight;
+    }
+  }
+}
