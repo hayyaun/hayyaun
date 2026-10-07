@@ -26,11 +26,15 @@ export default function PortraitPlayer({ direction }: { direction: PortraitDirec
     const callbacks = new Map<PortraitClip, number>();
     const pending = new Set<PortraitClip>();
     let active: PortraitClip = "idle";
+    let presented: PortraitClip = "idle";
     let visible = false;
     let disposed = false;
 
     function allowed() {
       return !disposed && visible && !document.hidden && !reducedMotion.matches && !connection?.saveData;
+    }
+    function clearPrevious() {
+      for (const video of players.values()) video.parentElement?.removeAttribute("data-previous");
     }
     function load(key: PortraitClip, video: HTMLVideoElement) {
       if (!video.getAttribute("src")) {
@@ -56,6 +60,12 @@ export default function PortraitPlayer({ direction }: { direction: PortraitDirec
             callbacks.delete(key);
             if (!allowed() || active !== key) return;
             video.setAttribute("data-ready", "true");
+            if (key !== presented) {
+              clearPrevious();
+              // Fade the incoming clip over a fully opaque decoded frame.
+              players.get(presented)?.parentElement?.setAttribute("data-previous", "true");
+              presented = key;
+            }
             container?.setAttribute("data-pose", key);
           };
           // Keep the previous decoded frame visible until the next clip is ready.
@@ -90,6 +100,8 @@ export default function PortraitPlayer({ direction }: { direction: PortraitDirec
     function sync() {
       if (!allowed()) {
         active = "idle";
+        presented = "idle";
+        clearPrevious();
         container?.setAttribute("data-pose", "idle");
         for (const video of players.values()) video.pause();
         return;
@@ -124,6 +136,7 @@ export default function PortraitPlayer({ direction }: { direction: PortraitDirec
     document.addEventListener("visibilitychange", sync);
     return () => {
       disposed = true;
+      clearPrevious();
       select.current = () => {};
       observer.disconnect();
       reducedMotion.removeEventListener("change", sync);

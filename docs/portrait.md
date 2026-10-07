@@ -14,6 +14,9 @@ Switching between cards returns through center. A turn finishes at normal speed;
 only the latest requested target is retained, so rapid hovering cannot accumulate
 a queue of turns. Only one video plays at a time. An 80ms fade starts after the
 next clip has a decoded frame, keeping the prior frame visible during buffering.
+The outgoing frame stays fully opaque beneath the incoming fade, so compositing
+cannot expose the background or briefly wash out the portrait. Video visibility
+changes immediately when decoded; only the incoming pose layer fades.
 Late playback promises cannot restart an obsolete clip. Held-loop seam fades
 are encoded offline.
 

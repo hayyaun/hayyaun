@@ -167,6 +167,7 @@ function playerHarness({ motion: animate = true, saveData = false } = {}) {
         const calls = [],
           frames = new Map(),
           attrs = new Map(),
+          layerAttrs = new Map(),
           listeners = new Map();
         const video = {
           paused: true,
@@ -176,6 +177,11 @@ function playerHarness({ motion: animate = true, saveData = false } = {}) {
           frames,
           calls,
           attrs,
+          layerAttrs,
+          parentElement: {
+            setAttribute: (key, value) => layerAttrs.set(key, value),
+            removeAttribute: (key) => layerAttrs.delete(key),
+          },
           addEventListener(event, fn) {
             listeners.set(event, fn);
           },
@@ -286,15 +292,20 @@ test("recorded turns lead into the held pose and return to idle", async () => {
     assert.equal(p.attributes.get("data-pose"), "idle", "retain previous decoded frame until ready");
     await p.present(`${direction}-in`);
     assert.equal(p.attributes.get("data-pose"), `${direction}-in`);
+    assert.equal(p.players.get("idle").layerAttrs.get("data-previous"), "true");
     p.finish(`${direction}-in`);
     await p.present(direction);
     assert.equal(p.attributes.get("data-pose"), direction);
+    assert.equal(p.players.get("idle").layerAttrs.has("data-previous"), false);
+    assert.equal(p.players.get(`${direction}-in`).layerAttrs.get("data-previous"), "true");
     assert.equal(p.players.get(`${direction}-in`).paused, true);
     p.select(null);
     await p.present(`${direction}-out`);
     p.finish(`${direction}-out`);
     await p.present("idle");
     assert.equal(p.attributes.get("data-pose"), "idle");
+    p.motion(false);
+    for (const video of p.players.values()) assert.equal(video.layerAttrs.has("data-previous"), false);
   }
 });
 

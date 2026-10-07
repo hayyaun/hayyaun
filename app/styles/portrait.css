@@ -42,8 +42,11 @@
     width: 100%;
     height: 100%;
     opacity: 0;
-    transition: opacity 80ms ease;
     pointer-events: none;
+  }
+  .portrait-pose[data-previous] {
+    opacity: 1;
+    z-index: 0;
   }
   .portrait-media[data-pose="idle"] .portrait-pose[data-pose="idle"],
   .portrait-media[data-pose="left"] .portrait-pose[data-pose="left"],
@@ -57,12 +60,12 @@
   .portrait-media[data-pose="right-out"] .portrait-pose[data-pose="right-out"] {
     opacity: 1;
     z-index: 1;
+    transition: opacity 80ms ease;
   }
   .portrait-video {
     position: absolute;
     inset: 0;
     opacity: 0;
-    transition: opacity 80ms ease;
   }
   .portrait-video[data-ready] {
     opacity: 1;
