@@ -4,7 +4,7 @@ import { posts, postDate } from "@/lib/posts";
 
 const title = "Blog — Notes on building for the web";
 const description =
-  "Practical notes on frontend architecture, accessible interfaces, CSS, motion, and interactive 3D, with small experiments you can try.";
+  "Practical notes on frontend architecture, accessible interfaces, CSS, motion, interactive 3D, and developer tools, with examples you can try.";
 export const metadata: Metadata = {
   title,
   description,

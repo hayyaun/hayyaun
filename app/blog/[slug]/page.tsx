@@ -16,6 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: post.title,
     description: post.description,
+    keywords: [...post.tags],
     alternates: { canonical: `/blog/${post.slug}`, types: { "application/rss+xml": "/rss.xml" } },
     openGraph: {
       type: "article",
@@ -24,6 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: `/blog/${post.slug}`,
       publishedTime: post.date,
       authors: [site.name],
+      tags: [...post.tags],
       images: ["/opengraph-image.png"],
     },
     twitter: {

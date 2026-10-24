@@ -1,0 +1,194 @@
+Switching between development projects often means repeating a small checklist: stop the previous application's processes, resume the next database, wait for it to become usable, open a development terminal, and find the right browser tab. Docker Compose describes the containers, but that checklist can also include commands running on the host.
+
+[dwork](https://github.com/hayyaun/dwork) records that workspace routine in a local configuration. It resumes existing Compose containers, waits for configured Docker health checks, launches approved terminal commands, and opens application URLs when they respond.
+
+This walkthrough uses two independent projects and shows the boundary between their initial setup and everyday switching. The repository's [Get started section and demo](https://github.com/hayyaun/dwork#get-started) links a 42-second overview of the workflow. The steps below explain the configuration and lifecycle without requiring the video.
+
+## Start with two working projects
+
+Suppose `atlas` and `notebook` are existing Next.js applications. Each has a PostgreSQL service in Compose and a `dev` package script that runs `next dev`:
+
+```text
+~/projects/
+  atlas/
+    compose.yaml
+    package.json
+    dwork.yml
+  notebook/
+    compose.yaml
+    package.json
+    dwork.yml
+```
+
+The applications run on the host; their databases run in containers. Atlas uses port 3000 and Notebook uses 3001. Their existing database configuration must also use distinct host ports if both databases might run together. Adapt these names, scripts, and ports to your projects.
+
+Complete each application's documented dependency installation, environment configuration, container creation, and migrations first. For these example projects, the container creation step is:
+
+```bash
+cd ~/projects/atlas
+docker compose -p atlas-dev up -d postgres
+
+cd ~/projects/notebook
+docker compose -p notebook-dev up -d postgres
+```
+
+These are **initial Docker Compose setup commands**, separate from dwork. They assume each Compose file already defines a `postgres` service. Add any build, seed, or migration steps required by the application, then verify that each application works manually.
+
+dwork does not call `docker compose up`. It uses `docker start` and `docker stop` on existing containers. It does not create, rebuild, pull, or remove containers, networks, or volumes. If you later remove a database container or change its stored environment, use your normal Compose setup to create or recreate it before switching with dwork again.
+
+Use unique Compose project names. Here, `atlas-dev` and `notebook-dev` identify separate container groups; `atlas` and `notebook` will become shorter dwork registration names. They serve different purposes.
+
+## Install dwork and check the prerequisites
+
+The documented source installer is:
+
+```bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/hayyaun/dwork/main/install.sh)"
+```
+
+It installs the current `main` source for your user, with isolated Python dependencies, including PyYAML. It requires Git, Make, curl, and Python with venv support: Python 3.10 or newer on Linux/WSL2, or 3.13 or newer on macOS. It does not install system prerequisites. Review the [installer and installation options](https://github.com/hayyaun/dwork/blob/main/docs/installation/README.md) before running downloaded code; release packages are available there too. Add the printed PATH setting if your shell does not already find `~/.local/bin`.
+
+Container workspaces need the Docker CLI, access to a running Engine, and Compose supporting `config --no-interpolate --no-env-resolution --format json`. Terminal commands use Bash or Zsh configured as `SHELL`. The sample also needs each application's own Node.js dependencies installed.
+
+Visible terminals require a supported desktop launcher: GNOME Terminal, Konsole, Xfce Terminal, or xterm on Linux; Apple Terminal on macOS; or Windows Terminal and Windows PowerShell on WSL2. Linux needs a graphical session. The [terminal guide](https://github.com/hayyaun/dwork/blob/main/docs/terminals/README.md) describes launcher selection. Keeping a launcher out of the shared YAML lets each developer choose locally, for example with `DWORK_TERMINAL=konsole`.
+
+Check the installed command before continuing:
+
+```bash
+dwork --version
+dwork --help
+```
+
+This article follows the current documentation. Avoid assuming that every field on `main` exists in an older package. For example, the optional top-level dwork `name` field is documented as newer than v0.6.0; this walkthrough uses explicit registration names instead.
+
+## Give the database a real health check
+
+A running container is not necessarily a ready database. dwork's terminal health gate reads Docker's health status, so the existing PostgreSQL service needs a health check. For a PostgreSQL image providing `pg_isready`, a typical addition to that service is:
+
+```yaml
+services:
+  postgres:
+    # Keep the project's existing image, environment, ports, and volumes.
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+```
+
+This assumes the service already sets `POSTGRES_USER` and `POSTGRES_DB`. The doubled dollar signs let the container shell expand those variables instead of Compose interpolating them on the host. Apply the change through the project's normal Compose workflow. dwork cannot add a health check to an existing container merely by reading the updated file.
+
+That check establishes database availability. It does not prove that migrations ran or that the application has the expected schema. Keep those requirements in the application's setup process. See [Docker's health-check reference](https://docs.docker.com/reference/dockerfile/#healthcheck) for the underlying status behavior.
+
+## Save a repeatable workspace configuration
+
+Create `atlas/dwork.yml` beside `compose.yaml`:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hayyaun/dwork/main/schemas/dwork.schema.json
+version: 1
+
+compose:
+  enabled: true
+  files: [compose.yaml]
+  services: [postgres]
+
+terminals:
+  - title: Atlas development
+    command: [npm, run, dev, --, --port, "3000"]
+    window: new
+    wait_for:
+      healthy: [postgres]
+      timeout: 180
+
+browsers:
+  - url: http://localhost:3000
+    wait_for:
+      timeout: 60
+```
+
+This manages only the existing `postgres` containers in the selected Compose project. Other services in that project remain untouched. Omit `services` only if you intend dwork to manage all existing containers belonging to it.
+
+The terminal command is an argument list. It matches a Next.js `dev` script and passes `--port 3000` through npm. For another framework, replace it with that project's actual command. Quote numeric arguments such as `"3000"`: command arguments must be strings. Use an existing script for pipelines or compound shell operations.
+
+Reuse this configuration in `notebook/dwork.yml`, changing the title to `Notebook development` and both port values to `3001`. The common structure is intentionally ordinary project configuration. Each file can be committed with its application and adjusted as the workflow changes. dwork does not merge multiple dwork files.
+
+Paths such as `compose.files` and terminal `cwd` are relative to `dwork.yml`. If the host application lives in `frontend/`, add `cwd: frontend` to the terminal entry. A Compose override can be listed explicitly as `files: [compose.yaml, compose.dev.yaml]`; explicit Compose file CLI arguments or `COMPOSE_FILE` take precedence.
+
+## Validate, register, and switch
+
+Use the same Compose identity that created the containers when checking and registering each project:
+
+```bash
+cd ~/projects/atlas
+dwork validate -p atlas-dev
+dwork doctor -p atlas-dev
+dwork register atlas -p atlas-dev
+
+cd ~/projects/notebook
+dwork validate -p notebook-dev
+dwork doctor -p notebook-dev
+dwork register notebook -p notebook-dev
+
+dwork list
+dwork switch atlas --dry-run
+dwork switch atlas
+```
+
+`validate` checks configuration, paths, and Compose references. `doctor` checks the environment, including Docker and launcher prerequisites. Neither launches the application. Registration saves the directory and Compose selection without starting or stopping workloads. The saved switch can then be invoked from another directory; it does not change your calling shell's directory.
+
+Read the preview and switch confirmation before applying the plan. Individual terminal and browser entries also ask for approval by default. Their separate prompts can be disabled deliberately with `confirm: false` on each entry; the sample retains the defaults.
+
+Now switch projects:
+
+```bash
+dwork switch notebook --dry-run
+dwork switch notebook
+```
+
+For an ordinary unlocked switch on the same Docker target, the sequence is:
+
+1. Stop outgoing commands tracked by dwork, then eligible outgoing managed containers.
+2. Start existing destination containers that are created or exited.
+3. Pass all configured Docker health gates before opening any terminal.
+4. Launch approved terminal commands, then process browser entries in order.
+
+Notebook's browser entry waits for its URL to return HTTP 200–399 before dispatching it to the browser. This is a separate readiness check from PostgreSQL health: the database must be ready before the app starts, and the app must respond before the page opens. Redirect responses count as ready without being followed. A successful response is not an application test.
+
+Only registered workspaces are eligible for outgoing shutdown. Unregistered projects stay running. Registering both examples is therefore part of making this switching routine work.
+
+## Know what remains open and what can fail
+
+When you switch away, dwork stops its tracked foreground command and leaves the visible terminal at a shell prompt. Commands you subsequently start manually in that shell are outside its tracking. Programs that daemonize or escape the tracked process group need their own lifecycle management.
+
+Browser windows remain open. The browser decides whether a new URL reuses a tab or window. On WSL, URLs open through Windows; readiness is checked from the Linux distribution, so it does not independently verify Windows firewall or localhost forwarding. See the [browser behavior and networking notes](https://github.com/hayyaun/dwork/blob/main/docs/browsers/README.md).
+
+Repeated activation launches another copy of each approved configured task and opens the URLs again. dwork does not deduplicate an already-running development server. Preview first and avoid treating activation as a status command.
+
+A missing required health-check container blocks activation before outgoing projects stop. Later health timeouts or launch failures can leave completed container changes and already-launched tasks in place. There is no automatic rollback. Inspect the reported state with `dwork status -p notebook-dev` from Notebook's directory and preview the next action before retrying.
+
+Changing a Compose project name, file selection, or managed service selection requires explicit re-registration with the intended options. Saved registrations are local user state, while `dwork.yml` describes the project workflow. Keep secrets out of registration arguments.
+
+## Keep shared work running when needed
+
+Sometimes both applications need to stay available. Named startup is additive:
+
+```bash
+dwork up atlas notebook --dry-run
+dwork up atlas notebook
+```
+
+Unlike a switch, named `up` leaves other workspaces running. It still launches approved tasks, so account for the duplication behavior above. Named startup requires CLI 0.5.0 or newer.
+
+For shared infrastructure that should survive switches, use `locked: true` in its dwork config or a local `dwork lock NAME` until you explicitly unlock it. The existing `DWORK_KEEP_PROJECTS` setting also protects exact Compose project names. Protection applies to tracked commands as well as containers; membership in a reusable named group does not itself provide a lock.
+
+To inspect and stop eligible registered workloads when finished:
+
+```bash
+dwork down --dry-run
+dwork down
+```
+
+The confirmation names the affected work. Containers and registrations remain available for the next switch, while locked and unregistered workloads stay running. Docker itself and the WSL VM are not shut down, and stopping workloads does not promise a particular amount of host-visible memory recovery.
+
+The useful starting point is one correctly configured project, one successful preview, and one deliberate switch. Then register the second project and reuse the same routine. The [dwork repository](https://github.com/hayyaun/dwork), [configuration reference](https://github.com/hayyaun/dwork/blob/main/docs/configuration/README.md), and [worked examples](https://github.com/hayyaun/dwork/blob/main/examples/README.md) cover adaptations such as separate backend/frontend directories and host-only workspaces.
