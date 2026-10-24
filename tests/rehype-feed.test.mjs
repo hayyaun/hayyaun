@@ -28,10 +28,28 @@ test("feed export escapes HTML text and attributes while retaining Unicode and c
   ]);
   assert.match(html, /café فارسی &#x3C;script>/);
   assert.match(html, /&#x26; "quotes"/);
-  assert.match(html, /<pre data-language="tsx"><code><span style="color:#abc">/);
+  assert.match(html, /<pre data-language="tsx"><code><span>/);
   assert.match(html, /a &#x3C; b &#x26;&#x26; c;/);
   assert.match(html, /href="https:\/\/hayyaun.ir\/search\?a=1&#x26;b=2"/);
   assert.match(html, /title="a &#x22;quote&#x22;"/);
+});
+
+test("feed code uses reader colors while preserving language, whitespace, and ordinary JSX styling", () => {
+  const html = render([
+    jsx("p", [attribute("style", "color:#123456")], [text("Styled prose")]),
+    element("pre", { style: "background-color:#0d1117;color:#c9d1d9", "data-language": "tsx" }, [
+      element("code", { style: "display: grid;", "data-language": "tsx" }, [
+        element("span", { "data-line": "", style: "color:#9ECBFF" }, [
+          element("span", { style: "color:#B392F0" }, [text("  const answer = 42;\n\n\treturn answer < 100;\n")]),
+        ]),
+      ]),
+    ]),
+    jsx("code", [attribute("style", "color:#79B8FF")], [text("npm run dev")]),
+  ]);
+  assert.equal(
+    html,
+    '<p style="color:#123456">Styled prose</p><pre data-language="tsx"><code data-language="tsx"><span data-line=""><span>  const answer = 42;\n\n\treturn answer &#x3C; 100;\n</span></span></code></pre><code>npm run dev</code>'
+  );
 });
 
 test("feed links, anchors, images, and media resolve against the production article URL", () => {

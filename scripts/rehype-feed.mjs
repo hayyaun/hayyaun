@@ -175,7 +175,16 @@ export default function rehypeFeed({ siteUrl } = {}) {
       fail(`does not support ${node.type}; add a static feed representation first.`);
     }
 
+    function removeCodeStyles(node, inCode = false) {
+      const isCode = inCode || (node.type === "element" && ["pre", "code"].includes(node.tagName));
+      if (isCode && node.type === "element") delete node.properties.style;
+      for (const child of node.children ?? []) removeCodeStyles(child, isCode);
+    }
+
     const feedTree = convert(structuredClone(tree))[0];
+    // Site highlighting assumes its dark code-block background. Let feed readers
+    // choose matching code colors and layout instead of inheriting only its tokens.
+    removeCodeStyles(feedTree);
     const html = toHtml(feedTree);
     tree.children.push({
       type: "mdxjsEsm",

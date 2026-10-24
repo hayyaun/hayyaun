@@ -48,6 +48,11 @@ the Route Handler uses this named export without running a second Markdown
 parser or scraping the website. The serializer, `hast-util-to-html`, is a direct
 build dependency (previously already installed transitively).
 
+Feed code retains its text, whitespace, and language attributes, but removes
+inline styles from code blocks and their tokens so each reader can apply readable
+foreground and background colors. Website syntax highlighting stays unchanged;
+ordinary static JSX styling outside code is preserved in the feed.
+
 Feed links and image sources resolve against the production article URL.
 Interactive examples become descriptive links to the live article because feed
 readers do not run the site's React controls. When adding another MDX component,
@@ -63,5 +68,11 @@ environment. RSS encoding follows the [RSS content module recommendations](https
 Run `npm test`, `npm run lint`, and `npm run build`. Inspect the generated
 `.next/server/app/rss.xml.body` as XML, including each item's decoded HTML,
 and compare its headings and code blocks with the generated article pages.
+After editing `scripts/rehype-feed.mjs`, verify a clean production build: cached
+MDX compilation can otherwise retain the previous plugin output. Clear or move
+only the generated `.next/cache` before rebuilding; preserve `.next/dev` when a
+developer-managed server is running. For Vercel, its documented
+[redeploy without the existing Build Cache](https://vercel.com/docs/deployments/troubleshoot-a-build#managing-build-cache)
+option provides the corresponding deployment check when needed.
 For a browser preview, use a developer-managed server; `npm start` serves the
 production build at `http://localhost:3000`.
